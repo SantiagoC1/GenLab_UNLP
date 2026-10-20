@@ -1,0 +1,678 @@
+{
+ "milestones": [
+  {
+   "title": "Semana 1",
+   "due": "2026-10-26"
+  },
+  {
+   "title": "Semana 2",
+   "due": "2026-11-02"
+  },
+  {
+   "title": "Semana 3",
+   "due": "2026-11-09"
+  },
+  {
+   "title": "Semana 4",
+   "due": "2026-11-16"
+  },
+  {
+   "title": "Semana 5",
+   "due": "2026-11-23"
+  },
+  {
+   "title": "Semana 6",
+   "due": "2026-11-30"
+  },
+  {
+   "title": "Semana 7",
+   "due": "2026-12-07"
+  }
+ ],
+ "issues": [
+  {
+   "id": "T1",
+   "title": "[T1] Arquitectura base: repositorio, base de datos, API, despliegue, modelo de estados del estudio",
+   "body": "## Contexto\nTarea **T1** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 5 puntos. Responsable sugerido: Integrante A.\nNota: Desbloquea a los demás: entregar en la semana 1\n\n## Criterios de aceptación\n- [ ] Repositorio, base de datos, API y despliegue funcionando\n- [ ] Enum de estados del estudio según el catálogo de la especificación\n- [ ] **M10-RF1**: Cada módulo externo deberá consumirse a través de un adaptador con una interfaz propia, de modo que el contrato pueda cambiar sin modificar el resto del sistema.\n- [ ] **M10-RF2**: Cada adaptador deberá tener un simulador local con datos de ejemplo, activable por configuración.\n- [ ] **M10-RF3**: Ante la caída de un módulo externo, el sistema deberá informar el error al usuario y no perder el trabajo ya cargado.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:A",
+    "puntos:5"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "T2",
+   "title": "[T2] Interfaz base: layout, navegación por rol, estilos, componentes comunes",
+   "body": "## Contexto\nTarea **T2** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante A.\nNota: Desbloquea a los demás: entregar en la semana 1\n\n## Criterios de aceptación\n- [ ] Layout con navegación por rol (7 roles), estilos y componentes comunes reutilizables\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:A",
+    "puntos:3"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "T3",
+   "title": "[T3] Datos de ejemplo y recorrido de demostración para el coloquio",
+   "body": "## Contexto\nTarea **T3** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] Pacientes de ejemplo en cada estado del flujo, cargados con un script (`make seed`)\n- [ ] Recorrido de demostración escrito para el coloquio\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 5",
+   "assignee_key": "B"
+  },
+  {
+   "id": "T4",
+   "title": "[T4] Documentación: especificación de requerimientos del sistema y glosario",
+   "body": "## Contexto\nTarea **T4** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] Documento entregado en la carpeta `docs/` y revisado por el equipo\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:A",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "A"
+  },
+  {
+   "id": "T5",
+   "title": "[T5] Documentación: casos de prueba (caja negra) de los módulos propios",
+   "body": "## Contexto\nTarea **T5** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] Documento entregado en la carpeta `docs/` y revisado por el equipo\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 6",
+   "assignee_key": "B"
+  },
+  {
+   "id": "T6",
+   "title": "[T6] Documentación: arquitectura y diseño (clases, estados, integraciones)",
+   "body": "## Contexto\nTarea **T6** del reparto. Escenarios de Leite: todos. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] Documento entregado en la carpeta `docs/` y revisado por el equipo\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:transversal",
+    "integrante:C",
+    "puntos:1"
+   ],
+   "milestone": "Semana 6",
+   "assignee_key": "C"
+  },
+  {
+   "id": "1.1",
+   "title": "[1.1] Registrarse por autoalta",
+   "body": "## Contexto\nTarea **1.1** del reparto. Escenarios de Leite: 1. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M1-RF1**: El sistema deberá permitir la autoalta de un médico tratante, un administrativo del laboratorio o un bioinformático, con nombre, apellido, teléfono, mail y contraseña (escenario 1, decisión D1).\n- [ ] **M1-RF2**: Para el médico tratante, el alta deberá pedir además la matrícula y las especialidades elegidas de un catálogo estandarizado. La matrícula no se valida contra un servicio externo.\n- [ ] **M1-RF3**: El sistema deberá rechazar un registro con mail ya existente o con datos obligatorios faltantes.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:acceso",
+    "integrante:A",
+    "puntos:2"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "1.2",
+   "title": "[1.2] Dar de alta a un usuario (administrador general)",
+   "body": "## Contexto\nTarea **1.2** del reparto. Escenarios de Leite: 2. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M1-RF4**: El administrador general deberá poder dar de alta usuarios de cualquier rol, excepto paciente, y el sistema deberá enviar las credenciales por mail (escenario 2).\n- [ ] **M1-RF5**: El sistema deberá permitir un solo transportista por provincia y rechazar el alta de un segundo **[supuesto]**.\n- [ ] **M1-RF6**: El gerente médico y el transportista solo podrán ser dados de alta por el administrador general **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:acceso",
+    "integrante:A",
+    "puntos:2"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "1.3",
+   "title": "[1.3] Activar la cuenta del paciente",
+   "body": "## Contexto\nTarea **1.3** del reparto. Escenarios de Leite: 3. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M1-RF7**: El paciente deberá cambiar la contraseña inicial en su primer ingreso, antes de ver cualquier otra pantalla. Si es menor de edad, lo hace su padre o madre (escenario 3).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:acceso",
+    "integrante:A",
+    "puntos:2"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "1.4",
+   "title": "[1.4] Ingresar con código por mail y bloqueo a los 5 intentos",
+   "body": "## Contexto\nTarea **1.4** del reparto. Escenarios de Leite: 4. Esfuerzo estimado: 4 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M1-RF8**: El ingreso deberá pedir un código de verificación enviado por mail cuando el dispositivo o la red sean nuevos **[deseo]** (escenario 4).\n- [ ] **M1-RF9**: El sistema deberá bloquear la cuenta tras 5 intentos fallidos consecutivos **[supuesto]**.\n- [ ] **M1-RF10**: El código de verificación deberá vencer a los 10 minutos y permitir solicitar uno nuevo **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:acceso",
+    "integrante:A",
+    "puntos:4"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "2.1",
+   "title": "[2.1] Dar de alta una patología lisosomal",
+   "body": "## Contexto\nTarea **2.1** del reparto. Escenarios de Leite: 5. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M2-RF1**: El sistema deberá permitir dar de alta una patología lisosomal con un síntoma cardinal y síntomas secundarios (escenario 5).\n- [ ] **M2-RF2**: Los síntomas se cargarán con el buscador de SNOMED (M3-RF1), sin texto libre.\n- [ ] **M2-RF3**: El sistema deberá impedir duplicar una patología existente.\n- [ ] **M2-RF6**: Los genes de cada patología no se cargan acá: los mantiene Apigen.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:config-medica",
+    "integrante:A",
+    "puntos:2"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "A"
+  },
+  {
+   "id": "2.2",
+   "title": "[2.2] Modificar los síntomas de una patología",
+   "body": "## Contexto\nTarea **2.2** del reparto. Escenarios de Leite: 6. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M2-RF4**: El sistema deberá permitir modificar el síntoma cardinal y los síntomas secundarios de una patología. El cambio rige para los próximos pacientes **[supuesto]** (escenario 6).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:config-medica",
+    "integrante:A",
+    "puntos:1"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "A"
+  },
+  {
+   "id": "3.1",
+   "title": "[3.1] Buscador de síntomas con SNOMED (cliente del módulo adicional 2)",
+   "body": "## Contexto\nTarea **3.1** del reparto. Escenarios de Leite: 7. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M3-RF1**: El sistema deberá ofrecer un buscador de síntomas que consulte el servicio de SNOMED desde 3 letras, presente las coincidencias y no admita texto libre (escenario 7, **[PDF]** MA2).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:consulta-medica",
+    "integrante:A",
+    "puntos:3"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "A"
+  },
+  {
+   "id": "3.2",
+   "title": "[3.2] Familiograma: carga de familiares y cliente del módulo adicional 1",
+   "body": "## Contexto\nTarea **3.2** del reparto. Escenarios de Leite: 8. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M3-RF9**: El sistema deberá permitir cargar familiares (parentesco, nombre, diagnóstico y síntomas) y obtener el familiograma en PDF del módulo MA1. Si el módulo falla, el alta continúa con el familiograma vacío **[supuesto]** (escenario 8).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:consulta-medica",
+    "integrante:A",
+    "puntos:3"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "A"
+  },
+  {
+   "id": "3.3",
+   "title": "[3.3] Dar de alta al paciente, con regla de correspondencia clínica y cliente CDSS",
+   "body": "## Contexto\nTarea **3.3** del reparto. Escenarios de Leite: 9. Esfuerzo estimado: 5 puntos. Responsable sugerido: Integrante A.\nNota: Incluye la configuración de estrategia del CDSS\n\n## Criterios de aceptación\n- [ ] **M3-RF2**: El sistema deberá permitir cargar el alta del paciente con DNI, nombre, apellido, fecha de nacimiento, teléfono y mail. Si es menor, el mail es el de sus padres (escenario 9).\n- [ ] **M3-RF3**: El sistema deberá permitir indicar uno o más diagnósticos presuntivos y el tipo de sospecha (clínica o familiar), y cargar el resumen de historia clínica y los síntomas.\n- [ ] **M3-RF4**: El dictado por voz del resumen de historia clínica queda como **[deseo]**. Si no está disponible, se escribe.\n- [ ] **M3-RF5**: Todos los datos del alta serán obligatorios, salvo el familiograma.\n- [ ] **M3-RF6**: En una sospecha clínica, el sistema deberá verificar la regla de correspondencia clínica (síntoma cardinal o dos síntomas secundarios) consultando al CDSS (MA4), bloquear el alta si no se cumple e indicar qué falta.\n- [ ] **M3-RF7**: Si el DNI ya existe, el sistema deberá mostrar al paciente existente y continuar con el alta del estudio.\n- [ ] **M3-RF8**: Al dar de alta al paciente, el sistema deberá enviarle sus credenciales por mail.\n- [ ] **M2-RF5**: El sistema deberá permitir elegir la estrategia del CDSS entre las tres del PDF: patología con más síntomas coincidentes, patología con más síntomas cardinales coincidentes, o menor diferencia entre los síntomas de la patología y los del paciente **[PDF]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [T1]\n- [T2]\n- [1.4]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:consulta-medica",
+    "integrante:A",
+    "puntos:5"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "A"
+  },
+  {
+   "id": "3.4",
+   "title": "[3.4] Dar de alta el estudio, con genes de Apigen y marca Pompe urgente",
+   "body": "## Contexto\nTarea **3.4** del reparto. Escenarios de Leite: 10. Esfuerzo estimado: 4 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M3-RF10**: El sistema deberá permitir solicitar un estudio para un paciente con una o más patologías sospechadas y obtener la lista de genes de Apigen (MA5), incluidos los hallazgos secundarios si se piden (escenario 10).\n- [ ] **M3-RF11**: El médico podrá agregar genes manualmente.\n- [ ] **M3-RF12**: El estudio quedará en estado Creado. Si entre las patologías está Pompe y el paciente tiene menos de 4 meses, el estudio tendrá la prioridad Pompe urgente.\n- [ ] **M3-RF13**: Si Apigen no responde, el sistema no permitirá solicitar el estudio **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [3.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:consulta-medica",
+    "integrante:A",
+    "puntos:4"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "A"
+  },
+  {
+   "id": "4.1",
+   "title": "[4.1] Emitir el presupuesto",
+   "body": "## Contexto\nTarea **4.1** del reparto. Escenarios de Leite: 11. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF1**: El administrativo deberá ver una bandeja de estudios Creados sin presupuesto y emitir el presupuesto. El importe es fijo: USD 500 hasta 5 genes y USD 30 por cada gen adicional, con la extracción y el turno incluidos (escenario 11).\n- [ ] **M4-RF2**: Al emitirse el presupuesto, el paciente deberá recibir un aviso **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [3.4]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "B"
+  },
+  {
+   "id": "4.2",
+   "title": "[4.2] Elegir la cobertura por obra social (cliente del módulo adicional 6)",
+   "body": "## Contexto\nTarea **4.2** del reparto. Escenarios de Leite: 12. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF3**: El paciente deberá poder elegir la cobertura por obra social, ver la lista con el porcentaje de cobertura (MA6) y dejar el estudio a la espera de la autorización (escenario 12).\n- [ ] **M4-RF4**: Si la obra social no figura en la lista, solo queda el pago particular **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:3"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "B"
+  },
+  {
+   "id": "4.3",
+   "title": "[4.3] Pagar el estudio de forma particular y registro financiero",
+   "body": "## Contexto\nTarea **4.3** del reparto. Escenarios de Leite: 13. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF5**: El paciente deberá poder pagar de forma particular con un pago simulado que se asienta en el registro financiero (escenario 13). A futuro se integraría Mercado Pago.\n- [ ] **M4-RF9**: Un estudio Autorizado se considera autorizado y pagado.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:3"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "B"
+  },
+  {
+   "id": "4.4",
+   "title": "[4.4] Aplicar un cupón de descuento (cliente del módulo adicional 3)",
+   "body": "## Contexto\nTarea **4.4** del reparto. Escenarios de Leite: 14. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF6**: El paciente deberá poder aplicar un cupón de descuento adjuntando el PDF o su código. El sistema deberá consultar al módulo de cupones (MA3) si está Vigente y mostrar el nuevo importe. Al pagar, informará el uso del cupón (escenario 14).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "B"
+  },
+  {
+   "id": "5.1",
+   "title": "[5.1] Generar cupones de descuento",
+   "body": "## Contexto\nTarea **5.1** del reparto. Escenarios de Leite: 15. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M5-RF1**: El gerente médico deberá poder definir el descuento y la cantidad, y el sistema deberá pedirlos al módulo de cupones y mostrarlos Vigentes con su PDF y QR (escenario 15).\n- [ ] **M5-RF5**: Si el módulo de cupones rechaza la solicitud, el sistema informa el error y no muestra cupones nuevos.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [T1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:cupones",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "5.2",
+   "title": "[5.2] Asignar cupones al médico tratante",
+   "body": "## Contexto\nTarea **5.2** del reparto. Escenarios de Leite: 16. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M5-RF2**: El gerente médico deberá poder asignar uno o más cupones Vigentes a un médico tratante buscado por nombre o matrícula, y el médico recibirá un aviso (escenario 16).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [5.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:cupones",
+    "integrante:B",
+    "puntos:1"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "5.3",
+   "title": "[5.3] Asignar un cupón al paciente",
+   "body": "## Contexto\nTarea **5.3** del reparto. Escenarios de Leite: 17. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M5-RF3**: El médico tratante deberá poder asignar un cupón disponible a un paciente. El sistema lo descontará de los disponibles y lo publicará en la vista del paciente (escenario 17).\n- [ ] **M5-RF4**: Si el médico no tiene cupones, la asignación se deshabilita.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [5.2]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:cupones",
+    "integrante:B",
+    "puntos:1"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "4.5",
+   "title": "[4.5] Registrar la autorización de la obra social",
+   "body": "## Contexto\nTarea **4.5** del reparto. Escenarios de Leite: 18. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF7**: El administrativo deberá registrar la respuesta de la obra social como Autorizado o Rechazado, con el motivo en el segundo caso, y el sistema deberá asentar la operación y avisar al paciente (escenario 18). Ver la decisión 2 de la tabla.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.2]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "4.6",
+   "title": "[4.6] Solicitar la reautorización con una demanda",
+   "body": "## Contexto\nTarea **4.6** del reparto. Escenarios de Leite: 19. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M4-RF8**: El paciente con un estudio Rechazado deberá ver el motivo y poder adjuntar el PDF de la demanda para pedir la reautorización. El sistema rechazará archivos que no sean PDF (escenario 19).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.5]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:presupuesto-pago",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.1",
+   "title": "[6.1] Sacar turno: mapa de laboratorios y turneros generados por regla",
+   "body": "## Contexto\nTarea **6.1** del reparto. Escenarios de Leite: 20. Esfuerzo estimado: 5 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF1**: El sistema deberá mostrar en un mapa los laboratorios de extracción (hay 100 en el país) y permitir elegir uno y un turno libre (escenario 20).\n- [ ] **M6-RF2**: Los turnos duran 15 minutos, para una persona, de lunes a viernes de 9 a 18, sin feriados. El sistema los genera con esa regla **[supuesto]**.\n- [ ] **M6-RF3**: Solo podrá sacar turno un estudio Pagado o Autorizado, o uno con una nueva reserva habilitada por cancelación, inasistencia o remuestreo.\n- [ ] **M6-RF4**: Al reservar, el estudio pasará a Turno sacado, se programará un recordatorio por mail y se publicarán la orden de extracción y el consentimiento informado.\n- [ ] **M6-RF5**: Si el turno se ocupa antes de reservarlo, el sistema deberá mostrar los turnos libres actualizados.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [4.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:5"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.2",
+   "title": "[6.2] Descargar la orden de extracción y el consentimiento informado (PDF)",
+   "body": "## Contexto\nTarea **6.2** del reparto. Escenarios de Leite: 21. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF6**: El paciente deberá poder descargar la orden de extracción (fecha, hora, laboratorio e indicaciones) y el consentimiento informado para imprimir. El firmado se entrega en papel y no se sube al sistema (escenario 21).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.3",
+   "title": "[6.3] Cancelar el turno de extracción",
+   "body": "## Contexto\nTarea **6.3** del reparto. Escenarios de Leite: 22. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF7**: El paciente deberá poder cancelar un turno futuro sin costo, y el estudio vuelve al estado previo **[supuesto]**. Un turno cuya hora ya pasó no se cancela (escenario 22).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:1"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.4",
+   "title": "[6.4] Registrar una inasistencia y reprogramar",
+   "body": "## Contexto\nTarea **6.4** del reparto. Escenarios de Leite: 23. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF8**: El sistema deberá registrar una inasistencia, avisar la cantidad acumulada y permitir reprogramar. Al llegar a 5 avisa pero no aplica bloqueo hasta resolver P2 (escenario 23).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.5",
+   "title": "[6.5] Recibir la notificación de la muestra (endpoint y simulador de Telegram)",
+   "body": "## Contexto\nTarea **6.5** del reparto. Escenarios de Leite: 24. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF9**: El sistema deberá recibir, sin intervención de personas, la notificación del laboratorio de extracción con el estudio y el volumen de la muestra, y pasar el estudio a Listo para retirar si hay al menos 2 ml (escenario 24).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:3"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "6.6",
+   "title": "[6.6] Solicitar el remuestreo",
+   "body": "## Contexto\nTarea **6.6** del reparto. Escenarios de Leite: 25. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M6-RF10**: Con menos de 2 ml, o con ADN insuficiente informado por el bioinformático, el sistema deberá habilitar un remuestreo sin costo y sin crear un estudio nuevo, y avisar al médico y al paciente (escenario 25).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.5]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:turnos",
+    "integrante:B",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "7.1",
+   "title": "[7.1] Orden del día del transportista (cliente del módulo adicional 9)",
+   "body": "## Contexto\nTarea **7.1** del reparto. Escenarios de Leite: 26. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF1**: Cada día hábil, el sistema deberá enviar al módulo de optimización (MA9) las direcciones de los laboratorios con muestras por retirar en la provincia y presentar al transportista su orden del día numerada, con las muestras por parada (escenario 26).\n- [ ] **M7-RF2**: En fines de semana y feriados no se genera orden del día. Si no hay muestras, el sistema lo informa.\n- [ ] **M7-RF3**: El recorrido es fijo: el transportista no puede reordenar ni saltear paradas.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [6.5]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:3"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.2",
+   "title": "[7.2] Retirar muestras en cada parada",
+   "body": "## Contexto\nTarea **7.2** del reparto. Escenarios de Leite: 27. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF4**: El transportista deberá registrar el retiro de cada parada y el sistema pasará esas muestras a En camino al laboratorio central (escenario 27).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.3",
+   "title": "[7.3] Entregar las muestras y armar lotes de 10",
+   "body": "## Contexto\nTarea **7.3** del reparto. Escenarios de Leite: 28. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF5**: El transportista deberá registrar su llegada al laboratorio central. El sistema pasará los estudios a En laboratorio central y los incorporará al lote abierto por orden de llegada (escenario 28).\n- [ ] **M7-RF6**: El lote se cierra solo al llegar a 10 estudios. Un lote incompleto queda abierto, aunque termine el día.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.2]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:3"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.4",
+   "title": "[7.4] Solicitar el permiso del Ministerio de Salud (CSV y API simulada)",
+   "body": "## Contexto\nTarea **7.4** del reparto. Escenarios de Leite: 29. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF8**: Al cerrar un lote, el sistema deberá generar el CSV de pacientes, enviarlo a la API del Ministerio de Salud, recibir el permiso en PDF y asociarlo a cada estudio. Sin permiso, no se puede programar el retiro (escenario 29).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.5",
+   "title": "[7.5] Cerrar anticipadamente un lote por Pompe urgente",
+   "body": "## Contexto\nTarea **7.5** del reparto. Escenarios de Leite: 30. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF7**: Si entra un estudio Pompe urgente, el sistema cerrará el lote con los estudios que tenga y abrirá otro (escenario 30). Es la única excepción a los 10 estudios.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:1"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.6",
+   "title": "[7.6] Programar el retiro con FedEx (cliente del módulo adicional 10)",
+   "body": "## Contexto\nTarea **7.6** del reparto. Escenarios de Leite: 31. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF9**: El administrativo deberá poder programar el retiro de un lote autorizado, eligiendo día y hora de 9 a 18 en días hábiles sin feriados, y el sistema lo enviará a FedEx (MA10) con la URL del lote (escenario 31).\n- [ ] **M7-RF11**: Si FedEx no confirma la programación o la señal de retiro no llega, el lote mantiene su estado.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.4]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:3"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.7",
+   "title": "[7.7] Registrar el retiro del lote y pasar a En viaje a Corea",
+   "body": "## Contexto\nTarea **7.7** del reparto. Escenarios de Leite: 32. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF10**: Cuando FedEx retire el paquete, el sistema pasará el lote y sus estudios a En viaje a Corea y sellará el lote (escenario 32). Ver la decisión 3 de la tabla.\n- [ ] **M10-RF4**: El sistema deberá incluir un panel que simule a los actores sin acceso a la plataforma: laboratorio de extracción, Ministerio de Salud y FedEx.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.6]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "C"
+  },
+  {
+   "id": "7.8",
+   "title": "[7.8] Consultar la ubicación de una muestra en traslado [deseo]",
+   "body": "## Contexto\nTarea **7.8** del reparto. Escenarios de Leite: 33. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M7-RF12**: El administrativo deberá poder consultar la ubicación de una muestra en traslado en un mapa **[deseo]** (escenario 33, P9).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.2]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:logistica",
+    "integrante:C",
+    "puntos:2",
+    "deseo"
+   ],
+   "milestone": "Semana 6",
+   "assignee_key": "C"
+  },
+  {
+   "id": "8.1",
+   "title": "[8.1] Cargar los datos crudos de un estudio",
+   "body": "## Contexto\nTarea **8.1** del reparto. Escenarios de Leite: 34. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M8-RF1**: El administrativo deberá poder adjuntar los datos crudos a cada estudio En viaje a Corea. El sistema los asocia, pasa el estudio a En el área de bioinformática y avisa por mail a todos los bioinformáticos (escenario 34). Rechaza archivos vacíos **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [7.7]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:bioinformatica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "C"
+  },
+  {
+   "id": "8.2",
+   "title": "[8.2] Tomar un estudio para su análisis",
+   "body": "## Contexto\nTarea **8.2** del reparto. Escenarios de Leite: 35. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M8-RF2**: El bioinformático deberá ver la lista de estudios disponibles, con los Pompe urgente primero y el resto por orden de llegada (escenario 35).\n- [ ] **M8-RF3**: Al tomar un estudio, el sistema lo asigna, lo pasa a En análisis por un bioinformático y lo quita de la lista de los demás. Si otro lo tomó antes, lo informa.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [8.1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:bioinformatica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "C"
+  },
+  {
+   "id": "8.3",
+   "title": "[8.3] Registrar variantes (Apigen) y finalizar con el PDF del resultado",
+   "body": "## Contexto\nTarea **8.3** del reparto. Escenarios de Leite: 36. Esfuerzo estimado: 4 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M8-RF4**: Por cada gen con hallazgos, el bioinformático deberá elegir la variante de las que devuelve Apigen. La clasificación (patogénica, benigna o VUS) la informa Apigen y no se edita (escenario 36).\n- [ ] **M8-RF5**: Al finalizar el análisis, con o sin variantes, el sistema deberá generar el PDF del resultado, pasar el estudio a Resultado disponible y avisar por mail al médico y al paciente. Sin variantes, el resultado es negativo.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [8.2]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:bioinformatica",
+    "integrante:C",
+    "puntos:4"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "C"
+  },
+  {
+   "id": "8.4",
+   "title": "[8.4] Consultar y descargar el resultado (médico y paciente)",
+   "body": "## Contexto\nTarea **8.4** del reparto. Escenarios de Leite: 37, 38. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M8-RF6**: El médico deberá poder ver el resultado, las variantes con su clasificación y descargar el PDF (escenario 37).\n- [ ] **M8-RF7**: El paciente deberá descargar el PDF desde la plataforma. El resultado no se envía por mail (escenario 38).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [8.3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:bioinformatica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 5",
+   "assignee_key": "C"
+  },
+  {
+   "id": "8.5",
+   "title": "[8.5] Solicitar el reanálisis de un estudio",
+   "body": "## Contexto\nTarea **8.5** del reparto. Escenarios de Leite: 39. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M8-RF8**: El médico deberá poder solicitar un reanálisis con una nueva patología sospechada, sin nueva extracción, con los genes todavía no analizados (escenario 39).\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [8.4]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:bioinformatica",
+    "integrante:C",
+    "puntos:2"
+   ],
+   "milestone": "Semana 5",
+   "assignee_key": "C"
+  },
+  {
+   "id": "9.1",
+   "title": "[9.1] Avisos dentro de la plataforma y cliente del módulo adicional 7",
+   "body": "## Contexto\nTarea **9.1** del reparto. Escenarios de Leite: 41. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M9-RF1**: El sistema deberá indicar que hay avisos pendientes y mostrar una lista según el rol (escenario 41).\n- [ ] **M9-RF2**: Abrir un aviso deberá llevar a la pantalla del estudio relacionado.\n- [ ] **M9-RF3**: Los avisos al paciente se envían por mail y se muestran en la plataforma, nunca al celular.\n- [ ] **M9-RF4**: Si no hay avisos, la lista se muestra vacía.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:avisos",
+    "integrante:C",
+    "puntos:3"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "C"
+  },
+  {
+   "id": "9.2",
+   "title": "[9.2] Integrar el chatbot en la vista del paciente",
+   "body": "## Contexto\nTarea **9.2** del reparto. Escenarios de Leite: 40. Esfuerzo estimado: 1 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF12**: Nuestra plataforma deberá incluir una ventana de chat en la vista del paciente, reutilizable por otros grupos **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB5]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:avisos",
+    "integrante:C",
+    "puntos:1"
+   ],
+   "milestone": "Semana 5",
+   "assignee_key": "C"
+  },
+  {
+   "id": "CB1",
+   "title": "[CB1] Chatbot: alcance, contrato de la API y acuerdo con los grupos consumidores",
+   "body": "## Contexto\nTarea **CB1** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF11**: El servicio deberá tener documentada su API (formato de pedido y respuesta, errores y ejemplo de uso) para los grupos consumidores.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:A",
+    "puntos:2",
+    "chatbot"
+   ],
+   "milestone": "Semana 1",
+   "assignee_key": "A"
+  },
+  {
+   "id": "CB2",
+   "title": "[CB2] Chatbot: base de conocimiento sobre estudios genéticos y patologías lisosomales",
+   "body": "## Contexto\nTarea **CB2** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 4 puntos. Responsable sugerido: Integrante A.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF2**: El servicio deberá responder en español sobre estudios genéticos: qué es un exoma clínico, cómo es el proceso del estudio (extracción, traslado, análisis), qué son las patologías lisosomales (Fabry, Pompe, mucopolisacaridosis tipo 1, Gaucher y ASMD) y qué significan términos del resultado (variante, patogénica, benigna, VUS) **[supuesto]**.\n- [ ] **M11-RF5**: Las respuestas deberán basarse en una base de conocimiento curada. Si no hay información suficiente, el servicio deberá decirlo en lugar de responder sin sustento **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:A",
+    "puntos:4",
+    "chatbot"
+   ],
+   "milestone": "Semana 3",
+   "assignee_key": "A"
+  },
+  {
+   "id": "CB3",
+   "title": "[CB3] Chatbot: servicio de consulta, integración con el modelo de lenguaje y control de alcance",
+   "body": "## Contexto\nTarea **CB3** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 5 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF1**: El servicio deberá exponer un endpoint que reciba la consulta del paciente en texto y devuelva la respuesta en texto.\n- [ ] **M11-RF3**: Ante una consulta fuera del alcance, el servicio deberá indicar que solo responde sobre estudios genéticos y no inventar una respuesta.\n- [ ] **M11-RF4**: El servicio no deberá dar un diagnóstico, interpretar el resultado individual de un paciente ni recomendar tratamientos. En esos casos deberá sugerir hablar con su médico tratante, sin derivar a una persona del laboratorio (escenario 40) **[supuesto]**.\n- [ ] **M11-RF7**: El servicio no deberá recibir ni guardar datos personales identificables del paciente **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB1]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:B",
+    "puntos:5",
+    "chatbot"
+   ],
+   "milestone": "Semana 2",
+   "assignee_key": "B"
+  },
+  {
+   "id": "CB4",
+   "title": "[CB4] Chatbot: sesiones, límites de uso, manejo de errores y registro",
+   "body": "## Contexto\nTarea **CB4** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante B.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF6**: El servicio deberá aceptar un identificador de conversación opcional para mantener el contexto de los mensajes anteriores **[supuesto]**.\n- [ ] **M11-RF8**: Si el servicio no está disponible, deberá devolver un error claro para que la aplicación consumidora informe que el chatbot no responde (escenario 40).\n- [ ] **M11-RF9**: El servicio deberá limitar el largo de la consulta y la cantidad de consultas por consumidor.\n- [ ] **M11-RF10**: El servicio deberá registrar las consultas y las respuestas, sin datos personales, para evaluar su calidad **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:B",
+    "puntos:3",
+    "chatbot"
+   ],
+   "milestone": "Semana 4",
+   "assignee_key": "B"
+  },
+  {
+   "id": "CB5",
+   "title": "[CB5] Chatbot: ventana de chat reutilizable para los consumidores",
+   "body": "## Contexto\nTarea **CB5** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF12**: Nuestra plataforma deberá incluir una ventana de chat en la vista del paciente, reutilizable por otros grupos **[supuesto]**.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:C",
+    "puntos:3",
+    "chatbot"
+   ],
+   "milestone": "Semana 5",
+   "assignee_key": "C"
+  },
+  {
+   "id": "CB6",
+   "title": "[CB6] Chatbot: pruebas con preguntas dentro y fuera de alcance, y documentación de uso",
+   "body": "## Contexto\nTarea **CB6** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 3 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF3**: Ante una consulta fuera del alcance, el servicio deberá indicar que solo responde sobre estudios genéticos y no inventar una respuesta.\n- [ ] **M11-RF4**: El servicio no deberá dar un diagnóstico, interpretar el resultado individual de un paciente ni recomendar tratamientos. En esos casos deberá sugerir hablar con su médico tratante, sin derivar a una persona del laboratorio (escenario 40) **[supuesto]**.\n- [ ] **M11-RF11**: El servicio deberá tener documentada su API (formato de pedido y respuesta, errores y ejemplo de uso) para los grupos consumidores.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:C",
+    "puntos:3",
+    "chatbot"
+   ],
+   "milestone": "Semana 6",
+   "assignee_key": "C"
+  },
+  {
+   "id": "CB7",
+   "title": "[CB7] Chatbot: despliegue independiente y monitoreo",
+   "body": "## Contexto\nTarea **CB7** del reparto. Escenarios de Leite: MA8. Esfuerzo estimado: 2 puntos. Responsable sugerido: Integrante C.\n\n\n## Criterios de aceptación\n- [ ] **M11-RF13**: El servicio deberá poder desplegarse por separado de la plataforma, para que los demás grupos lo consuman aunque la plataforma no esté activa.\n- [ ] Casos de prueba escritos y pasando\n- [ ] Vocabulario del LEL en pantallas y mails\n\n## Depende de\n- [CB3]\n\nFuentes: `docs/Especificacion_requerimientos_GenLab.md` y `docs/Escenarios_laboratorio_genetica.md`.\n",
+   "labels": [
+    "area:chatbot",
+    "integrante:C",
+    "puntos:2",
+    "chatbot"
+   ],
+   "milestone": "Semana 6",
+   "assignee_key": "C"
+  }
+ ]
+}
