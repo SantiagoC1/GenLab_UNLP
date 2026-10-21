@@ -1,18 +1,18 @@
 import { useNavigate } from 'react-router-dom'
-import { PANTALLAS } from '../roles/pantallas'
+import { initialScreen } from '../roles/pantallas'
 import { useRol } from '../roles/rol-context'
 import { ETIQUETA_ROL, ROLES, type Rol } from '../roles/roles'
 
 /** Solo en modo desarrollo: permite recorrer la aplicación como cualquier rol. */
 export function SelectorDeRol() {
-  const { rol, setRol } = useRol()
+  const { rol, setRol, session } = useRol()
   const navegar = useNavigate()
-  if (!import.meta.env.DEV) return null
+  if (!import.meta.env.DEV || session) return null
 
   const cambiar = (nuevo: Rol) => {
     setRol(nuevo)
-    const primera = PANTALLAS.find((p) => p.rol === nuevo)
-    navegar(primera ? `/${nuevo}/${primera.ruta}` : '/')
+    const inicio = initialScreen(nuevo)
+    navegar(inicio ? `/${nuevo}/${inicio}` : '/')
   }
 
   return (
