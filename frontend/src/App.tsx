@@ -1,12 +1,19 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
-import { PANTALLAS } from './roles/pantallas'
+import { PANTALLAS, initialScreen } from './roles/pantallas'
 import { useRol } from './roles/rol-context'
 import AvisosPantalla from './roles/comun/AvisosPantalla'
 
+function ProtectedRoute() {
+  const { session } = useRol()
+  if (!session && !import.meta.env.DEV) return <Navigate to="/ingresar" replace />
+  if (session?.mustChangePassword) return <Navigate to="/cambiar-contrasena" replace />
+  return <Layout />
+}
+
 export default function App() {
   const { rol } = useRol()
-  const inicio = PANTALLAS.find((p) => p.rol === rol)
+  const inicio = initialScreen(rol)
 
   return (
     <Routes>
@@ -21,7 +28,7 @@ export default function App() {
           }
         />
       ))}
-      <Route element={<Layout />}>
+      <Route element={<ProtectedRoute />}>
         {PANTALLAS.filter((p) => p.rol !== 'publico').map(
           ({ rol: r, ruta, componente: Pantalla }) => (
             <Route key={`${r}/${ruta}`} path={`/${r}/${ruta}`} element={<Pantalla />} />
@@ -30,7 +37,7 @@ export default function App() {
         <Route path="/avisos" element={<AvisosPantalla />} />
         <Route
           path="*"
-          element={<Navigate to={inicio ? `/${rol}/${inicio.ruta}` : '/ingresar'} replace />}
+          element={<Navigate to={inicio ? `/${rol}/${inicio}` : '/ingresar'} replace />}
         />
       </Route>
     </Routes>
