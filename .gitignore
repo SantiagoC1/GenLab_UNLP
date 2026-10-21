@@ -1,3 +1,32 @@
-__pycache__/
-node_modules/
+# Secretos y entorno local
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Editores y SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Datos locales
+*.sqlite3
+pgdata/
