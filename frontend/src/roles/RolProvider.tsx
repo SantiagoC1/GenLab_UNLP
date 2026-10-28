@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { SESSION_EXPIRED_EVENT } from '../lib/api'
+import { clearSession, readSession, saveSession, type Session } from '../lib/session'
 import { RolContext } from './rol-context'
 import { ROLES, type Rol } from './roles'
 
@@ -9,15 +11,33 @@ function rolInicial(): Rol {
   return ROLES.find((r) => r === guardado) ?? 'paciente'
 }
 
-/**
- * Hasta que exista el ingreso real (tarea 1.4), el rol sale del selector de desarrollo.
- * TODO: reemplazar por el rol del usuario autenticado.
- */
 export function RolProvider({ children }: { children: ReactNode }) {
-  const [rol, setRolState] = useState<Rol>(rolInicial)
+  const [devRol, setDevRol] = useState<Rol>(rolInicial)
+  const [session, setSession] = useState<Session | null>(readSession)
+
+  useEffect(() => {
+    const onExpired = () => setSession(null)
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
+  }, [])
+
   const setRol = (nuevo: Rol) => {
     localStorage.setItem(CLAVE, nuevo)
-    setRolState(nuevo)
+    setDevRol(nuevo)
   }
-  return <RolContext.Provider value={{ rol, setRol }}>{children}</RolContext.Provider>
+  const startSession = (next: Session) => {
+    saveSession(next)
+    setSession(next)
+  }
+  const endSession = () => {
+    clearSession()
+    setSession(null)
+  }
+
+  const rol = session?.rol ?? devRol
+  return (
+    <RolContext.Provider value={{ rol, setRol, session, startSession, endSession }}>
+      {children}
+    </RolContext.Provider>
+  )
 }

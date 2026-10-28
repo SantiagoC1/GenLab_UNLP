@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { PANTALLAS } from '../roles/pantallas'
 import { useRol } from '../roles/rol-context'
 import { ETIQUETA_ROL } from '../roles/roles'
-import { SelectorDeRol } from './SelectorDeRol'
+import { SelectorDeRol } from './RoleSelector'
 
 const claseLink = ({ isActive }: { isActive: boolean }) =>
   `block rounded-md px-3 py-2 text-sm ${
@@ -11,7 +11,8 @@ const claseLink = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export function Layout() {
-  const { rol } = useRol()
+  const { rol, session, endSession } = useRol()
+  const navegar = useNavigate()
   const [abierto, setAbierto] = useState(false)
   const menu = PANTALLAS.filter((p) => p.rol === rol)
 
@@ -51,6 +52,18 @@ export function Layout() {
         <div className="mt-6 hidden md:block">
           <SelectorDeRol />
         </div>
+        {session && (
+          <button
+            type="button"
+            onClick={() => {
+              endSession()
+              navegar('/ingresar')
+            }}
+            className="mt-4 w-full rounded-md border border-slate-300 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Cerrar sesión
+          </button>
+        )}
       </aside>
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8">

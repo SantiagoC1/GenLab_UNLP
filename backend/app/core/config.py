@@ -9,9 +9,10 @@ ModoIntegracion = Literal["simulador", "real"]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://genlab:genlab@localhost:5432/genlab"
-    secret_key: str = "cambiar-en-cada-entorno"
+    secret_key: str = ""
     session_expire_minutes: int = 30
+    max_failed_attempts: int = 5
+    code_expire_minutes: int = 10
     cors_origins: str = "http://localhost:5173"
     chatbot_url: str = "http://localhost:8001"
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     integracion_ministerio_salud: ModoIntegracion = "simulador"
 
     @property
-    def cors_origins_lista(self) -> list[str]:
+    def cors_origins_lista(self):
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 

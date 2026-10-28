@@ -1,5 +1,6 @@
 import PublicoRegistroPantalla from './publico/RegistroPantalla'
 import PublicoIngresarPantalla from './publico/IngresarPantalla'
+import ChangePasswordScreen from './publico/ChangePasswordScreen'
 import AdministradorGeneralAltaUsuarioPantalla from './administrador_general/AltaUsuarioPantalla'
 import GerenteMedicoPatologiasPantalla from './gerente_medico/PatologiasPantalla'
 import GerenteMedicoEstrategiaCdssPantalla from './gerente_medico/EstrategiaCdssPantalla'
@@ -60,6 +61,12 @@ export const PANTALLAS: Pantalla[] = [
     ruta: 'ingresar',
     titulo: 'Ingresar al sistema',
     componente: PublicoIngresarPantalla,
+  },
+  {
+    rol: 'publico',
+    ruta: 'cambiar-contrasena',
+    titulo: 'Cambiar la contraseña',
+    componente: ChangePasswordScreen,
   },
   {
     rol: 'administrador_general',
@@ -250,3 +257,13 @@ export const PANTALLAS: Pantalla[] = [
     componente: BioinformaticoAnalisisPantalla,
   },
 ]
+
+
+const INITIAL_SCREEN: Partial<Record<RolId, string>> = {
+  
+  paciente: 'estudios',
+}
+
+export function initialScreen(rol: RolId): string | undefined {
+  return INITIAL_SCREEN[rol] ?? PANTALLAS.find((p) => p.rol === rol)?.ruta
+}

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.core.errors import registrar_manejadores
+from app.core.errors import register_handlers
 from app.modules.acceso.router import router as router_acceso
 from app.modules.avisos.router import router as router_avisos
 from app.modules.bioinformatica.router import router as router_bioinformatica
@@ -14,7 +14,7 @@ from app.modules.presupuesto_pago.router import router as router_presupuesto_pag
 from app.modules.turnos.router import router as router_turnos
 
 
-def crear_app() -> FastAPI:
+def create_app():
     settings = get_settings()
     app = FastAPI(title="GenLab - Plataforma del laboratorio de genética", version="0.1.0")
     app.add_middleware(
@@ -23,7 +23,7 @@ def crear_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    registrar_manejadores(app)
+    register_handlers(app)
 
     @app.get("/health", tags=["sistema"])
     def health() -> dict[str, str]:
@@ -41,4 +41,4 @@ def crear_app() -> FastAPI:
     return app
 
 
-app = crear_app()
+app = create_app()
