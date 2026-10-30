@@ -29,9 +29,9 @@ export type Errors = Partial<Record<string, string>>
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Messages are what the user reads, so they stay in Spanish (LEL vocabulary).
+// Los mensajes son lo que lee la persona, así que van en español (vocabulario del LEL).
 
-/** Validates what sign-up (scenario 1) and creation by the admin (scenario 2) have in common. */
+/** Valida lo que tienen en común el registro (escenario 1) y el alta del administrador (escenario 2). */
 export function validatePerson(v: PersonData): Errors {
   const errors: Errors = {}
   if (!v.rol) errors.rol = 'Elegí un rol.'
@@ -57,7 +57,7 @@ export function validateNewPassword(password: string): string | undefined {
   }
 }
 
-/** What is sent to the backend: only the fields that apply to the role. */
+/** Lo que se envía al backend: solo los campos que corresponden al rol. */
 export function toPayload(v: PersonData): NewUserPayload {
   const rol = v.rol as Rol
   return {

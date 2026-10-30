@@ -9,7 +9,7 @@ export interface Session {
 const SESSION_KEY = 'genlab.session'
 const DEVICE_KEY = 'genlab.device'
 
-/** The session lives only in the tab (sessionStorage): closing it means logging in again. */
+/** La sesión vive solo en la pestaña (sessionStorage): al cerrarla hay que volver a ingresar. */
 export function readSession(): Session | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY)
@@ -31,8 +31,9 @@ export function clearSession(): void {
 }
 
 /**
- * Identifier of this browser. The backend uses it, together with the network, to decide whether
- * a verification code is needed (M1-RF8). Kept in localStorage so it survives closing the tab.
+ * Identificador de este navegador. El backend lo usa para decidir si hace falta el código de
+ * verificación (M1-RF8: solo se mira el dispositivo, no la red). Queda en localStorage para que
+ * sobreviva al cierre de la pestaña.
  */
 export function getDeviceId(): string {
   let id = localStorage.getItem(DEVICE_KEY)
