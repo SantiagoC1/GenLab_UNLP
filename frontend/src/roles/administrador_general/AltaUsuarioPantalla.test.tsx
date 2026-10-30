@@ -142,4 +142,40 @@ describe('Dar de alta a un usuario', () => {
     // the form stays open with what was filled in: no work is lost
     expect(screen.getByLabelText('Nombre')).toHaveValue('Pedro')
   })
+
+  it('lets the admin unblock a blocked account and refreshes the list', async () => {
+    const PEDRO = {
+      ...ADMIN,
+      id: '2',
+      first_name: 'Pedro',
+      last_name: 'Díaz',
+      email: 'pedro@example.com',
+      role: 'transportista',
+      province: 'Santa Fe',
+    }
+    let blocked = true
+    const UNBLOCK = 'POST /acceso/users/2/unblock'
+    const mock = mockApi({
+      'GET /acceso/users': () => ({ body: [ADMIN, { ...PEDRO, blocked }] }),
+      'GET /acceso/catalogs': CATALOGS,
+      [UNBLOCK]: () => {
+        blocked = false
+        return { body: PEDRO }
+      },
+    })
+    renderApp(PATH)
+
+    const row = (await screen.findByText('Díaz, Pedro')).closest('tr')!
+    expect(within(row).getByText('Bloqueado')).toBeInTheDocument()
+    // solo las cuentas bloqueadas ofrecen la acción
+    expect(screen.getAllByRole('button', { name: 'Desbloquear' })).toHaveLength(1)
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Desbloquear' }))
+
+    expect(
+      await screen.findByText(/Desbloqueamos la cuenta de pedro@example.com/),
+    ).toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Desbloquear' })).toBeNull())
+    expect(sentTo(mock, UNBLOCK)).toHaveLength(1)
+  })
 })

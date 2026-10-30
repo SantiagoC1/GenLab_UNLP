@@ -41,9 +41,9 @@ Pompe urgente (paciente menor de 4 meses) no es un estado: es una marca de prior
 | Parte | Tecnología |
 |---|---|
 | Frontend | React, Vite, TypeScript, Tailwind, react-router, TanStack Query |
-| Backend | FastAPI (Python 3.12), SQLAlchemy 2, Alembic, PostgreSQL |
+| Backend | FastAPI (Python 3.12) con Supabase (PostgreSQL y Auth) |
 | Chatbot | FastAPI separado, con la API de Anthropic |
-| Local | docker-compose con Postgres y los tres servicios |
+| Local | docker-compose con los tres servicios; la base es la de Supabase |
 | Calidad | ruff y pytest (backend y chatbot), eslint, prettier y vitest (frontend) |
 | CI | GitHub Actions: lint y tests en cada PR |
 
@@ -71,7 +71,6 @@ Comandos útiles:
 | `make up` / `make down` | Levanta o baja todos los servicios |
 | `make test` | Corre los tests de backend, chatbot y frontend |
 | `make lint` | Corre ruff, eslint y prettier |
-| `make migrate` | Aplica las migraciones de la base |
 | `make seed` | Carga los datos de ejemplo |
 
 **En Windows** `make` no viene instalado. Instalalo con `winget install GnuWin32.Make`, usá WSL, o corré directamente los comandos de `docker compose` que figuran dentro del `Makefile`.
@@ -87,8 +86,8 @@ backend/
   app/core/                  configuración, seguridad, base de datos, errores y enums
   app/modules/               un paquete por área (ver la tabla de abajo)
   app/integrations/          un adaptador por módulo externo, con su simulador
-  alembic/                   migraciones
   tests/
+supabase/                SQL de las tablas: se ejecuta a mano, en orden, en el SQL Editor de Supabase
 chatbot/                 servicio independiente, con su Dockerfile y sus tests
 docs/                    especificación, reparto de tareas y escenarios
 tools/                   issues.json y crear_issues.py

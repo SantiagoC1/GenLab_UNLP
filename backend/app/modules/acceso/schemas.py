@@ -27,11 +27,14 @@ class CreateUserData(BaseModel):
 class LoginData(BaseModel):
     email: str | None = None
     password: str | None = None
+    device_id: str | None = None
 
 
 class VerifyCodeData(BaseModel):
     email: str | None = None
     code: str | None = None
+    challenge: str | None = None
+    device_id: str | None = None
 
 
 class ChangePasswordData(BaseModel):

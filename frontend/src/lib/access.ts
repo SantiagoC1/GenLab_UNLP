@@ -2,7 +2,7 @@ import { api, json } from './api'
 import { getDeviceId, type Session } from './session'
 import type { Rol } from '../roles/roles'
 
-// Types mirror the JSON of the backend (modules/acceso/schemas.py), hence the snake_case.
+// Los tipos reflejan el JSON del backend (modules/acceso/schemas.py), por eso van en snake_case.
 
 export interface SessionResponse {
   access_token: string
@@ -13,6 +13,8 @@ export interface SessionResponse {
 export interface LoginResponse {
   state: 'code_sent' | 'authenticated'
   session: SessionResponse | null
+  /** Token del paso 1: el backend lo exige junto con el código (solo si state es code_sent). */
+  challenge: string | null
 }
 
 export interface Specialty {
@@ -68,10 +70,10 @@ export const login = (email: string, password: string) =>
     ...json({ email, password, device_id: getDeviceId() }),
   })
 
-export const verifyCode = (email: string, code: string) =>
+export const verifyCode = (email: string, code: string, challenge: string) =>
   api<SessionResponse>('/acceso/verify-code', {
     method: 'POST',
-    ...json({ email, code, device_id: getDeviceId() }),
+    ...json({ email, code, challenge, device_id: getDeviceId() }),
   })
 
 export const changePassword = (current: string, newPassword: string, confirmation: string) =>
@@ -84,3 +86,7 @@ export const listUsers = () => api<User[]>('/acceso/users')
 
 export const createUser = (payload: NewUserPayload) =>
   api<User>('/acceso/users', { method: 'POST', ...json(payload) })
+
+/** Solo el administrador general: desbloquea la cuenta y reinicia sus intentos fallidos. */
+export const unblockUser = (id: string) =>
+  api<User>(`/acceso/users/${id}/unblock`, { method: 'POST' })

@@ -58,7 +58,6 @@ export default function RegistroPantalla() {
   return (
     <section>
       <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Registrarse</h1>
-      <p className="mt-1 text-sm text-slate-500">Escenario 1 · M1-RF1 a RF3</p>
 
       <form onSubmit={submit} noValidate className="mt-6 space-y-4">
         {signUp.error && <Alert kind="error">{signUp.error.message}</Alert>}

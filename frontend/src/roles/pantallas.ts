@@ -12,7 +12,6 @@ import MedicoTratanteAltaEstudioPantalla from './medico_tratante/AltaEstudioPant
 import MedicoTratanteAsignarCuponPantalla from './medico_tratante/AsignarCuponPantalla'
 import MedicoTratanteResultadoPantalla from './medico_tratante/ResultadoPantalla'
 import MedicoTratanteReanalisisPantalla from './medico_tratante/ReanalisisPantalla'
-import PacienteActivarCuentaPantalla from './paciente/ActivarCuentaPantalla'
 import PacienteEstudiosPantalla from './paciente/EstudiosPantalla'
 import PacienteCoberturaPantalla from './paciente/CoberturaPantalla'
 import PacientePagoPantalla from './paciente/PagoPantalla'
@@ -136,12 +135,6 @@ export const PANTALLAS: Pantalla[] = [
   },
   {
     rol: 'paciente',
-    ruta: 'activar-cuenta',
-    titulo: 'Activar la cuenta',
-    componente: PacienteActivarCuentaPantalla,
-  },
-  {
-    rol: 'paciente',
     ruta: 'estudios',
     titulo: 'Mis estudios',
     componente: PacienteEstudiosPantalla,
@@ -258,9 +251,7 @@ export const PANTALLAS: Pantalla[] = [
   },
 ]
 
-
 const INITIAL_SCREEN: Partial<Record<RolId, string>> = {
-  
   paciente: 'estudios',
 }
 

@@ -10,6 +10,44 @@ from app.modules.acceso.catalogs import PROVINCES
 MIN_PASSWORD_LENGTH = 8  # la especificación no define una política de contraseñas
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
+# Nombre de cada campo tal como se le muestra a la persona (los identificadores van en inglés).
+# REUTILIZABLE: las validaciones de otros módulos (por ejemplo, el alta de paciente en M3)
+# pueden usarlo para armar sus mensajes.
+FIELD_LABELS = {
+    "role": "rol",
+    "first_name": "nombre",
+    "last_name": "apellido",
+    "phone": "teléfono",
+    "email": "mail",
+    "password": "contraseña",
+    "current_password": "contraseña actual",
+    "new_password": "contraseña nueva",
+    "confirmation": "confirmación de la contraseña",
+    "code": "código",
+}
+
+
+def required_field_error(field: str) -> str:
+    """Mensaje de campo obligatorio, con el nombre del campo en español."""
+    return f"El campo '{FIELD_LABELS.get(field, field)}' es obligatorio."
+
+
+def validate_login(data: dict) -> list[str]:
+    """Valida que el primer paso del ingreso traiga el mail y la contraseña."""
+    if not data.get("email") or not data.get("password"):
+        return ["Completá el mail y la contraseña."]
+    return []
+
+
+def validate_code(data: dict) -> list[str]:
+    """Valida que el segundo paso del ingreso traiga el mail, el código y el token del paso 1."""
+    errors = []
+    if not data.get("email") or not data.get("code"):
+        errors.append("Completá el mail y el código.")
+    if not data.get("challenge"):
+        errors.append("Volvé a ingresar con tu contraseña para recibir un código.")
+    return errors
+
 
 def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) -> list[str]:
     """Valida el alta de un usuario (autoalta o alta del administrador).
@@ -29,7 +67,7 @@ def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) ->
         required.append("password")
     for field in required:
         if not (data.get(field) or "").strip():
-            errors.append(f"El campo '{field}' es obligatorio.")
+            errors.append(required_field_error(field))
 
     email = (data.get("email") or "").strip()
     if email:
@@ -79,7 +117,7 @@ def validate_password_change(data: dict) -> list[str]:
     errors = []
     for field in ("current_password", "new_password", "confirmation"):
         if not data.get(field):
-            errors.append(f"El campo '{field}' es obligatorio.")
+            errors.append(required_field_error(field))
     new_password = data.get("new_password")
     if new_password and len(new_password) < MIN_PASSWORD_LENGTH:
         errors.append(f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.")

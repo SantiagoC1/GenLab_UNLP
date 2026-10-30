@@ -8,7 +8,7 @@ import { login, toSession, verifyCode, type SessionResponse } from '../../lib/ac
 import { initialScreen } from '../pantallas'
 import { useRol } from '../rol-context'
 
-/** Scenario 4 · M1-RF8 to RF10. Password and, if the device or network is new, a code. */
+/** Escenario 4 · M1-RF8 a RF10. Contraseña y, si el dispositivo es nuevo, un código. */
 export default function IngresarPantalla() {
   const { startSession } = useRol()
   const navigate = useNavigate()
@@ -16,6 +16,8 @@ export default function IngresarPantalla() {
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [asksForCode, setAsksForCode] = useState(false)
+  const [resent, setResent] = useState(false)
+  const [challenge, setChallenge] = useState('')
 
   const enter = (response: SessionResponse) => {
     const session = toSession(response)
@@ -31,11 +33,13 @@ export default function IngresarPantalla() {
     onSuccess: (response) => {
       if (response.state === 'authenticated' && response.session) return enter(response.session)
       setCode('')
+      setChallenge(response.challenge ?? '')
+      setResent(asksForCode)
       setAsksForCode(true)
     },
   })
   const verification = useMutation({
-    mutationFn: () => verifyCode(email.trim(), code.trim()),
+    mutationFn: () => verifyCode(email.trim(), code.trim(), challenge),
     onSuccess: enter,
   })
 
@@ -48,8 +52,13 @@ export default function IngresarPantalla() {
     event.preventDefault()
     verification.mutate()
   }
+  const resendCode = () => {
+    verification.reset()
+    credentials.mutate()
+  }
   const goBack = () => {
     setAsksForCode(false)
+    setResent(false)
     credentials.reset()
     verification.reset()
   }
@@ -57,7 +66,6 @@ export default function IngresarPantalla() {
   return (
     <section>
       <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Ingresar al sistema</h1>
-      <p className="mt-1 text-sm text-slate-500">Escenario 4 · M1-RF8 a RF10</p>
 
       {!asksForCode ? (
         <form onSubmit={submitCredentials} className="mt-6 space-y-4">
@@ -90,8 +98,12 @@ export default function IngresarPantalla() {
         </form>
       ) : (
         <form onSubmit={submitCode} className="mt-6 space-y-4">
-          {/* 10 minutes: backend setting `code_expire_minutes` */}
-          <Alert>Te enviamos un código de verificación a {email}. Vence a los 10 minutos.</Alert>
+          {/* 10 minutos: ajuste `code_expire_minutes` del backend */}
+          <Alert>
+            {resent
+              ? `Te enviamos un código nuevo a ${email}. Vence a los 10 minutos.`
+              : `Te enviamos un código de verificación a ${email}. Vence a los 10 minutos.`}
+          </Alert>
           {verification.error && <Alert kind="error">{verification.error.message}</Alert>}
           {credentials.error && <Alert kind="error">{credentials.error.message}</Alert>}
           <TextField
@@ -107,11 +119,7 @@ export default function IngresarPantalla() {
             <Button type="submit" loading={verification.isPending}>
               Verificar el código
             </Button>
-            <Button
-              variant="secondary"
-              loading={credentials.isPending}
-              onClick={() => credentials.mutate()}
-            >
+            <Button variant="secondary" loading={credentials.isPending} onClick={resendCode}>
               Pedir un código nuevo
             </Button>
             <Button variant="secondary" onClick={goBack}>
