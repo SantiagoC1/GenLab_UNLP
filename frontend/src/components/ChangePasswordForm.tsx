@@ -9,7 +9,6 @@ import { Alert } from './Alert'
 import { Button } from './Button'
 import { TextField } from './TextField'
 
-
 export function ChangePasswordForm() {
   const { session, startSession } = useRol()
   const navigate = useNavigate()
@@ -33,8 +32,12 @@ export function ChangePasswordForm() {
     if (!current) found.current = 'Completá la contraseña actual.'
     const newPasswordError = validateNewPassword(newPassword)
     if (newPasswordError) found.newPassword = newPasswordError
-    // If they do not match, nothing is saved and they are asked to define them again.
-    else if (newPassword !== confirmation) found.confirmation = 'Las contraseñas no coinciden.'
+    // Si no coinciden, no se guarda nada y se vuelven a pedir las dos (escenario 3).
+    else if (newPassword !== confirmation) {
+      found.confirmation = 'Las contraseñas no coinciden.'
+      setNewPassword('')
+      setConfirmation('')
+    }
     setErrors(found)
     if (Object.keys(found).length === 0) change.mutate()
   }
