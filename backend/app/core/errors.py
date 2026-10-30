@@ -53,6 +53,16 @@ class MustChangePassword(Forbidden):
     code = "must_change_password"
 
 
+class TooManyRequests(BusinessRuleError):
+    """
+    Se pidió lo mismo demasiadas veces seguidas (por ejemplo, otro código por mail).
+
+    REUTILIZABLE: cualquier módulo que limite la frecuencia de una acción.
+    """
+
+    status_code = 429
+
+
 class AccountBlocked(BusinessRuleError):
     """
     La cuenta está bloqueada por demasiados intentos fallidos de ingreso.

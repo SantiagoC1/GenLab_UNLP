@@ -30,7 +30,7 @@ def list_all():
 
 
 def carrier_exists_in(province: str):
-    """Indica si ya hay un transportista que cubre esa provincia (M1-RF6)."""
+    """Indica si ya hay un transportista que cubre esa provincia (M1-RF5)."""
     response = (
         _users()
         .select("id")

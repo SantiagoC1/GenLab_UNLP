@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings>=2.4",
     "python-dotenv>=1.0",
     "supabase>=2.10",
+    "pyjwt>=2.8",
 ]
  
 [project.optional-dependencies]
