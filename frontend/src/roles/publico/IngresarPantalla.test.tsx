@@ -5,7 +5,7 @@ import { readSession } from '../../lib/session'
 
 const LOGIN = 'POST /acceso/login'
 const VERIFY = 'POST /acceso/verify-code'
-const CODE_SENT = { body: { state: 'code_sent', session: null } }
+const CODE_SENT = { body: { state: 'code_sent', session: null, challenge: 'challenge-token' } }
 
 async function submitCredentials(password = 'clave-segura') {
   const user = userEvent.setup()
@@ -43,13 +43,20 @@ describe('Ingresar al sistema', () => {
     expect(sentTo(mock, VERIFY)[0]).toMatchObject({
       email: 'medica@example.com',
       code: '123456',
+      challenge: 'challenge-token',
       device_id: credentials.device_id,
     })
   })
 
   it('goes straight in when the device and network are already known', async () => {
     mockApi({
-      [LOGIN]: { body: { state: 'authenticated', session: sessionResponse('transportista') } },
+      [LOGIN]: {
+        body: {
+          state: 'authenticated',
+          session: sessionResponse('transportista'),
+          challenge: null,
+        },
+      },
     })
     renderApp('/ingresar')
     await submitCredentials()
@@ -109,7 +116,13 @@ describe('Ingresar al sistema', () => {
 
   it('a patient with the initial password is sent to the password change', async () => {
     mockApi({
-      [LOGIN]: { body: { state: 'authenticated', session: sessionResponse('paciente', true) } },
+      [LOGIN]: {
+        body: {
+          state: 'authenticated',
+          session: sessionResponse('paciente', true),
+          challenge: null,
+        },
+      },
     })
     renderApp('/ingresar')
     await submitCredentials()
@@ -118,5 +131,33 @@ describe('Ingresar al sistema', () => {
       await screen.findByRole('heading', { name: 'Cambiar la contraseña' }),
     ).toBeInTheDocument()
     expect(readSession()?.mustChangePassword).toBe(true)
+  })
+
+  it('says a new code was sent when asking for another one', async () => {
+    mockApi({ [LOGIN]: CODE_SENT })
+    renderApp('/ingresar')
+    const user = await submitCredentials()
+
+    expect(await screen.findByText(/Te enviamos un código de verificación/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pedir un código nuevo' }))
+
+    expect(await screen.findByText(/Te enviamos un código nuevo/)).toBeInTheDocument()
+  })
+
+  it('shows the wait message when the new code is asked for too soon', async () => {
+    let calls = 0
+    mockApi({
+      [LOGIN]: () =>
+        ++calls === 1
+          ? CODE_SENT
+          : { status: 429, body: { detalle: 'Esperá un momento antes de pedir otro código.' } },
+    })
+    renderApp('/ingresar')
+    const user = await submitCredentials()
+
+    await user.click(await screen.findByRole('button', { name: 'Pedir un código nuevo' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esperá un momento')
+    expect(screen.getByLabelText('Código de verificación')).toBeInTheDocument()
   })
 })

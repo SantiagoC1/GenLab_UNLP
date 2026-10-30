@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { PersonFields } from '../../components/PersonFields'
-import { createUser, getCatalogs, listUsers } from '../../lib/access'
+import { createUser, getCatalogs, listUsers, unblockUser } from '../../lib/access'
 import {
   EMPTY_PERSON,
   toPayload,
@@ -13,7 +13,7 @@ import {
 } from '../../lib/validation'
 import { ETIQUETA_ROL, type Rol } from '../roles'
 
-// M1-RF4: any role except the patient (the treating doctor registers them, scenario 9).
+// M1-RF4: cualquier rol menos el paciente (lo da de alta el médico tratante, escenario 9).
 const CREATABLE_ROLES: readonly Rol[] = [
   'medico_tratante',
   'administrativo_laboratorio',
@@ -42,6 +42,14 @@ export default function AltaUsuarioPantalla() {
     },
   })
 
+  const unblock = useMutation({
+    mutationFn: (id: string) => unblockUser(id),
+    onSuccess: (user) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setNotice(`Desbloqueamos la cuenta de ${user.email}.`)
+    },
+  })
+
   const change = <K extends keyof PersonData>(field: K, value: PersonData[K]) =>
     setPerson((current) => ({ ...current, [field]: value }))
 
@@ -60,6 +68,7 @@ export default function AltaUsuarioPantalla() {
 
       <div className="mt-6 space-y-4">
         {notice && <Alert kind="success">{notice}</Alert>}
+        {unblock.error && <Alert kind="error">{unblock.error.message}</Alert>}
 
         {formOpen ? (
           <form onSubmit={submit} noValidate className="max-w-md space-y-4">
@@ -110,6 +119,7 @@ export default function AltaUsuarioPantalla() {
                   <th className="px-3 py-2 font-medium">Rol</th>
                   <th className="px-3 py-2 font-medium">Provincia</th>
                   <th className="px-3 py-2 font-medium">Estado</th>
+                  <th className="px-3 py-2 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,6 +132,20 @@ export default function AltaUsuarioPantalla() {
                     <td className="px-3 py-2">{ETIQUETA_ROL[u.role]}</td>
                     <td className="px-3 py-2">{u.province ?? '—'}</td>
                     <td className="px-3 py-2">{u.blocked ? 'Bloqueado' : 'Activo'}</td>
+                    <td className="px-3 py-2">
+                      {u.blocked && (
+                        <Button
+                          variant="secondary"
+                          loading={unblock.isPending && unblock.variables === u.id}
+                          onClick={() => {
+                            setNotice('')
+                            unblock.mutate(u.id)
+                          }}
+                        >
+                          Desbloquear
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
