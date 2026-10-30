@@ -47,7 +47,8 @@ cp .env.example .env
 make up        # levanta todo
 make test      # tests de backend, chatbot y frontend
 make lint      # ruff, eslint y prettier
-make migrate   # aplica las migraciones
 ```
+
+No hay migraciones: las tablas están en `supabase/*.sql` y se ejecutan a mano, en orden, en el SQL Editor de Supabase. Las claves de Supabase van en el `.env` propio (`SUPABASE_URL`, `SUPABASE_KEY` y `SUPABASE_SERVICE_ROLE_KEY`).
 
 Nunca subas secretos: `.env` está en `.gitignore`. La clave de Anthropic va solo en `ANTHROPIC_API_KEY`.

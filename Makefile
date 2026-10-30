@@ -1,4 +1,4 @@
-.PHONY: up down test lint seed migrate
+.PHONY: up down test lint seed
 
 COMPOSE = docker compose
 SOLO = $(COMPOSE) run --rm --no-deps
@@ -20,9 +20,6 @@ lint:
 	$(SOLO) backend sh -c "ruff check . && ruff format --check ."
 	$(SOLO) chatbot sh -c "ruff check . && ruff format --check ."
 	$(SOLO) frontend npm run lint
-
-migrate:
-	$(COMPOSE) exec backend alembic upgrade head
 
 seed:
 	$(COMPOSE) exec backend python -m scripts.seed
