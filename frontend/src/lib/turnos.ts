@@ -18,7 +18,11 @@ export interface Turno {
   estado: string
   recordatorio_para: string | null
   puede_cancelar: boolean
+  orden_extraccion_url: string | null
+  consentimiento_url: string | null
 }
+
+export const MIS_TURNOS_KEY = ['turnos', 'mis-turnos']
 
 const ZONA = 'America/Argentina/Buenos_Aires'
 

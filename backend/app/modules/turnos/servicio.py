@@ -5,7 +5,7 @@ from app.core.errors import BusinessRuleError
 from app.integrations.avisos import AvisosIntegracion
 from app.modules.presupuesto_pago.paciente import avisar
 from app.modules.presupuesto_pago.repositorio import EstudioParaPresupuesto, RepositorioEstudios
-from app.modules.turnos import reglas
+from app.modules.turnos import documentos, reglas
 from app.modules.turnos.reglas import ARG
 from app.modules.turnos.repositorio import (
     PROGRAMADO,
@@ -122,6 +122,30 @@ class TurnosServicio:
             for t in self.turnos.listar_de_estudios(ids)
         ]
 
+    # --- M6-RF6: the documents to print ------------------------------------------------------
+
+    def orden_de_extraccion(self, contacto: str, turno_id: int) -> bytes:
+        turno, estudio, laboratorio = self._turno_vigente_del_paciente(contacto, turno_id)
+        return documentos.orden_de_extraccion(turno, estudio, laboratorio)
+
+    def consentimiento_informado(self, contacto: str, turno_id: int) -> bytes:
+        _, estudio, _ = self._turno_vigente_del_paciente(contacto, turno_id)
+        return documentos.consentimiento_informado(estudio)
+
+    def _turno_vigente_del_paciente(
+        self, contacto: str, turno_id: int
+    ) -> tuple[Turno, EstudioParaPresupuesto, Laboratorio]:
+        turno = self.turnos.obtener_turno(turno_id)
+        if turno is None:
+            raise BusinessRuleError("No existe el turno.", status_code=404)
+        estudio = self.estudio_del_paciente(contacto, turno.estudio_id)
+        if turno.estado != PROGRAMADO:
+            raise BusinessRuleError(
+                "El turno ya no está vigente: sus documentos dejaron de estar disponibles.",
+                code="turno_no_vigente",
+            )
+        return turno, estudio, self._laboratorio_existente(turno.laboratorio_id)
+
     # --- helpers --------------------------------------------------------------------------
 
     def estudio_del_paciente(self, contacto: str, estudio_id: int) -> EstudioParaPresupuesto:
@@ -193,4 +217,10 @@ class TurnosServicio:
             estado=turno.estado,
             recordatorio_para=None if turno.recordatorio.anulado else turno.recordatorio.enviar_en,
             puede_cancelar=turno.estado == PROGRAMADO and turno.inicio > self.ahora,
+            orden_extraccion_url=f"/turnos/{turno.id}/orden-extraccion"
+            if turno.estado == PROGRAMADO
+            else None,
+            consentimiento_url=f"/turnos/{turno.id}/consentimiento-informado"
+            if turno.estado == PROGRAMADO
+            else None,
         )
