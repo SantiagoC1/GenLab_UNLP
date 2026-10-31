@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.core.enums import Rol
-from app.core.security import requiere_rol
+from app.core.security import require_role
 from app.integrations.avisos import AvisosIntegracion, obtener_avisos
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios, obtener_repositorio
 from app.modules.presupuesto_pago.schemas import (
@@ -13,14 +13,8 @@ from app.modules.presupuesto_pago.schemas import (
 )
 from app.modules.presupuesto_pago.servicio import PresupuestoServicio
 
-
-def exigir_administrativo() -> None:
-    """Solo el administrativo del laboratorio opera los presupuestos.
-
-    TODO (tarea 1.4): cuando `requiere_rol` esté implementado, usar
-    `Depends(requiere_rol(Rol.ADMINISTRATIVO_LABORATORIO))` directamente en `administrativo`.
-    """
-    requiere_rol(Rol.ADMINISTRATIVO_LABORATORIO)
+# Solo el administrativo del laboratorio opera los presupuestos.
+exigir_administrativo = require_role(Rol.ADMINISTRATIVO_LABORATORIO)
 
 
 administrativo = [Depends(exigir_administrativo)]

@@ -71,12 +71,9 @@ def test_el_importe_no_se_puede_editar(client, avisos):
     assert r.json()["importe_usd"] == 500
 
 
-def test_los_endpoints_exigen_el_rol_administrativo(client, monkeypatch):
-    pedidos: list[Rol] = []
-    monkeypatch.setattr(router_presupuesto, "requiere_rol", lambda *roles: pedidos.extend(roles))
+def test_los_endpoints_exigen_el_rol_administrativo(client, login_as):
     app.dependency_overrides[obtener_repositorio] = RepositorioEstudiosEnMemoria
-    try:
-        client.get("/presupuesto_pago/estudios-pendientes")
-    finally:
-        app.dependency_overrides.clear()
-    assert pedidos == [Rol.ADMINISTRATIVO_LABORATORIO]
+    login_as(Rol.MEDICO_TRATANTE)
+    assert client.get("/presupuesto_pago/estudios-pendientes").status_code == 403
+    login_as(Rol.ADMINISTRATIVO_LABORATORIO)
+    assert client.get("/presupuesto_pago/estudios-pendientes").status_code == 200
