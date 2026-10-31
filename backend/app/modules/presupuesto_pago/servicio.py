@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from app.core.errors import ErrorDeNegocio
+from app.core.errors import BusinessRuleError
 from app.integrations.avisos import AvisosIntegracion
 from app.modules.presupuesto_pago.repositorio import EstudioParaPresupuesto, RepositorioEstudios
 from app.modules.presupuesto_pago.schemas import (
@@ -38,7 +38,7 @@ class PresupuestoServicio:
     def emitir(self, estudio_id: int) -> PresupuestoEmitidoSalida:
         estudio = self._estudio(estudio_id)
         if estudio.tiene_presupuesto:
-            raise ErrorDeNegocio("El estudio ya tiene el presupuesto emitido.")
+            raise BusinessRuleError("El estudio ya tiene el presupuesto emitido.")
         importe = calcular_importe(len(estudio.genes))
         emitido_en = datetime.now(UTC)
         self.repositorio.guardar_presupuesto(estudio.id, importe, emitido_en)
@@ -59,5 +59,5 @@ class PresupuestoServicio:
     def _estudio(self, estudio_id: int) -> EstudioParaPresupuesto:
         estudio = self.repositorio.obtener(estudio_id)
         if estudio is None:
-            raise ErrorDeNegocio("No existe el estudio.", status_code=404)
+            raise BusinessRuleError("No existe el estudio.", status_code=404)
         return estudio
