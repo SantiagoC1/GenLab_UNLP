@@ -12,6 +12,7 @@ from app.modules.presupuesto_pago.repositorio import obtener_repositorio as obte
 from app.modules.turnos import reglas
 from app.modules.turnos.repositorio import RepositorioTurnos, obtener_repositorio
 from app.modules.turnos.schemas import (
+    CancelacionSalida,
     EstudioHabilitadoSalida,
     LaboratorioSalida,
     ReservarEntrada,
@@ -110,3 +111,11 @@ def descargar_consentimiento_informado(
         servicio.consentimiento_informado(usuario["email"], turno_id),
         "consentimiento-informado.pdf",
     )
+
+
+@router.post("/{turno_id}/cancelar")
+def cancelar_turno(
+    turno_id: int, usuario: UsuarioPaciente, servicio: Servicio
+) -> CancelacionSalida:
+    """Cancela un turno futuro sin costo y devuelve el estudio al estado previo."""
+    return servicio.cancelar(usuario["email"], turno_id)

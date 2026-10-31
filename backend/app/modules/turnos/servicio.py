@@ -8,6 +8,7 @@ from app.modules.presupuesto_pago.repositorio import EstudioParaPresupuesto, Rep
 from app.modules.turnos import documentos, reglas
 from app.modules.turnos.reglas import ARG
 from app.modules.turnos.repositorio import (
+    CANCELADO,
     PROGRAMADO,
     Laboratorio,
     Recordatorio,
@@ -16,6 +17,7 @@ from app.modules.turnos.repositorio import (
     TurnoOcupado,
 )
 from app.modules.turnos.schemas import (
+    CancelacionSalida,
     EstudioHabilitadoSalida,
     LaboratorioSalida,
     TurnoSalida,
@@ -114,6 +116,49 @@ class TurnosServicio:
             f"{inicio.astimezone(ARG):%d/%m/%Y a las %H:%M}. Va a recibir un recordatorio por mail.",
         )
         return self._turno_salida(turno, laboratorio)
+
+    # --- M6-RF7: cancel ------------------------------------------------------------------------
+
+    def cancelar(self, contacto: str, turno_id: int) -> CancelacionSalida:
+        turno = self.turnos.obtener_turno(turno_id)
+        if turno is None:
+            raise BusinessRuleError("No existe el turno.", status_code=404)
+        estudio = self.estudio_del_paciente(contacto, turno.estudio_id)
+        if turno.estado != PROGRAMADO:
+            raise BusinessRuleError(
+                f"El turno está {turno.estado}: no se puede cancelar.", code="turno_no_vigente"
+            )
+        if turno.inicio <= self.ahora:
+            raise BusinessRuleError(
+                "El horario del turno ya pasó: no se puede cancelar.", code="turno_pasado"
+            )
+
+        # The state returns before the appointment is released, so an invalid change leaves
+        # everything as it was.
+        anterior = self._estado_previo_al_turno(estudio)
+        if anterior is not None:
+            self.estudios.cambiar_estado(estudio.id, anterior, self.ahora)
+        # The appointment is released (it leaves the book) and its reminder is cancelled.
+        cancelado = self.turnos.marcar_turno(turno.id, CANCELADO, anular_recordatorio=True)
+        avisar(
+            self.avisos,
+            estudio.contacto_paciente,
+            f"Canceló su turno de extracción del {turno.inicio.astimezone(ARG):%d/%m/%Y a las %H:%M}. "
+            "Puede sacar uno nuevo cuando quiera, sin costo.",
+        )
+        return CancelacionSalida(
+            turno=self._turno_salida(cancelado, self._laboratorio_existente(turno.laboratorio_id)),
+            estudio_estado=estudio.estado,
+        )
+
+    @staticmethod
+    def _estado_previo_al_turno(estudio: EstudioParaPresupuesto) -> EstadoEstudio | None:
+        """Pagado or Autorizado if that is where the study came from; None if it has to stay in
+        TurnoSacado (a resampling rebooking), where cancelling just enables a new booking."""
+        entradas = [c for c in estudio.historial if c.hacia == EstadoEstudio.TURNO_SACADO]
+        if entradas and entradas[-1].desde in (EstadoEstudio.PAGADO, EstadoEstudio.AUTORIZADO):
+            return entradas[-1].desde
+        return None
 
     def mis_turnos(self, contacto: str) -> list[TurnoSalida]:
         ids = [e.id for e in self.estudios.listar_de_paciente(contacto)]
