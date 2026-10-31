@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from app import knowledge, llm, scope
 from app.config import get_settings
 from app.conversations import store
+from app.providers import NoProviderAvailable
 from app.ratelimit import limiter
 from app.scope import Kind
 
@@ -79,13 +80,16 @@ def _scrub(text: str) -> str:
     return re.sub(r"\d{6,}", "[número]", text)
 
 
-def _log_query(consumer: str, conversation_id: str, question: str, answer: str, kind: Kind) -> None:
+def _log_query(
+    consumer: str, conversation_id: str, question: str, answer: str, kind: Kind, provider: str
+) -> None:
     logger.info(
         json.dumps(
             {
                 "consumidor": consumer,
                 "conversacion_id": conversation_id,
                 "tipo": kind,
+                "provider": provider,
                 "consulta": _scrub(question),
                 "respuesta": _scrub(answer),
             },
@@ -115,20 +119,24 @@ def _answer_with_rules(question: str, history: list[dict]) -> tuple[str, Kind]:
     return llm.extract([doc for doc, _ in matches[:2]]), Kind.ANSWER
 
 
-def _answer(question: str, history: list[dict]) -> tuple[str, Kind]:
-    """Decide cómo responder la consulta y devuelve (texto, tipo).
+def _answer(question: str, history: list[dict]) -> tuple[str, Kind, str]:
+    """Decide cómo responder la consulta y devuelve (texto, tipo, quién respondió).
 
-    Con modelo, este interpreta la consulta y la clasifica. Si no hay modelo o falla,
-    se responde con reglas y con el texto de la base, para no dejar al paciente sin respuesta.
+    Con modelo, este interpreta la consulta y la clasifica. Si no hay modelo o fallan todos
+    los proveedores, se responde con reglas y con el texto de la base, para no dejar al
+    paciente sin respuesta.
     """
     if llm.llm_enabled():
         try:
             reply = llm.generate(question, history, list(knowledge.load_knowledge()))
+        except NoProviderAvailable:
+            logger.warning("No language model provider answered; falling back to the rules")
         except Exception:
             logger.exception("Falló el modelo de lenguaje")
         else:
-            return reply.respuesta.strip(), reply.tipo
-    return _answer_with_rules(question, history)
+            return reply.respuesta.strip(), reply.tipo, reply.provider or "model"
+    text, kind = _answer_with_rules(question, history)
+    return text, kind, "rules"
 
 
 @app.get("/health", responses={503: {"model": ErrorResponse}}, tags=["sistema"])
@@ -163,7 +171,7 @@ def chat(request: ChatRequest, consumer: str = Depends(get_consumer)) -> ChatRes
         raise HTTPException(status_code=422, detail="La consulta no puede estar vacía.")
 
     conversation_id = request.conversacion_id or str(uuid.uuid4())
-    text, kind = _answer(question, store.history(consumer, conversation_id))
+    text, kind, provider = _answer(question, store.history(consumer, conversation_id))
     store.add(consumer, conversation_id, question, text)
-    _log_query(consumer, conversation_id, question, text, kind)
+    _log_query(consumer, conversation_id, question, text, kind, provider)
     return ChatResponse(respuesta=text, conversacion_id=conversation_id, tipo=kind)
