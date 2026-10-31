@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.core.enums import EstadoEstudio
 
@@ -89,3 +89,31 @@ class AsientoFinancieroSalida(BaseModel):
     metodo: str
     fecha: datetime
     cupon: str | None
+
+
+class AutorizacionPendienteSalida(BaseModel):
+    estudio_id: int
+    paciente: str
+    obra_social: str
+    porcentaje: int
+    importe_usd: int
+    estado_estudio: EstadoEstudio
+
+
+class RespuestaObraSocialEntrada(BaseModel):
+    resultado: Literal["Autorizado", "Rechazado"]
+    motivo: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _el_rechazo_lleva_motivo(self):
+        if self.resultado == "Rechazado" and not (self.motivo or "").strip():
+            raise ValueError("El rechazo necesita el motivo.")
+        return self
+
+
+class AutorizacionRegistradaSalida(BaseModel):
+    estudio_id: int
+    estado: EstadoEstudio
+    resultado: str
+    motivo: str | None
+    paciente_avisado: bool

@@ -80,6 +80,10 @@ class RepositorioEstudios(ABC):
         """Estudios en estado Creado que todavía no tienen presupuesto."""
 
     @abstractmethod
+    def listar_con_cobertura(self) -> list[EstudioParaPresupuesto]:
+        """Estudios en los que el paciente eligió la cobertura por obra social."""
+
+    @abstractmethod
     def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
         """Estudios de la cuenta del paciente (identificada por su mail)."""
 
@@ -153,6 +157,9 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
 
     def listar_creados_sin_presupuesto(self) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if not e.tiene_presupuesto]
+
+    def listar_con_cobertura(self) -> list[EstudioParaPresupuesto]:
+        return [e for e in self.estudios.values() if e.cobertura is not None]
 
     def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if e.contacto_paciente == contacto]
