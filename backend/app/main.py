@@ -9,7 +9,7 @@ from app.modules.bioinformatica.router import router as router_bioinformatica
 from app.modules.config_medica.router import router as router_config_medica
 from app.modules.consulta_medica.router import router as router_consulta_medica
 from app.modules.cupones.router import router as router_cupones
-from app.modules.logistica.router import router as router_logistica
+from app.modules.logistics.router import router as router_logistica
 from app.modules.presupuesto_pago.router import router as router_presupuesto_pago
 from app.modules.turnos.router import router as router_turnos
 
