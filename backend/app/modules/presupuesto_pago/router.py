@@ -9,11 +9,14 @@ from app.integrations.obras_sociales import ObrasSocialesIntegracion, obtener_ob
 from app.modules.presupuesto_pago.paciente import PacienteServicio
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios, obtener_repositorio
 from app.modules.presupuesto_pago.schemas import (
+    AsientoFinancieroSalida,
     DetalleEstudioSalida,
     ElegirCoberturaEntrada,
     EstudioDelPacienteSalida,
     EstudioPendienteSalida,
     ObraSocialSalida,
+    PagarEntrada,
+    PagoSalida,
     PresupuestoEmitidoSalida,
 )
 from app.modules.presupuesto_pago.servicio import PresupuestoServicio
@@ -42,8 +45,9 @@ Servicio = Annotated[PresupuestoServicio, Depends(obtener_servicio)]
 def obtener_servicio_paciente(
     repositorio: Annotated[RepositorioEstudios, Depends(obtener_repositorio)],
     obras_sociales: Annotated[ObrasSocialesIntegracion, Depends(obtener_obras_sociales)],
+    avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
 ) -> PacienteServicio:
-    return PacienteServicio(repositorio, obras_sociales)
+    return PacienteServicio(repositorio, obras_sociales, avisos)
 
 
 ServicioPaciente = Annotated[PacienteServicio, Depends(obtener_servicio_paciente)]
@@ -101,3 +105,19 @@ def elegir_cobertura(
 ) -> EstudioDelPacienteSalida:
     """Deja el estudio a la espera de la autorización de la obra social."""
     return servicio.elegir_cobertura(usuario["email"], estudio_id, datos.obra_social)
+
+
+@router.post("/mis-estudios/{estudio_id}/pago", status_code=201)
+def pagar_estudio(
+    estudio_id: int, datos: PagarEntrada, usuario: UsuarioPaciente, servicio: ServicioPaciente
+) -> PagoSalida:
+    """Pago particular simulado: asienta el pago y pasa el estudio a Pagado."""
+    return servicio.pagar(usuario["email"], estudio_id, datos.metodo)
+
+
+@router.get("/registro-financiero", dependencies=administrativo)
+def ver_registro_financiero(
+    repositorio: Annotated[RepositorioEstudios, Depends(obtener_repositorio)],
+) -> list[AsientoFinancieroSalida]:
+    """Todas las operaciones asentadas: importe, paciente, estudio, método, fecha y cupón."""
+    return [AsientoFinancieroSalida(**vars(a)) for a in repositorio.listar_asientos()]

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -49,3 +50,27 @@ class EstudioDelPacienteSalida(BaseModel):
     cantidad_genes: int
     importe_usd: int | None
     cobertura: CoberturaSalida | None
+
+
+class PagarEntrada(BaseModel):
+    # The payment is simulated; Mercado Pago would replace these methods in the future.
+    metodo: Literal["tarjeta_credito", "tarjeta_debito", "transferencia"]
+
+
+class PagoSalida(BaseModel):
+    estudio_id: int
+    estado: EstadoEstudio
+    importe_usd: int
+    metodo: str
+    pagado_en: datetime
+    paciente_avisado: bool
+
+
+class AsientoFinancieroSalida(BaseModel):
+    id: int
+    estudio_id: int
+    paciente: str
+    importe_usd: int
+    metodo: str
+    fecha: datetime
+    cupon: str | None

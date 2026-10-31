@@ -31,6 +31,19 @@ class Cobertura:
 
 
 @dataclass
+class AsientoFinanciero:
+    """One entry of the financial record: every operation leaves one."""
+
+    id: int
+    estudio_id: int
+    paciente: str
+    importe_usd: int
+    metodo: str
+    fecha: datetime
+    cupon: str | None = None
+
+
+@dataclass
 class CambioEstado:
     desde: EstadoEstudio | None
     hacia: EstadoEstudio
@@ -82,6 +95,21 @@ class RepositorioEstudios(ABC):
     ) -> EstudioParaPresupuesto:
         """Cambia el estado si la transición es válida y la deja en el historial."""
 
+    @abstractmethod
+    def registrar_asiento(
+        self,
+        estudio: EstudioParaPresupuesto,
+        importe_usd: int,
+        metodo: str,
+        fecha: datetime,
+        cupon: str | None = None,
+    ) -> AsientoFinanciero:
+        """Asienta una operación en el registro financiero."""
+
+    @abstractmethod
+    def listar_asientos(self) -> list[AsientoFinanciero]:
+        """El registro financiero, del más reciente al más antiguo."""
+
 
 def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
     return [
@@ -108,6 +136,7 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
 
     def __init__(self) -> None:
         self.estudios = {e.id: e for e in _estudios_de_ejemplo()}
+        self.asientos: list[AsientoFinanciero] = []
 
     def listar_creados_sin_presupuesto(self) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if not e.tiene_presupuesto]
@@ -139,6 +168,23 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
         estudio.historial.append(CambioEstado(estudio.estado, nuevo, en))
         estudio.estado = nuevo
         return estudio
+
+    def registrar_asiento(
+        self,
+        estudio: EstudioParaPresupuesto,
+        importe_usd: int,
+        metodo: str,
+        fecha: datetime,
+        cupon: str | None = None,
+    ) -> AsientoFinanciero:
+        asiento = AsientoFinanciero(
+            len(self.asientos) + 1, estudio.id, estudio.paciente, importe_usd, metodo, fecha, cupon
+        )
+        self.asientos.append(asiento)
+        return asiento
+
+    def listar_asientos(self) -> list[AsientoFinanciero]:
+        return list(reversed(self.asientos))
 
 
 _repositorio = RepositorioEstudiosEnMemoria()
