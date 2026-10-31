@@ -167,4 +167,28 @@ describe('Sacar turno de extracción', () => {
     ).toBeInTheDocument()
     expect(screen.queryByLabelText('Provincia')).not.toBeInTheDocument()
   })
+
+  it('avisa que hace falta una nueva muestra, sin costo, cuando hay un remuestreo', async () => {
+    mockApi({
+      [HABILITADOS]: {
+        body: [
+          {
+            estudio_id: 1,
+            estado: 'TurnoSacado',
+            motivo: 'nueva_reserva',
+            inasistencias: 0,
+            remuestreo_motivo: 'volumen_menor_2ml',
+          },
+        ],
+      },
+      [LABORATORIOS]: { body: [LAB] },
+    })
+    renderApp(PATH)
+
+    expect(
+      await screen.findByText(/Hace falta una nueva muestra: la muestra tuvo menos de 2 ml/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/no tiene costo/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('Provincia')).toBeInTheDocument()
+  })
 })

@@ -10,6 +10,7 @@ import { api, ApiError, json } from '../../lib/api'
 import {
   HORIZONTE_DIAS,
   formatearFechaHora,
+  describirRemuestreo,
   formatearHora,
   HABILITADOS_KEY,
   hoyEnArgentina,
@@ -79,6 +80,8 @@ export default function TurnoPantalla() {
   const provincias = [...new Set((laboratorios.data ?? []).map((l) => l.provincia))].sort()
   const visibles = (laboratorios.data ?? []).filter((l) => !provincia || l.provincia === provincia)
 
+  const remuestreo = habilitados.data?.find((h) => h.estudio_id === estudio)?.remuestreo_motivo
+
   function elegirLaboratorio(lab: Laboratorio) {
     reservar.reset()
     setInicio(null)
@@ -114,6 +117,15 @@ export default function TurnoPantalla() {
           No tenés estudios habilitados para sacar turno. Un estudio puede sacar turno cuando está
           Pagado o Autorizado.
         </p>
+      )}
+
+      {remuestreo && (
+        <div className="mt-4">
+          <Alert kind="info">
+            Hace falta una nueva muestra: {describirRemuestreo(remuestreo)}. Es el mismo estudio y
+            no tiene costo: elegí un nuevo turno de extracción.
+          </Alert>
+        </div>
       )}
 
       {estudio !== null && (

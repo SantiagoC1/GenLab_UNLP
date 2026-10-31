@@ -29,6 +29,7 @@ interface MuestraRecibida {
   volumen_ml: number
   volumen_suficiente: boolean
   listo_para_retirar: boolean
+  remuestreo: { medico_avisado: boolean; paciente_avisado: boolean } | null
 }
 
 const AGENDA_KEY = ['turnos', 'agenda']
@@ -98,7 +99,13 @@ export default function LaboratorioExtraccionSimulador() {
             Notificación recibida: estudio {muestra.data.estudio_id}, {muestra.data.volumen_ml} ml.{' '}
             {muestra.data.listo_para_retirar
               ? 'El estudio pasó a Listo para retirar.'
-              : `El volumen es menor a ${VOLUMEN_MINIMO_ML} ml: no se habilita el retiro y hace falta un remuestreo.`}
+              : `El volumen es menor a ${VOLUMEN_MINIMO_ML} ml: no se habilita el retiro y se habilitó un remuestreo sin costo.`}
+            {muestra.data.remuestreo &&
+              ` Se avisó ${muestra.data.remuestreo.medico_avisado ? 'al médico y ' : ''}${
+                muestra.data.remuestreo.paciente_avisado
+                  ? 'al paciente'
+                  : 'sin poder avisar al paciente'
+              }.`}
           </Alert>
         )}
       </div>

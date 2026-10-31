@@ -17,6 +17,9 @@ CIERRE = time(18, 0)
 LIMITE_INASISTENCIAS = 5
 # M6-RF9: the blood sample needs at least this volume to continue the process.
 VOLUMEN_MINIMO_ML = 2.0
+# Reasons of a resampling (M6-RF10).
+MOTIVO_VOLUMEN = "volumen_menor_2ml"
+MOTIVO_ADN = "adn_desnaturalizado"
 # [assumption] How far ahead an appointment can be booked.
 HORIZONTE_DIAS = 60
 
