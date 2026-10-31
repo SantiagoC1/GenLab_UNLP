@@ -71,6 +71,7 @@ Recibe la consulta de un paciente y devuelve la respuesta.
 | Código | Cuándo | Cuerpo |
 |---|---|---|
 | `401` | Clave de API faltante o inválida | `{"detail": "Clave de API inválida."}` |
+| `400` | El cuerpo del pedido no se puede leer (no es UTF-8 válido). Mandá el JSON en UTF-8. | `{"detail": "There was an error parsing the body"}` |
 | `422` | Pedido inválido: mensaje vacío, solo espacios, de más de 1000 caracteres, o falta el campo | Formato de FastAPI (abajo). Es el mismo para todos los casos. |
 | `429` | Se pasó el límite de consultas del consumidor | `{"detail": "Demasiadas consultas. ..."}` y el encabezado `Retry-After` con los segundos de espera |
 | `503` | El servicio está apagado (`CHATBOT_AVAILABLE=false`) | `{"detail": "El chatbot no está disponible por el momento. Intentá de nuevo más tarde."}` |
