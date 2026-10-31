@@ -1,13 +1,27 @@
 import base64
 from datetime import UTC, datetime
 
+from app.core.enums import Rol
 from app.core.errors import BusinessRuleError, InvalidIntegration
 from app.documentos import qr as qr_code
 from app.documentos.pdf import Line, build_pdf
 from app.integrations.avisos import AvisosIntegracion
 from app.integrations.cupones import CuponesError, CuponesIntegracion
-from app.modules.cupones.repositorio import Cupon, Medico, RepositorioCupones, RepositorioMedicos
-from app.modules.cupones.schemas import AsignacionSalida, CuponSalida, MedicoSalida
+from app.modules.cupones.repositorio import (
+    Cupon,
+    Medico,
+    RepositorioCupones,
+    RepositorioMedicos,
+    RepositorioPacientes,
+)
+from app.modules.cupones.schemas import (
+    AsignacionAPacienteSalida,
+    AsignacionSalida,
+    CuponSalida,
+    MedicoSalida,
+    MisCuponesMedicoSalida,
+    PacienteSalida,
+)
 
 INTEGRACION = "cupones"
 CANAL_AVISO = "email"
@@ -28,11 +42,13 @@ class CuponesServicio:
         cupones: CuponesIntegracion,
         avisos: AvisosIntegracion,
         medicos: RepositorioMedicos,
+        pacientes: RepositorioPacientes,
     ):
         self.repositorio = repositorio
         self.cupones = cupones
         self.avisos = avisos
         self.medicos = medicos
+        self.pacientes = pacientes
 
     # --- M5-RF1 and M5-RF5: generate coupons -------------------------------------------------
 
@@ -93,6 +109,60 @@ class CuponesServicio:
             medico_avisado=self._avisar_al_medico(medico, len(codigos)),
         )
 
+    # --- M5-RF3 and M5-RF4: the doctor gives a coupon to a patient ---------------------------
+
+    def cupones_del_medico(self, contacto_medico: str) -> MisCuponesMedicoSalida:
+        disponibles = self.repositorio.listar_de_medico(contacto_medico)
+        return MisCuponesMedicoSalida(
+            cantidad=len(disponibles), cupones=[self.salida(c) for c in disponibles]
+        )
+
+    def pacientes_del_medico(self, contacto_medico: str) -> list[PacienteSalida]:
+        return [
+            PacienteSalida(contacto=p.contacto, nombre=p.nombre)
+            for p in self.pacientes.listar_de_medico(contacto_medico)
+        ]
+
+    def cupones_del_paciente(self, contacto_paciente: str) -> list[CuponSalida]:
+        return [self.salida(c) for c in self.repositorio.listar_de_paciente(contacto_paciente)]
+
+    def asignar_a_paciente(
+        self, contacto_medico: str, contacto_paciente: str, codigo: str
+    ) -> AsignacionAPacienteSalida:
+        disponibles = self.repositorio.listar_de_medico(contacto_medico)
+        if not disponibles:
+            raise BusinessRuleError("No tenés cupones para asignar.", code="sin_cupones")
+        cupon = next((c for c in disponibles if c.codigo == codigo), None)
+        if cupon is None:
+            raise BusinessRuleError(
+                "Ese cupón no está entre tus cupones disponibles.", code="cupon_no_disponible"
+            )
+        paciente = self.pacientes.obtener(contacto_paciente)
+        if paciente is None or paciente.medico != contacto_medico:
+            raise BusinessRuleError("No existe el paciente.", status_code=404)
+        if self._estado_en_el_modulo(cupon.codigo) != VIGENTE:
+            raise BusinessRuleError(
+                f"El cupón {cupon.codigo} no está Vigente.", code="cupon_no_vigente"
+            )
+
+        asignado = self.repositorio.asignar_a_paciente(cupon.codigo, paciente.contacto)
+        return AsignacionAPacienteSalida(
+            paciente=PacienteSalida(contacto=paciente.contacto, nombre=paciente.nombre),
+            cupon=self.salida(asignado),
+            disponibles=len(disponibles) - 1,
+            paciente_avisado=self._avisar(
+                paciente.contacto,
+                f"Su médico le asignó un cupón de descuento del {asignado.descuento}% "
+                "para el pago de su estudio.",
+            ),
+        )
+
+    def _avisar(self, destinatario: str, mensaje: str) -> bool:
+        try:
+            return self.avisos.enviar_aviso(destinatario, CANAL_AVISO, mensaje)
+        except Exception:
+            return False
+
     def _estado_en_el_modulo(self, codigo: str) -> str:
         try:
             return self.cupones.validar_cupon(codigo)["estado"]
@@ -109,11 +179,21 @@ class CuponesServicio:
         except Exception:
             return False
 
-    def pdf(self, codigo: str) -> bytes:
+    def pdf(self, codigo: str, usuario: dict) -> bytes:
         cupon = self.repositorio.obtener(codigo)
-        if cupon is None:
+        # Whoever does not hold the coupon sees the same as a missing one.
+        if cupon is None or not self._puede_ver(cupon, usuario):
             raise BusinessRuleError("No existe el cupón.", status_code=404)
         return documento_pdf(cupon)
+
+    @staticmethod
+    def _puede_ver(cupon: Cupon, usuario: dict) -> bool:
+        rol, email = usuario["role"], usuario["email"]
+        return (
+            rol == Rol.GERENTE_MEDICO
+            or (rol == Rol.MEDICO_TRATANTE and cupon.medico == email)
+            or (rol == Rol.PACIENTE and cupon.paciente == email)
+        )
 
     @staticmethod
     def salida(cupon: Cupon) -> CuponSalida:

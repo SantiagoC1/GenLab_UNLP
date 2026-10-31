@@ -4,26 +4,34 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
 from app.core.enums import Rol
-from app.core.security import require_role
+from app.core.security import get_current_user, require_role
 from app.integrations.avisos import AvisosIntegracion, obtener_avisos
 from app.integrations.cupones import CuponesIntegracion, obtener_cupones
 from app.modules.cupones.repositorio import (
     RepositorioCupones,
     RepositorioMedicos,
+    RepositorioPacientes,
     obtener_repositorio,
     obtener_repositorio_medicos,
+    obtener_repositorio_pacientes,
 )
 from app.modules.cupones.schemas import (
+    AsignacionAPacienteSalida,
     AsignacionSalida,
     AsignarAMedicoEntrada,
+    AsignarAPacienteEntrada,
     CuponSalida,
     GenerarCuponesEntrada,
     MedicoSalida,
+    MisCuponesMedicoSalida,
+    PacienteSalida,
 )
 from app.modules.cupones.servicio import CuponesServicio
 
 # Generar y asignar a médicos: gerente médico. Asignar a pacientes: médico tratante.
 exigir_gerente = require_role(Rol.GERENTE_MEDICO)
+exigir_medico = require_role(Rol.MEDICO_TRATANTE)
+exigir_paciente = require_role(Rol.PACIENTE)
 
 
 def obtener_servicio(
@@ -31,8 +39,9 @@ def obtener_servicio(
     cupones: Annotated[CuponesIntegracion, Depends(obtener_cupones)],
     avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
     medicos: Annotated[RepositorioMedicos, Depends(obtener_repositorio_medicos)],
+    pacientes: Annotated[RepositorioPacientes, Depends(obtener_repositorio_pacientes)],
 ) -> CuponesServicio:
-    return CuponesServicio(repositorio, cupones, avisos, medicos)
+    return CuponesServicio(repositorio, cupones, avisos, medicos, pacientes)
 
 
 Servicio = Annotated[CuponesServicio, Depends(obtener_servicio)]
@@ -72,10 +81,48 @@ def asignar_a_medico(datos: AsignarAMedicoEntrada, servicio: Servicio) -> Asigna
     return servicio.asignar_a_medico(datos.contacto_medico, datos.codigos)
 
 
-@router.get("/{codigo}/pdf", dependencies=[Depends(exigir_gerente)])
-def descargar_pdf(codigo: str, servicio: Servicio) -> Response:
+@router.get("/mis-cupones")
+def ver_mis_cupones_de_medico(
+    usuario: Annotated[dict, Depends(exigir_medico)], servicio: Servicio
+) -> MisCuponesMedicoSalida:
+    """Los cupones disponibles del médico, para dárselos a sus pacientes."""
+    return servicio.cupones_del_medico(usuario["email"])
+
+
+@router.get("/mis-pacientes")
+def ver_mis_pacientes(
+    usuario: Annotated[dict, Depends(exigir_medico)], servicio: Servicio
+) -> list[PacienteSalida]:
+    return servicio.pacientes_del_medico(usuario["email"])
+
+
+@router.post("/asignar-a-paciente")
+def asignar_a_paciente(
+    datos: AsignarAPacienteEntrada,
+    usuario: Annotated[dict, Depends(exigir_medico)],
+    servicio: Servicio,
+) -> AsignacionAPacienteSalida:
+    """Lo descuenta de los disponibles del médico y lo publica en la vista del paciente."""
+    return servicio.asignar_a_paciente(usuario["email"], datos.contacto_paciente, datos.codigo)
+
+
+@router.get("/asignados")
+def ver_cupones_asignados(
+    usuario: Annotated[dict, Depends(exigir_paciente)], servicio: Servicio
+) -> list[CuponSalida]:
+    """Los cupones que el médico le asignó al paciente."""
+    return servicio.cupones_del_paciente(usuario["email"])
+
+
+@router.get("/{codigo}/pdf")
+def descargar_pdf(
+    codigo: str,
+    usuario: Annotated[dict, Depends(get_current_user)],
+    servicio: Servicio,
+) -> Response:
+    """El PDF lo baja el gerente médico, el médico que lo tiene o el paciente que lo recibió."""
     return Response(
-        servicio.pdf(codigo),
+        servicio.pdf(codigo, usuario),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="cupon-{codigo}.pdf"'},
     )

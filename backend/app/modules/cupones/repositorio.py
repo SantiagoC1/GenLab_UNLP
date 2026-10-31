@@ -19,6 +19,13 @@ class Medico:
     matricula: str
 
 
+@dataclass(frozen=True)
+class Paciente:
+    contacto: str  # e-mail of the patient's account
+    nombre: str
+    medico: str  # contact of the treating doctor
+
+
 @dataclass
 class Cupon:
     codigo: str
@@ -42,6 +49,29 @@ class RepositorioCupones(ABC):
 
     @abstractmethod
     def asignar_a_medico(self, codigos: list[str], contacto_medico: str) -> list[Cupon]: ...
+
+    @abstractmethod
+    def listar_de_medico(self, contacto_medico: str) -> list[Cupon]:
+        """Cupones que el médico tiene y todavía no le dio a ningún paciente."""
+
+    @abstractmethod
+    def listar_de_paciente(self, contacto_paciente: str) -> list[Cupon]: ...
+
+    @abstractmethod
+    def asignar_a_paciente(self, codigo: str, contacto_paciente: str) -> Cupon: ...
+
+
+class RepositorioPacientes(ABC):
+    """Patients of each treating doctor.
+
+    TODO: they come from the patients table (module owned by Integrante A).
+    """
+
+    @abstractmethod
+    def listar_de_medico(self, contacto_medico: str) -> list[Paciente]: ...
+
+    @abstractmethod
+    def obtener(self, contacto: str) -> Paciente | None: ...
 
 
 class RepositorioMedicos(ABC):
@@ -78,6 +108,19 @@ class RepositorioCuponesEnMemoria(RepositorioCupones):
             cupon.medico = contacto_medico
         return asignados
 
+    def listar_de_medico(self, contacto_medico: str) -> list[Cupon]:
+        return [
+            c for c in self.cupones.values() if c.medico == contacto_medico and c.paciente is None
+        ]
+
+    def listar_de_paciente(self, contacto_paciente: str) -> list[Cupon]:
+        return [c for c in self.cupones.values() if c.paciente == contacto_paciente]
+
+    def asignar_a_paciente(self, codigo: str, contacto_paciente: str) -> Cupon:
+        cupon = self.cupones[codigo]
+        cupon.paciente = contacto_paciente
+        return cupon
+
 
 def _medicos_de_ejemplo() -> list[Medico]:
     return [
@@ -106,7 +149,24 @@ class RepositorioMedicosEnMemoria(RepositorioMedicos):
 _repositorio = RepositorioCuponesEnMemoria()
 
 
+class RepositorioPacientesEnMemoria(RepositorioPacientes):
+    def __init__(self) -> None:
+        pacientes = [
+            Paciente("lucia.fernandez@example.com", "Lucía Fernández", "ana.perez@example.com"),
+            Paciente("martin.gomez@example.com", "Martín Gómez", "ana.perez@example.com"),
+            Paciente("sofia.ramirez@example.com", "Sofía Ramírez", "carlos.rivas@example.com"),
+        ]
+        self.pacientes = {p.contacto: p for p in pacientes}
+
+    def listar_de_medico(self, contacto_medico: str) -> list[Paciente]:
+        return [p for p in self.pacientes.values() if p.medico == contacto_medico]
+
+    def obtener(self, contacto: str) -> Paciente | None:
+        return self.pacientes.get(contacto)
+
+
 _medicos = RepositorioMedicosEnMemoria()
+_pacientes = RepositorioPacientesEnMemoria()
 
 
 def obtener_repositorio() -> RepositorioCupones:
@@ -115,3 +175,7 @@ def obtener_repositorio() -> RepositorioCupones:
 
 def obtener_repositorio_medicos() -> RepositorioMedicos:
     return _medicos
+
+
+def obtener_repositorio_pacientes() -> RepositorioPacientes:
+    return _pacientes

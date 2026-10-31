@@ -1,10 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { SelectField } from '../../components/SelectField'
 import { api, json } from '../../lib/api'
+import type { Cupon } from '../../lib/cupones'
+import { downloadFile } from '../../lib/download'
 import { MIS_ESTUDIOS_KEY, useMisEstudios } from '../../lib/presupuesto'
 
 interface Pago {
@@ -26,6 +28,12 @@ export default function PagoPantalla() {
   const estudios = useMisEstudios()
   const [estudioId, setEstudioId] = useState<number | null>(null)
   const [metodo, setMetodo] = useState(METODOS[0].valor)
+
+  // M5-RF3: the coupons the treating doctor gave to the patient are published here.
+  const cupones = useQuery({
+    queryKey: ['cupones', 'asignados'],
+    queryFn: () => api<Cupon[]>('/cupones/asignados'),
+  })
 
   const pagar = useMutation({
     mutationFn: (estudio: number) =>
@@ -110,6 +118,36 @@ export default function PagoPantalla() {
             Pagar USD {estudio.importe_usd}
           </Button>
         </form>
+      )}
+
+      {cupones.data && cupones.data.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-medium text-slate-900">Mis cupones de descuento</h2>
+          <ul className="mt-2 grid gap-3 sm:grid-cols-2">
+            {cupones.data.map((cupon) => (
+              <li key={cupon.codigo} className="flex gap-3 rounded-lg border border-slate-200 p-3">
+                {cupon.qr && (
+                  <img src={cupon.qr} alt={`QR del cupón ${cupon.codigo}`} className="h-16 w-16" />
+                )}
+                <div className="text-sm">
+                  <p className="font-semibold text-slate-900">{cupon.codigo}</p>
+                  <p>
+                    {cupon.descuento}% de descuento · {cupon.estado}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-1 text-teal-700 underline"
+                    onClick={() => {
+                      downloadFile(cupon.pdf_url, `cupon-${cupon.codigo}.pdf`).catch(() => {})
+                    }}
+                  >
+                    Descargar PDF
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   )
