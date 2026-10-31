@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 
 from app.core.enums import Rol
 from app.core.security import require_role
@@ -80,3 +81,32 @@ def reservar_turno(
 @router.get("/mis-turnos")
 def listar_mis_turnos(usuario: UsuarioPaciente, servicio: Servicio) -> list[TurnoSalida]:
     return servicio.mis_turnos(usuario["email"])
+
+
+def _pdf(contenido: bytes, nombre: str) -> Response:
+    return Response(
+        contenido,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )
+
+
+@router.get("/{turno_id}/orden-extraccion")
+def descargar_orden_de_extraccion(
+    turno_id: int, usuario: UsuarioPaciente, servicio: Servicio
+) -> Response:
+    """Orden de extracción: fecha, hora, laboratorio e indicaciones previas."""
+    return _pdf(
+        servicio.orden_de_extraccion(usuario["email"], turno_id), f"orden-extraccion-{turno_id}.pdf"
+    )
+
+
+@router.get("/{turno_id}/consentimiento-informado")
+def descargar_consentimiento_informado(
+    turno_id: int, usuario: UsuarioPaciente, servicio: Servicio
+) -> Response:
+    """Consentimiento informado para imprimir. El firmado se entrega en papel."""
+    return _pdf(
+        servicio.consentimiento_informado(usuario["email"], turno_id),
+        "consentimiento-informado.pdf",
+    )

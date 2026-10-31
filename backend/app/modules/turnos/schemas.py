@@ -51,3 +51,6 @@ class TurnoSalida(BaseModel):
     estado: str
     recordatorio_para: datetime | None
     puede_cancelar: bool
+    # Published from the booking while the appointment is valid (M6-RF4).
+    orden_extraccion_url: str | None = None
+    consentimiento_url: str | None = None
