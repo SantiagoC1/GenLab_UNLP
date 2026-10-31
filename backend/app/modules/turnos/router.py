@@ -17,6 +17,8 @@ from app.modules.turnos.schemas import (
     EstudioHabilitadoSalida,
     InasistenciaSalida,
     LaboratorioSalida,
+    MuestraRecibidaSalida,
+    NotificacionMuestraEntrada,
     ReservarEntrada,
     TurnoSalida,
     TurnosLibresSalida,
@@ -137,3 +139,16 @@ def ver_agenda_de_los_laboratorios(servicio: Servicio) -> list[AgendaSalida]:
 def registrar_inasistencia(turno_id: int, servicio: Servicio) -> InasistenciaSalida:
     """Registra la inasistencia, avisa la cantidad acumulada y habilita una nueva reserva."""
     return servicio.registrar_inasistencia(turno_id)
+
+
+@router.post("/notificaciones-muestra", dependencies=administrativo)
+def recibir_notificacion_de_muestra(
+    datos: NotificacionMuestraEntrada, servicio: Servicio
+) -> MuestraRecibidaSalida:
+    """El laboratorio de extracción informa la muestra tomada: estudio y volumen en ml.
+
+    Con al menos 2 ml el estudio pasa a Listo para retirar. [assumption] Hasta definir cómo se
+    autentica el bot de Telegram (P7) el endpoint exige la sesión del administrativo, que es quien
+    usa el simulador.
+    """
+    return servicio.recibir_muestra(datos.estudio_id, datos.volumen_ml)

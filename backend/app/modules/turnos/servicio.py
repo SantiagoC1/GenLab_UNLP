@@ -11,6 +11,7 @@ from app.modules.turnos.repositorio import (
     AUSENTE,
     CANCELADO,
     PROGRAMADO,
+    REALIZADO,
     Laboratorio,
     Recordatorio,
     RepositorioTurnos,
@@ -23,6 +24,7 @@ from app.modules.turnos.schemas import (
     EstudioHabilitadoSalida,
     InasistenciaSalida,
     LaboratorioSalida,
+    MuestraRecibidaSalida,
     TurnoSalida,
     TurnosLibresSalida,
 )
@@ -226,6 +228,34 @@ class TurnosServicio:
             limite=reglas.LIMITE_INASISTENCIAS,
             limite_alcanzado=alcanzado,
             paciente_avisado=avisado,
+        )
+
+    # --- M6-RF9: the sample notification ---------------------------------------------------------
+
+    def recibir_muestra(self, estudio_id: int, volumen_ml: float) -> MuestraRecibidaSalida:
+        estudio = self.estudios.obtener(estudio_id)
+        if estudio is None:
+            raise BusinessRuleError("No existe el estudio.", status_code=404)
+        turno = self.turnos.turno_vigente_de_estudio(estudio.id)
+        if turno is None or estudio.estado != EstadoEstudio.TURNO_SACADO:
+            raise BusinessRuleError(
+                "El estudio no tiene un turno de extracción vigente: no se espera una muestra.",
+                code="sin_turno_vigente",
+            )
+
+        # Every sample is kept, also an insufficient one: the history of the study is preserved.
+        muestra = self.turnos.registrar_muestra(estudio.id, volumen_ml, self.ahora)
+        self.turnos.marcar_turno(turno.id, REALIZADO, anular_recordatorio=True)
+        suficiente = volumen_ml >= reglas.VOLUMEN_MINIMO_ML
+        if suficiente:
+            self.estudios.cambiar_estado(estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora)
+        return MuestraRecibidaSalida(
+            estudio_id=estudio.id,
+            estado=estudio.estado,
+            muestra_id=muestra.id,
+            volumen_ml=volumen_ml,
+            volumen_suficiente=suficiente,
+            listo_para_retirar=suficiente,
         )
 
     def mis_turnos(self, contacto: str) -> list[TurnoSalida]:

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.enums import EstadoEstudio
 from app.modules.turnos.reglas import ARG
@@ -81,3 +81,19 @@ class InasistenciaSalida(BaseModel):
     limite: int
     limite_alcanzado: bool
     paciente_avisado: bool
+
+
+class NotificacionMuestraEntrada(BaseModel):
+    """What the extraction lab tells us: the study and the volume of the sample."""
+
+    estudio_id: int
+    volumen_ml: float = Field(gt=0, le=50)
+
+
+class MuestraRecibidaSalida(BaseModel):
+    estudio_id: int
+    estado: EstadoEstudio
+    muestra_id: int
+    volumen_ml: float
+    volumen_suficiente: bool
+    listo_para_retirar: bool

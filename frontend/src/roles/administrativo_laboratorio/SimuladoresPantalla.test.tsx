@@ -1,10 +1,11 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { mockApi, renderApp, startTestSession } from '../../test-utils'
+import { mockApi, renderApp, sentTo, startTestSession } from '../../test-utils'
 
 const PATH = '/administrativo_laboratorio/simuladores'
 const AGENDA = 'GET /turnos/agenda'
 const INASISTENCIA = 'POST /turnos/1/inasistencia'
+const MUESTRA = 'POST /turnos/notificaciones-muestra'
 
 const TURNO = {
   turno_id: 1,
@@ -96,5 +97,81 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Registrar inasistencia' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('no se puede registrar')
+  })
+
+  it('manda el mensaje de Telegram con el volumen y el estudio pasa a Listo para retirar', async () => {
+    let agenda = [TURNO]
+    const mock = mockApi({
+      [AGENDA]: () => ({ body: agenda }),
+      [MUESTRA]: () => {
+        agenda = []
+        return {
+          body: {
+            estudio_id: 1,
+            estado: 'ListoParaRetirar',
+            volumen_ml: 3.5,
+            volumen_suficiente: true,
+            listo_para_retirar: true,
+          },
+        }
+      },
+    })
+    renderApp(PATH)
+    const user = userEvent.setup()
+
+    const enviar = await screen.findByRole('button', { name: 'Enviar mensaje de Telegram' })
+    expect(enviar).toBeDisabled()
+    await user.type(screen.getByLabelText('Volumen de la muestra (ml)'), '3.5')
+    expect(
+      screen.getByText(/Mensaje del bot: «Muestra tomada · estudio 1 · 3.5 ml»/),
+    ).toBeInTheDocument()
+    await user.click(enviar)
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Notificación recibida: estudio 1, 3.5 ml. El estudio pasó a Listo para retirar.',
+    )
+    expect(sentTo(mock, MUESTRA)).toEqual([{ estudio_id: 1, volumen_ml: 3.5 }])
+  })
+
+  it('avisa que con menos de 2 ml no se habilita el retiro', async () => {
+    mockApi({
+      [AGENDA]: { body: [TURNO] },
+      [MUESTRA]: {
+        body: {
+          estudio_id: 1,
+          estado: 'TurnoSacado',
+          volumen_ml: 1.5,
+          volumen_suficiente: false,
+          listo_para_retirar: false,
+        },
+      },
+    })
+    renderApp(PATH)
+    const user = userEvent.setup()
+
+    await user.type(await screen.findByLabelText('Volumen de la muestra (ml)'), '1.5')
+    await user.click(screen.getByRole('button', { name: 'Enviar mensaje de Telegram' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'El volumen es menor a 2 ml: no se habilita el retiro y hace falta un remuestreo.',
+    )
+  })
+
+  it('muestra el error cuando la notificación se rechaza', async () => {
+    mockApi({
+      [AGENDA]: { body: [TURNO] },
+      [MUESTRA]: {
+        status: 409,
+        body: {
+          detalle: 'El estudio no tiene un turno de extracción vigente: no se espera una muestra.',
+        },
+      },
+    })
+    renderApp(PATH)
+    const user = userEvent.setup()
+
+    await user.type(await screen.findByLabelText('Volumen de la muestra (ml)'), '3')
+    await user.click(screen.getByRole('button', { name: 'Enviar mensaje de Telegram' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('no se espera una muestra')
   })
 })
