@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from app.core.enums import EstadoEstudio
 from app.core.errors import BusinessRuleError, InvalidIntegration
+from app.integrations.avisos import AvisosIntegracion
 from app.integrations.obras_sociales import ObrasSocialesIntegracion
 from app.modules.presupuesto_pago.repositorio import (
     PENDIENTE,
@@ -15,9 +16,20 @@ from app.modules.presupuesto_pago.schemas import (
     CoberturaSalida,
     EstudioDelPacienteSalida,
     ObraSocialSalida,
+    PagoSalida,
 )
 
 INTEGRACION_OBRAS_SOCIALES = "obras_sociales"
+CANAL_AVISO = "email"
+METODO_PAGO_SIMULADO = "simulado"
+
+
+def avisar(avisos: AvisosIntegracion, destinatario: str, mensaje: str) -> bool:
+    """A failing notice never undoes the operation that triggered it."""
+    try:
+        return avisos.enviar_aviso(destinatario, CANAL_AVISO, mensaje)
+    except Exception:
+        return False
 
 
 class PacienteServicio:
@@ -25,9 +37,11 @@ class PacienteServicio:
         self,
         repositorio: RepositorioEstudios,
         obras_sociales: ObrasSocialesIntegracion,
+        avisos: AvisosIntegracion,
     ):
         self.repositorio = repositorio
         self.obras_sociales = obras_sociales
+        self.avisos = avisos
 
     # --- reading --------------------------------------------------------------------------
 
@@ -79,6 +93,53 @@ class PacienteServicio:
         )
         # The study stays in Creado until the administrative user records the answer.
         return self._salida(self.repositorio.guardar_cobertura(estudio.id, cobertura))
+
+    # --- M4-RF5 and M4-RF9: private payment, simulated --------------------------------------
+
+    def pagar(self, contacto: str, estudio_id: int, metodo: str) -> PagoSalida:
+        estudio = self.estudio_del_paciente(contacto, estudio_id)
+        self._exigir_pago_posible(estudio)
+
+        importe = estudio.presupuesto_importe_usd
+        ahora = datetime.now(UTC)
+        # Nothing is recorded before this point, so leaving without paying changes nothing.
+        self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.PAGADO, ahora)
+        asiento = self.repositorio.registrar_asiento(estudio, importe, metodo, ahora)
+        avisado = avisar(
+            self.avisos,
+            estudio.contacto_paciente,
+            f"Recibimos el pago de su estudio (USD {importe}). Ya puede sacar su turno de extracción.",
+        )
+        return PagoSalida(
+            estudio_id=estudio.id,
+            estado=estudio.estado,
+            importe_usd=asiento.importe_usd,
+            metodo=asiento.metodo,
+            pagado_en=asiento.fecha,
+            paciente_avisado=avisado,
+        )
+
+    @staticmethod
+    def _exigir_pago_posible(estudio: EstudioParaPresupuesto) -> None:
+        if not estudio.tiene_presupuesto:
+            raise BusinessRuleError("El estudio todavía no tiene el presupuesto emitido.")
+        if estudio.estado in (EstadoEstudio.PAGADO, EstadoEstudio.AUTORIZADO):
+            # M4-RF9: an Autorizado study is authorized and paid.
+            raise BusinessRuleError(
+                f"El estudio ya está {estudio.estado.value}: no hay nada más para pagar.",
+                code="estudio_ya_pago",
+            )
+        if estudio.estado != EstadoEstudio.CREADO:
+            raise BusinessRuleError(
+                f"El estudio está {estudio.estado.value}: no admite el pago particular."
+            )
+        if estudio.cobertura is not None:
+            # [assumption] P8: after choosing or being refused by the obra social there is no
+            # private payment until the business answers.
+            raise BusinessRuleError(
+                "El estudio tiene una cobertura por obra social: no admite el pago particular.",
+                code="cobertura_en_curso",
+            )
 
     # --- helpers --------------------------------------------------------------------------
 

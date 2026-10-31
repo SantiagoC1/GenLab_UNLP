@@ -4,30 +4,16 @@ import pytest
 
 from app.core.enums import EstadoEstudio, Rol
 from app.core.errors import BusinessRuleError
-from app.integrations.obras_sociales import ObrasSocialesIntegracion, obtener_obras_sociales
+from app.integrations.obras_sociales import obtener_obras_sociales
 from app.main import app
 from app.modules.presupuesto_pago.estado import TRANSITIONS, validate_transition
 from app.modules.presupuesto_pago.repositorio import (
     RepositorioEstudiosEnMemoria,
     obtener_repositorio,
 )
+from tests.fakes import ObrasSocialesFalsa
 
 PACIENTE = "lucia.fernandez@example.com"
-
-
-class ObrasSocialesFalsa(ObrasSocialesIntegracion):
-    def __init__(self):
-        self.altas: list[tuple[str, str]] = []
-
-    def listar_obras_sociales(self) -> list[dict]:
-        return [{"nombre": "OSDE", "cobertura": 80}, {"nombre": "Swiss Medical", "cobertura": 60}]
-
-    def dar_de_alta_estudio(self, nombre: str, fecha: str) -> str:
-        self.altas.append((nombre, fecha))
-        return "OS-9001"
-
-    def estado_autorizacion(self, identificador: str) -> str:
-        return "Pendiente"
 
 
 class ObrasSocialesCaida(ObrasSocialesFalsa):
