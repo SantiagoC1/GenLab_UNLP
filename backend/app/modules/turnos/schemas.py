@@ -1,0 +1,53 @@
+from datetime import date, datetime
+from typing import Literal
+
+from pydantic import BaseModel, field_validator
+
+from app.core.enums import EstadoEstudio
+from app.modules.turnos.reglas import ARG
+
+
+class LaboratorioSalida(BaseModel):
+    id: int
+    nombre: str
+    direccion: str
+    provincia: str
+    latitud: float
+    longitud: float
+    proximo_turno: datetime | None = None
+
+
+class TurnosLibresSalida(BaseModel):
+    laboratorio_id: int
+    fecha: date
+    turnos: list[datetime]
+    motivo: str | None = None
+
+
+class EstudioHabilitadoSalida(BaseModel):
+    estudio_id: int
+    estado: EstadoEstudio
+    # Why the study can book: it is Pagado, Autorizado or has a new booking enabled.
+    motivo: Literal["pagado", "autorizado", "nueva_reserva"]
+
+
+class ReservarEntrada(BaseModel):
+    estudio_id: int
+    laboratorio_id: int
+    inicio: datetime
+
+    @field_validator("inicio")
+    @classmethod
+    def _con_zona_horaria(cls, inicio: datetime) -> datetime:
+        # A start without a time zone is read in Argentine time.
+        return inicio if inicio.tzinfo else inicio.replace(tzinfo=ARG)
+
+
+class TurnoSalida(BaseModel):
+    id: int
+    estudio_id: int
+    laboratorio: LaboratorioSalida
+    inicio: datetime
+    estado: str
+    recordatorio_para: datetime | None
+    puede_cancelar: bool
