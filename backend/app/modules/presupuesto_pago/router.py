@@ -9,11 +9,14 @@ from app.integrations.cupones import CuponesIntegracion, obtener_cupones
 from app.integrations.obras_sociales import ObrasSocialesIntegracion, obtener_obras_sociales
 from app.modules.cupones.repositorio import RepositorioCupones
 from app.modules.cupones.repositorio import obtener_repositorio as obtener_repositorio_cupones
+from app.modules.presupuesto_pago.autorizacion import AutorizacionServicio
 from app.modules.presupuesto_pago.paciente import PacienteServicio
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios, obtener_repositorio
 from app.modules.presupuesto_pago.schemas import (
     AplicarCuponEntrada,
     AsientoFinancieroSalida,
+    AutorizacionPendienteSalida,
+    AutorizacionRegistradaSalida,
     CuponAplicadoSalida,
     DetalleEstudioSalida,
     ElegirCoberturaEntrada,
@@ -23,6 +26,7 @@ from app.modules.presupuesto_pago.schemas import (
     PagarEntrada,
     PagoSalida,
     PresupuestoEmitidoSalida,
+    RespuestaObraSocialEntrada,
 )
 from app.modules.presupuesto_pago.servicio import PresupuestoServicio
 
@@ -58,6 +62,16 @@ def obtener_servicio_paciente(
 
 
 ServicioPaciente = Annotated[PacienteServicio, Depends(obtener_servicio_paciente)]
+
+
+def obtener_servicio_autorizacion(
+    repositorio: Annotated[RepositorioEstudios, Depends(obtener_repositorio)],
+    avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
+) -> AutorizacionServicio:
+    return AutorizacionServicio(repositorio, avisos)
+
+
+ServicioAutorizacion = Annotated[AutorizacionServicio, Depends(obtener_servicio_autorizacion)]
 
 # M4. Presupuesto, cobertura y pago
 router = APIRouter(prefix="/presupuesto_pago", tags=["presupuesto_pago"])
@@ -158,3 +172,21 @@ def quitar_cupon(
 ) -> EstudioDelPacienteSalida:
     """Vuelve al importe original."""
     return servicio.quitar_cupon(usuario["email"], estudio_id)
+
+
+@router.get("/autorizaciones-pendientes", dependencies=administrativo)
+def listar_autorizaciones_pendientes(
+    servicio: ServicioAutorizacion,
+) -> list[AutorizacionPendienteSalida]:
+    """Bandeja: estudios con la autorización de la obra social pendiente."""
+    return servicio.listar_pendientes()
+
+
+@router.post("/estudios/{estudio_id}/autorizacion", dependencies=administrativo)
+def registrar_autorizacion(
+    estudio_id: int,
+    datos: RespuestaObraSocialEntrada,
+    servicio: ServicioAutorizacion,
+) -> AutorizacionRegistradaSalida:
+    """Registra la respuesta de la obra social (Autorizado o Rechazado con motivo)."""
+    return servicio.registrar_respuesta(estudio_id, datos.resultado, datos.motivo)
