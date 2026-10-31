@@ -25,6 +25,7 @@ from app.modules.turnos.schemas import (
     InasistenciaSalida,
     LaboratorioSalida,
     MuestraRecibidaSalida,
+    RemuestreoSalida,
     TurnoSalida,
     TurnosLibresSalida,
 )
@@ -82,6 +83,7 @@ class TurnosServicio:
                         estado=estudio.estado,
                         motivo=motivo,
                         inasistencias=self.turnos.contar_inasistencias(estudio.id),
+                        remuestreo_motivo=self._motivo_remuestreo_pendiente(estudio.id),
                     )
                 )
         return habilitados
@@ -117,6 +119,8 @@ class TurnosServicio:
 
         if estudio.estado != EstadoEstudio.TURNO_SACADO:
             self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
+        # The patient booked the new appointment: the resampling stops being pending.
+        self.turnos.resolver_remuestreo(estudio.id)
         avisar(
             self.avisos,
             estudio.contacto_paciente,
@@ -247,8 +251,14 @@ class TurnosServicio:
         muestra = self.turnos.registrar_muestra(estudio.id, volumen_ml, self.ahora)
         self.turnos.marcar_turno(turno.id, REALIZADO, anular_recordatorio=True)
         suficiente = volumen_ml >= reglas.VOLUMEN_MINIMO_ML
+        remuestreo = None
         if suficiente:
             self.estudios.cambiar_estado(estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora)
+        else:
+            # Scenario 24 continues with the resampling (scenario 25).
+            remuestreo = self._habilitar_remuestreo(
+                estudio, reglas.MOTIVO_VOLUMEN, f"Muestra de {volumen_ml:g} ml"
+            )
         return MuestraRecibidaSalida(
             estudio_id=estudio.id,
             estado=estudio.estado,
@@ -256,7 +266,66 @@ class TurnosServicio:
             volumen_ml=volumen_ml,
             volumen_suficiente=suficiente,
             listo_para_retirar=suficiente,
+            remuestreo=remuestreo,
         )
+
+    # --- M6-RF10: resampling ---------------------------------------------------------------------
+
+    def solicitar_remuestreo_por_adn(
+        self, estudio_id: int, detalle: str | None
+    ) -> RemuestreoSalida:
+        """The bioinformatician found the DNA insufficient (denatured) while analysing."""
+        estudio = self.estudios.obtener(estudio_id)
+        if estudio is None:
+            raise BusinessRuleError("No existe el estudio.", status_code=404)
+        if estudio.estado != EstadoEstudio.EN_ANALISIS_POR_UN_BIOINFORMATICO:
+            raise BusinessRuleError(
+                f"El estudio está {estudio.estado.value}: el ADN insuficiente solo se informa "
+                "durante el análisis.",
+                code="estudio_no_en_analisis",
+            )
+        return self._habilitar_remuestreo(
+            estudio, reglas.MOTIVO_ADN, (detalle or "").strip() or "ADN desnaturalizado"
+        )
+
+    def _habilitar_remuestreo(
+        self, estudio: EstudioParaPresupuesto, motivo: str, detalle: str
+    ) -> RemuestreoSalida:
+        # Same study, no new charge and no new study: it goes back to (or stays in) TurnoSacado
+        # and, with no valid appointment, the patient can book again. The previous sample and the
+        # history of the study are kept.
+        self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
+        remuestreo = self.turnos.registrar_remuestreo(estudio.id, motivo, detalle, self.ahora)
+        causa = (
+            "el volumen de la muestra fue menor a 2 ml"
+            if motivo == reglas.MOTIVO_VOLUMEN
+            else "el ADN de la muestra no alcanzó para el análisis"
+        )
+        medico_avisado = bool(estudio.contacto_medico) and avisar(
+            self.avisos,
+            estudio.contacto_medico,
+            f"El estudio {estudio.id} de {estudio.paciente} necesita una nueva muestra: {causa}. "
+            "Es el mismo estudio y no tiene costo; el paciente va a sacar un nuevo turno.",
+        )
+        paciente_avisado = avisar(
+            self.avisos,
+            estudio.contacto_paciente,
+            f"Hace falta una nueva muestra para su estudio: {causa}. Es el mismo estudio y no "
+            "tiene costo. Saque un nuevo turno de extracción desde la plataforma.",
+        )
+        return RemuestreoSalida(
+            remuestreo_id=remuestreo.id,
+            estudio_id=estudio.id,
+            estado=estudio.estado,
+            motivo=motivo,
+            detalle=detalle,
+            medico_avisado=medico_avisado,
+            paciente_avisado=paciente_avisado,
+        )
+
+    def _motivo_remuestreo_pendiente(self, estudio_id: int) -> str | None:
+        pendiente = self.turnos.remuestreo_pendiente(estudio_id)
+        return pendiente.motivo if pendiente else None
 
     def mis_turnos(self, contacto: str) -> list[TurnoSalida]:
         ids = [e.id for e in self.estudios.listar_de_paciente(contacto)]

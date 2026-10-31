@@ -143,6 +143,7 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
           volumen_ml: 1.5,
           volumen_suficiente: false,
           listo_para_retirar: false,
+          remuestreo: { medico_avisado: true, paciente_avisado: true },
         },
       },
     })
@@ -153,7 +154,7 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar mensaje de Telegram' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'El volumen es menor a 2 ml: no se habilita el retiro y hace falta un remuestreo.',
+      'El volumen es menor a 2 ml: no se habilita el retiro y se habilitó un remuestreo sin costo. Se avisó al médico y al paciente.',
     )
   })
 

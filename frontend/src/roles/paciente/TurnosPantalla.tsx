@@ -8,6 +8,7 @@ import {
   HABILITADOS_KEY,
   LIMITE_INASISTENCIAS,
   MIS_TURNOS_KEY,
+  describirRemuestreo,
   formatearFechaHora,
   type Habilitado,
   type Turno,
@@ -33,7 +34,7 @@ export default function TurnosPantalla() {
   })
   // M6-RF8: studies that missed an appointment and can book again.
   const reprogramables = (habilitados.data ?? []).filter(
-    (h) => h.motivo === 'nueva_reserva' && h.inasistencias > 0,
+    (h) => h.motivo === 'nueva_reserva' && h.inasistencias > 0 && !h.remuestreo_motivo,
   )
 
   const cancelar = useMutation({
@@ -65,6 +66,18 @@ export default function TurnosPantalla() {
           </Alert>
         )}
       </div>
+
+      {(habilitados.data ?? [])
+        .filter((h) => h.remuestreo_motivo)
+        .map((h) => (
+          <Alert key={`remuestreo-${h.estudio_id}`} kind="info">
+            Estudio {h.estudio_id}: hace falta una nueva muestra porque{' '}
+            {describirRemuestreo(h.remuestreo_motivo ?? '')}. Es el mismo estudio y no tiene costo.{' '}
+            <Link to="../turno" className="font-medium underline">
+              Sacar un nuevo turno
+            </Link>
+          </Alert>
+        ))}
 
       {reprogramables.map((h) => (
         <Alert key={h.estudio_id} kind="info">

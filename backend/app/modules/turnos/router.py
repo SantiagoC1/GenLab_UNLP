@@ -19,6 +19,8 @@ from app.modules.turnos.schemas import (
     LaboratorioSalida,
     MuestraRecibidaSalida,
     NotificacionMuestraEntrada,
+    RemuestreoPorAdnEntrada,
+    RemuestreoSalida,
     ReservarEntrada,
     TurnoSalida,
     TurnosLibresSalida,
@@ -32,6 +34,7 @@ UsuarioPaciente = Annotated[dict, Depends(exigir_paciente)]
 # tell us (absences, samples). [assumption] P3: who registers an absence is still open.
 exigir_administrativo = require_role(Rol.ADMINISTRATIVO_LABORATORIO)
 administrativo = [Depends(exigir_administrativo)]
+exigir_bioinformatico = require_role(Rol.BIOINFORMATICO)
 
 
 def obtener_servicio(
@@ -152,3 +155,11 @@ def recibir_notificacion_de_muestra(
     usa el simulador.
     """
     return servicio.recibir_muestra(datos.estudio_id, datos.volumen_ml)
+
+
+@router.post("/estudios/{estudio_id}/remuestreo", dependencies=[Depends(exigir_bioinformatico)])
+def solicitar_remuestreo_por_adn(
+    estudio_id: int, datos: RemuestreoPorAdnEntrada, servicio: Servicio
+) -> RemuestreoSalida:
+    """El bioinformático informa ADN insuficiente: se habilita un remuestreo sin costo."""
+    return servicio.solicitar_remuestreo_por_adn(estudio_id, datos.detalle)

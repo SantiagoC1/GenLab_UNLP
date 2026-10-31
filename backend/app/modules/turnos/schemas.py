@@ -30,6 +30,8 @@ class EstudioHabilitadoSalida(BaseModel):
     # Why the study can book: it is Pagado, Autorizado or has a new booking enabled.
     motivo: Literal["pagado", "autorizado", "nueva_reserva"]
     inasistencias: int = 0
+    # Set while a resampling waits for the patient to book (M6-RF10).
+    remuestreo_motivo: str | None = None
 
 
 class ReservarEntrada(BaseModel):
@@ -90,6 +92,20 @@ class NotificacionMuestraEntrada(BaseModel):
     volumen_ml: float = Field(gt=0, le=50)
 
 
+class RemuestreoSalida(BaseModel):
+    remuestreo_id: int
+    estudio_id: int
+    estado: EstadoEstudio
+    motivo: str
+    detalle: str
+    medico_avisado: bool
+    paciente_avisado: bool
+
+
+class RemuestreoPorAdnEntrada(BaseModel):
+    detalle: str | None = Field(default=None, max_length=300)
+
+
 class MuestraRecibidaSalida(BaseModel):
     estudio_id: int
     estado: EstadoEstudio
@@ -97,3 +113,4 @@ class MuestraRecibidaSalida(BaseModel):
     volumen_ml: float
     volumen_suficiente: bool
     listo_para_retirar: bool
+    remuestreo: RemuestreoSalida | None = None

@@ -133,4 +133,30 @@ describe('Mis turnos: cancelar', () => {
     expect(await screen.findByText(/Llegaste al límite de 5 inasistencias/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Reprogramar el turno' })).toBeInTheDocument()
   })
+
+  it('muestra el remuestreo pendiente por ADN insuficiente y ofrece un nuevo turno', async () => {
+    mockApi({
+      [HABILITADOS]: {
+        body: [
+          {
+            estudio_id: 1,
+            estado: 'TurnoSacado',
+            motivo: 'nueva_reserva',
+            inasistencias: 0,
+            remuestreo_motivo: 'adn_desnaturalizado',
+          },
+        ],
+      },
+      [MIS_TURNOS]: { body: [] },
+    })
+    renderApp(PATH)
+
+    expect(
+      await screen.findByText(
+        /hace falta una nueva muestra porque el ADN de la muestra no alcanzó/,
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sacar un nuevo turno' })).toBeInTheDocument()
+    expect(screen.queryByText(/inasistencia/)).not.toBeInTheDocument()
+  })
 })

@@ -73,6 +73,7 @@ class EstudioParaPresupuesto:
     estado: EstadoEstudio = EstadoEstudio.CREADO
     presupuesto_importe_usd: int | None = None
     presupuesto_emitido_en: datetime | None = None
+    contacto_medico: str = ""  # who requested the study: notified about a resampling
     cobertura: Cobertura | None = None
     cupon_aplicado: CuponAplicado | None = None
     historial: list[CambioEstado] = field(default_factory=list)
@@ -139,19 +140,25 @@ class RepositorioEstudios(ABC):
 def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
     return [
         EstudioParaPresupuesto(
-            1, "Lucía Fernández", "lucia.fernandez@example.com", ["GBA", "GLA", "IDUA"]
+            1,
+            "Lucía Fernández",
+            "lucia.fernandez@example.com",
+            ["GBA", "GLA", "IDUA"],
+            contacto_medico="ana.perez@example.com",
         ),
         EstudioParaPresupuesto(
             2,
             "Martín Gómez",
             "martin.gomez@example.com",
             ["GBA", "GLA", "IDUA", "IDS", "NPC1", "NPC2", "GAA", "ARSA"],
+            contacto_medico="ana.perez@example.com",
         ),
         EstudioParaPresupuesto(
             3,
             "Sofía Ramírez",
             "sofia.ramirez@example.com",
             ["GBA", "GLA", "IDUA", "IDS", "NPC1"],
+            contacto_medico="carlos.rivas@example.com",
         ),
     ]
 

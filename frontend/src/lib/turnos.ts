@@ -33,6 +33,15 @@ export interface Habilitado {
   estado: string
   motivo: 'pagado' | 'autorizado' | 'nueva_reserva'
   inasistencias: number
+  /** Si hace falta una nueva muestra y el paciente todavía no sacó turno. */
+  remuestreo_motivo?: string | null
+}
+
+/** Por qué hace falta una nueva muestra, para mostrárselo al paciente. */
+export function describirRemuestreo(motivo: string): string {
+  return motivo === 'adn_desnaturalizado'
+    ? 'el ADN de la muestra no alcanzó para el análisis'
+    : 'la muestra tuvo menos de 2 ml'
 }
 
 const ZONA = 'America/Argentina/Buenos_Aires'

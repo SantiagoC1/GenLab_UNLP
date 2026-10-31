@@ -112,7 +112,13 @@ def test_despues_de_la_inasistencia_el_paciente_puede_reprogramar(client, entorn
 
     login_as(Rol.PACIENTE, email=LUCIA)
     assert client.get("/turnos/habilitados").json() == [
-        {"estudio_id": 1, "estado": "TurnoSacado", "motivo": "nueva_reserva", "inasistencias": 1}
+        {
+            "estudio_id": 1,
+            "estado": "TurnoSacado",
+            "motivo": "nueva_reserva",
+            "inasistencias": 1,
+            "remuestreo_motivo": None,
+        }
     ]
     nuevo = datetime(2026, 11, 4, 9, 0, tzinfo=ARG)
     r = client.post(

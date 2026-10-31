@@ -51,6 +51,18 @@ class Muestra:
 
 
 @dataclass
+class Remuestreo:
+    """A new sample is needed for the same study, at no cost (M6-RF10)."""
+
+    id: int
+    estudio_id: int
+    motivo: str
+    detalle: str
+    registrado_en: datetime
+    resuelto: bool = False  # True once the patient books the new appointment
+
+
+@dataclass
 class Turno:
     id: int
     estudio_id: int
@@ -102,6 +114,18 @@ class RepositorioTurnos(ABC):
     @abstractmethod
     def listar_muestras(self, estudio_id: int) -> list[Muestra]:
         """Las muestras del estudio, de la primera a la última."""
+
+    @abstractmethod
+    def registrar_remuestreo(
+        self, estudio_id: int, motivo: str, detalle: str, registrado_en: datetime
+    ) -> Remuestreo: ...
+
+    @abstractmethod
+    def remuestreo_pendiente(self, estudio_id: int) -> Remuestreo | None:
+        """El remuestreo del estudio al que el paciente todavía no le sacó turno."""
+
+    @abstractmethod
+    def resolver_remuestreo(self, estudio_id: int) -> None: ...
 
     @abstractmethod
     def listar_programados(self) -> list[Turno]:
@@ -174,6 +198,7 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
         self.laboratorios = {lab.id: lab for lab in laboratorios_de_ejemplo()}
         self.turnos: dict[int, Turno] = {}
         self.muestras: list[Muestra] = []
+        self.remuestreos: list[Remuestreo] = []
 
     def listar_laboratorios(self, provincia: str | None = None) -> list[Laboratorio]:
         return [lab for lab in self.laboratorios.values() if provincia in (None, lab.provincia)]
@@ -239,6 +264,30 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
 
     def listar_muestras(self, estudio_id: int) -> list[Muestra]:
         return [m for m in self.muestras if m.estudio_id == estudio_id]
+
+    def registrar_remuestreo(
+        self, estudio_id: int, motivo: str, detalle: str, registrado_en: datetime
+    ) -> Remuestreo:
+        remuestreo = Remuestreo(
+            len(self.remuestreos) + 1, estudio_id, motivo, detalle, registrado_en
+        )
+        self.remuestreos.append(remuestreo)
+        return remuestreo
+
+    def remuestreo_pendiente(self, estudio_id: int) -> Remuestreo | None:
+        return next(
+            (
+                r
+                for r in reversed(self.remuestreos)
+                if r.estudio_id == estudio_id and not r.resuelto
+            ),
+            None,
+        )
+
+    def resolver_remuestreo(self, estudio_id: int) -> None:
+        for remuestreo in self.remuestreos:
+            if remuestreo.estudio_id == estudio_id:
+                remuestreo.resuelto = True
 
     def listar_programados(self) -> list[Turno]:
         return sorted(
