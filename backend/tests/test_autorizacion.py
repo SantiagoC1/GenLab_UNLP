@@ -47,6 +47,9 @@ def test_la_bandeja_lista_los_estudios_con_la_autorizacion_pendiente(client, ent
             "porcentaje": 80,
             "importe_usd": 500,
             "estado_estudio": "Creado",
+            "motivo_rechazo": None,
+            "con_demanda": False,
+            "demanda_nombre": None,
         }
     ]
 

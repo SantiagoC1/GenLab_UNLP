@@ -13,6 +13,9 @@ const PENDIENTE = {
   porcentaje: 80,
   importe_usd: 500,
   estado_estudio: 'Creado',
+  motivo_rechazo: null,
+  con_demanda: false,
+  demanda_nombre: null,
 }
 
 afterEach(() => vi.unstubAllGlobals())
@@ -95,5 +98,39 @@ describe('Registrar la autorización de la obra social', () => {
     await user.click(await screen.findByRole('button', { name: /Lucía Fernández/ }))
     await user.click(screen.getByRole('button', { name: 'Registrar la respuesta' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('autorización de la obra social')
+  })
+
+  it('muestra la demanda del paciente y permite descargarla antes de responder', async () => {
+    const fetchMock = mockApi({
+      [BANDEJA]: {
+        body: [
+          {
+            ...PENDIENTE,
+            estado_estudio: 'Rechazado',
+            motivo_rechazo: 'No cubre estudios genéticos.',
+            con_demanda: true,
+            demanda_nombre: 'fallo.pdf',
+          },
+        ],
+      },
+      'GET /presupuesto_pago/estudios/1/demanda': { body: {} },
+    })
+    URL.createObjectURL = vi.fn(() => 'blob:demanda')
+    URL.revokeObjectURL = vi.fn()
+    renderApp(PATH)
+    const user = userEvent.setup()
+
+    expect(await screen.findByText(/OSDE · con demanda/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Lucía Fernández/ }))
+    expect(screen.getByText(/No cubre estudios genéticos./)).toBeInTheDocument()
+    expect(screen.getByText(/fallo.pdf/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Descargar la demanda' }))
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/presupuesto_pago/estudios/1/demanda'),
+        expect.anything(),
+      ),
+    )
   })
 })

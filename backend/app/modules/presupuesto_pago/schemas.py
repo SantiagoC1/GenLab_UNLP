@@ -42,6 +42,8 @@ class CoberturaSalida(BaseModel):
     porcentaje: int
     estado: str
     motivo_rechazo: str | None = None
+    demanda_enviada: bool = False
+    demanda_nombre: str | None = None
 
 
 class AplicarCuponEntrada(BaseModel):
@@ -98,6 +100,16 @@ class AutorizacionPendienteSalida(BaseModel):
     porcentaje: int
     importe_usd: int
     estado_estudio: EstadoEstudio
+    motivo_rechazo: str | None = None
+    con_demanda: bool = False
+    demanda_nombre: str | None = None
+
+
+class DemandaEnviadaSalida(BaseModel):
+    estudio_id: int
+    estado: EstadoEstudio
+    demanda_nombre: str
+    administrativo_avisado: bool
 
 
 class RespuestaObraSocialEntrada(BaseModel):
