@@ -57,6 +57,8 @@ def test_elegir_la_cobertura_deja_el_estudio_a_la_espera_de_la_autorizacion(clie
         "porcentaje": 80,
         "estado": "Pendiente",
         "motivo_rechazo": None,
+        "demanda_enviada": False,
+        "demanda_nombre": None,
     }
     # does not advance until the administrative user answers
     assert r.json()["estado"] == "Creado"

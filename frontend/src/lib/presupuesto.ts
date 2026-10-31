@@ -8,6 +8,8 @@ export interface Cobertura {
   porcentaje: number
   estado: 'Pendiente' | 'Autorizado' | 'Rechazado'
   motivo_rechazo: string | null
+  demanda_enviada?: boolean
+  demanda_nombre?: string | null
 }
 
 export interface CuponAplicado {

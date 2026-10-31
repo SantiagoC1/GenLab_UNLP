@@ -18,6 +18,8 @@ from app.modules.presupuesto_pago.schemas import (
     AutorizacionRegistradaSalida,
 )
 
+NO_ENCONTRADO = "No existe el estudio."
+
 
 class AutorizacionServicio:
     def __init__(self, repositorio: RepositorioEstudios, avisos: AvisosIntegracion):
@@ -33,6 +35,9 @@ class AutorizacionServicio:
                 porcentaje=e.cobertura.porcentaje,
                 importe_usd=e.presupuesto_importe_usd,
                 estado_estudio=e.estado,
+                motivo_rechazo=e.cobertura.motivo_rechazo,
+                con_demanda=e.cobertura.tiene_demanda,
+                demanda_nombre=e.cobertura.demanda_nombre,
             )
             for e in self.repositorio.listar_con_cobertura()
             if self.espera_respuesta(e)
@@ -43,7 +48,7 @@ class AutorizacionServicio:
     ) -> AutorizacionRegistradaSalida:
         estudio = self.repositorio.obtener(estudio_id)
         if estudio is None:
-            raise BusinessRuleError("No existe el estudio.", status_code=404)
+            raise BusinessRuleError(NO_ENCONTRADO, status_code=404)
         if not self.espera_respuesta(estudio):
             raise BusinessRuleError(
                 "El estudio no tiene una autorización de la obra social pendiente.",
@@ -69,7 +74,8 @@ class AutorizacionServicio:
                 "Ya puede sacar su turno de extracción."
             )
         else:
-            self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.RECHAZADO, ahora)
+            if estudio.estado != EstadoEstudio.RECHAZADO:
+                self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.RECHAZADO, ahora)
             cobertura.estado, cobertura.motivo_rechazo = RECHAZADO, motivo.strip()
             mensaje = (
                 f"La obra social {cobertura.obra_social} rechazó su estudio. "
@@ -77,6 +83,8 @@ class AutorizacionServicio:
                 "puede adjuntarla para pedir la reautorización."
             )
         cobertura.resuelta_en = ahora
+        # The court decision has been answered: a new one can be attached after a new rejection.
+        cobertura.demanda = cobertura.demanda_nombre = cobertura.demanda_en = None
         self.repositorio.guardar_cobertura(estudio.id, cobertura)
 
         return AutorizacionRegistradaSalida(
@@ -87,11 +95,21 @@ class AutorizacionServicio:
             paciente_avisado=avisar(self.avisos, estudio.contacto_paciente, mensaje),
         )
 
+    def descargar_demanda(self, estudio_id: int) -> tuple[str, bytes]:
+        estudio = self.repositorio.obtener(estudio_id)
+        if estudio is None:
+            raise BusinessRuleError(NO_ENCONTRADO, status_code=404)
+        cobertura = estudio.cobertura
+        if cobertura is None or not cobertura.tiene_demanda:
+            raise BusinessRuleError("El estudio no tiene una demanda adjunta.", status_code=404)
+        return cobertura.demanda_nombre, cobertura.demanda
+
     @staticmethod
     def espera_respuesta(estudio: EstudioParaPresupuesto) -> bool:
+        """The answer is due for a new coverage, or for a rejected study with a court decision."""
         cobertura = estudio.cobertura
-        return (
-            cobertura is not None
-            and estudio.estado == EstadoEstudio.CREADO
-            and cobertura.estado == PENDIENTE
-        )
+        if cobertura is None:
+            return False
+        nueva = estudio.estado == EstadoEstudio.CREADO and cobertura.estado == PENDIENTE
+        con_demanda = estudio.estado == EstadoEstudio.RECHAZADO and cobertura.tiene_demanda
+        return nueva or con_demanda

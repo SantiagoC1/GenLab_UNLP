@@ -4,6 +4,7 @@ import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { FIELD_CLASS } from '../../components/TextField'
 import { api, json } from '../../lib/api'
+import { downloadFile } from '../../lib/download'
 
 interface Pendiente {
   estudio_id: number
@@ -12,6 +13,9 @@ interface Pendiente {
   porcentaje: number
   importe_usd: number
   estado_estudio: string
+  motivo_rechazo: string | null
+  con_demanda: boolean
+  demanda_nombre: string | null
 }
 
 interface Registrada {
@@ -29,6 +33,7 @@ export default function AutorizacionesPantalla() {
   const [seleccionado, setSeleccionado] = useState<number | null>(null)
   const [resultado, setResultado] = useState<'Autorizado' | 'Rechazado'>('Autorizado')
   const [motivo, setMotivo] = useState('')
+  const [errorDescarga, setErrorDescarga] = useState<string | null>(null)
 
   const bandeja = useQuery({
     queryKey: PENDIENTES_KEY,
@@ -87,6 +92,7 @@ export default function AutorizacionesPantalla() {
                   aria-pressed={seleccionado === p.estudio_id}
                   onClick={() => {
                     registrar.reset()
+                    setErrorDescarga(null)
                     setSeleccionado(p.estudio_id)
                   }}
                   className="flex w-full justify-between gap-4 p-3 text-left text-sm hover:bg-slate-50 aria-pressed:bg-slate-100"
@@ -94,7 +100,10 @@ export default function AutorizacionesPantalla() {
                   <span>
                     Estudio {p.estudio_id} · {p.paciente}
                   </span>
-                  <span className="text-slate-500">{p.obra_social}</span>
+                  <span className="text-slate-500">
+                    {p.obra_social}
+                    {p.con_demanda && ' · con demanda'}
+                  </span>
                 </button>
               </li>
             ))}
@@ -117,9 +126,36 @@ export default function AutorizacionesPantalla() {
               <br />
               Importe del presupuesto: USD {estudio.importe_usd}
             </p>
-            <p className="text-slate-500">
-              Gestioná la autorización por teléfono con la obra social y registrá acá su respuesta.
-            </p>
+            {estudio.con_demanda ? (
+              <div className="space-y-1 rounded-md bg-slate-50 p-3">
+                <p>
+                  El estudio fue rechazado: <em>{estudio.motivo_rechazo}</em>
+                </p>
+                <p>
+                  El paciente adjuntó una demanda ({estudio.demanda_nombre}) para pedir la
+                  reautorización.
+                </p>
+                <button
+                  type="button"
+                  className="text-teal-700 underline"
+                  onClick={() => {
+                    setErrorDescarga(null)
+                    downloadFile(
+                      `${RAIZ}/estudios/${estudio.estudio_id}/demanda`,
+                      `demanda-estudio-${estudio.estudio_id}.pdf`,
+                    ).catch((error: Error) => setErrorDescarga(error.message))
+                  }}
+                >
+                  Descargar la demanda
+                </button>
+                {errorDescarga && <Alert kind="error">{errorDescarga}</Alert>}
+              </div>
+            ) : (
+              <p className="text-slate-500">
+                Gestioná la autorización por teléfono con la obra social y registrá acá su
+                respuesta.
+              </p>
+            )}
             <fieldset className="space-y-1">
               <legend className="font-medium text-slate-800">Respuesta</legend>
               {(['Autorizado', 'Rechazado'] as const).map((opcion) => (

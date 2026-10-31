@@ -28,6 +28,14 @@ class Cobertura:
     motivo_rechazo: str | None = None
     elegida_en: datetime | None = None
     resuelta_en: datetime | None = None
+    # Court decision attached by the patient to ask for the reauthorization (M4-RF8).
+    demanda_nombre: str | None = None
+    demanda: bytes | None = None
+    demanda_en: datetime | None = None
+
+    @property
+    def tiene_demanda(self) -> bool:
+        return self.demanda is not None
 
 
 @dataclass(frozen=True)

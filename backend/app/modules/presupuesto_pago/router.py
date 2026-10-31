@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, Request
+from fastapi.responses import Response
 
 from app.core.enums import Rol
 from app.core.security import require_role
@@ -18,6 +19,7 @@ from app.modules.presupuesto_pago.schemas import (
     AutorizacionPendienteSalida,
     AutorizacionRegistradaSalida,
     CuponAplicadoSalida,
+    DemandaEnviadaSalida,
     DetalleEstudioSalida,
     ElegirCoberturaEntrada,
     EstudioDelPacienteSalida,
@@ -190,3 +192,28 @@ def registrar_autorizacion(
 ) -> AutorizacionRegistradaSalida:
     """Registra la respuesta de la obra social (Autorizado o Rechazado con motivo)."""
     return servicio.registrar_respuesta(estudio_id, datos.resultado, datos.motivo)
+
+
+@router.post("/mis-estudios/{estudio_id}/demanda", status_code=201)
+async def enviar_demanda(
+    estudio_id: int,
+    request: Request,
+    usuario: UsuarioPaciente,
+    servicio: ServicioPaciente,
+    nombre_archivo: Annotated[str | None, Header(alias="X-Nombre-Archivo")] = None,
+) -> DemandaEnviadaSalida:
+    """Adjunta el PDF de la demanda (cuerpo `application/pdf`) para pedir la reautorización."""
+    return servicio.enviar_demanda(
+        usuario["email"], estudio_id, await request.body(), nombre_archivo
+    )
+
+
+@router.get("/estudios/{estudio_id}/demanda", dependencies=administrativo)
+def descargar_demanda(estudio_id: int, servicio: ServicioAutorizacion) -> Response:
+    """El administrativo descarga la demanda antes de registrar la nueva respuesta."""
+    nombre, contenido = servicio.descargar_demanda(estudio_id)
+    return Response(
+        contenido,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="demanda-estudio-{estudio_id}.pdf"'},
+    )

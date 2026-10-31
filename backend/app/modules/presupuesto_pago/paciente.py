@@ -2,6 +2,7 @@
 
 import re
 from datetime import UTC, datetime
+from urllib.parse import unquote
 
 from app.core.enums import EstadoEstudio
 from app.core.errors import BusinessRuleError, InvalidIntegration
@@ -20,6 +21,7 @@ from app.modules.presupuesto_pago.repositorio import (
 from app.modules.presupuesto_pago.schemas import (
     CoberturaSalida,
     CuponAplicadoSalida,
+    DemandaEnviadaSalida,
     EstudioDelPacienteSalida,
     ObraSocialSalida,
     PagoSalida,
@@ -28,6 +30,9 @@ from app.modules.presupuesto_pago.schemas import (
 INTEGRACION_OBRAS_SOCIALES = "obras_sociales"
 INTEGRACION_CUPONES = "cupones"
 VIGENTE = "Vigente"
+# Who receives the notice when a court decision arrives. [assumption] A role label: resolving it
+# to real addresses belongs to the notices module (M9).
+DESTINO_ADMINISTRATIVO = "administrativo_laboratorio"
 # The coupon PDFs the platform issues print the code after the label "Código:".
 CODIGO_EN_EL_PDF = re.compile(rb"C.digo:\s*([A-Za-z0-9_-]{3,64})")
 
@@ -196,14 +201,7 @@ class PacienteServicio:
     def aplicar_cupon_con_pdf(
         self, contacto: str, estudio_id: int, contenido: bytes
     ) -> CuponAplicadoSalida:
-        if not contenido:
-            raise BusinessRuleError("El archivo está vacío.", status_code=422)
-        if len(contenido) > MAX_UPLOAD_BYTES:
-            raise BusinessRuleError("El archivo pesa más de 5 MB.", status_code=413)
-        if not is_pdf(contenido):
-            raise BusinessRuleError(
-                "El archivo no es un PDF.", status_code=422, code="archivo_no_pdf"
-            )
+        self.exigir_pdf(contenido)
         encontrado = CODIGO_EN_EL_PDF.search(contenido)
         if encontrado is None:
             raise BusinessRuleError(
@@ -212,6 +210,55 @@ class PacienteServicio:
                 code="cupon_sin_codigo",
             )
         return self.aplicar_cupon(contacto, estudio_id, encontrado.group(1).decode())
+
+    @staticmethod
+    def exigir_pdf(contenido: bytes) -> None:
+        """Only real PDFs are accepted, whatever the name or the declared type says."""
+        if not contenido:
+            raise BusinessRuleError("El archivo está vacío.", status_code=422)
+        if len(contenido) > MAX_UPLOAD_BYTES:
+            raise BusinessRuleError("El archivo pesa más de 5 MB.", status_code=413)
+        if not is_pdf(contenido):
+            raise BusinessRuleError(
+                "El archivo no es un PDF.", status_code=422, code="archivo_no_pdf"
+            )
+
+    # --- M4-RF8: request the reauthorization with a court decision ---------------------------
+
+    def enviar_demanda(
+        self, contacto: str, estudio_id: int, contenido: bytes, nombre: str | None
+    ) -> DemandaEnviadaSalida:
+        estudio = self.estudio_del_paciente(contacto, estudio_id)
+        cobertura = estudio.cobertura
+        if estudio.estado != EstadoEstudio.RECHAZADO or cobertura is None:
+            raise BusinessRuleError(
+                "Solo se puede pedir la reautorización de un estudio Rechazado.",
+                code="estudio_no_rechazado",
+            )
+        if cobertura.tiene_demanda:
+            raise BusinessRuleError(
+                "Ya enviaste la demanda: el laboratorio está revisando la reautorización.",
+                code="demanda_ya_enviada",
+            )
+        self.exigir_pdf(contenido)
+
+        cobertura.demanda = contenido
+        cobertura.demanda_nombre = (unquote(nombre or "").strip() or "demanda.pdf")[:120]
+        cobertura.demanda_en = datetime.now(UTC)
+        self.repositorio.guardar_cobertura(estudio.id, cobertura)
+        # [assumption] scenario 19: the administrative user is notified.
+        avisado = avisar(
+            self.avisos,
+            DESTINO_ADMINISTRATIVO,
+            f"{estudio.paciente} adjuntó una demanda para pedir la reautorización del "
+            f"estudio {estudio.id} ({cobertura.obra_social}).",
+        )
+        return DemandaEnviadaSalida(
+            estudio_id=estudio.id,
+            estado=estudio.estado,
+            demanda_nombre=cobertura.demanda_nombre,
+            administrativo_avisado=avisado,
+        )
 
     def quitar_cupon(self, contacto: str, estudio_id: int) -> EstudioDelPacienteSalida:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
@@ -292,5 +339,7 @@ class PacienteServicio:
                 porcentaje=cobertura.porcentaje,
                 estado=cobertura.estado,
                 motivo_rechazo=cobertura.motivo_rechazo,
+                demanda_enviada=cobertura.tiene_demanda,
+                demanda_nombre=cobertura.demanda_nombre,
             ),
         )
