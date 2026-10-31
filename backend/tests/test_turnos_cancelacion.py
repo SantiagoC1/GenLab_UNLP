@@ -83,7 +83,7 @@ def test_el_turno_cancelado_queda_libre_para_otra_persona_y_se_puede_sacar_uno_n
     assert INICIO.isoformat() in libres
 
     assert client.get("/turnos/habilitados").json() == [
-        {"estudio_id": 1, "estado": "Pagado", "motivo": "pagado"}
+        {"estudio_id": 1, "estado": "Pagado", "motivo": "pagado", "inasistencias": 0}
     ]
     otra_vez = client.post(
         "/turnos/reservas",
@@ -149,7 +149,7 @@ def test_si_el_estudio_viene_de_un_remuestreo_cancelar_solo_habilita_una_nueva_r
     assert cancelado.json()["estudio_estado"] == "TurnoSacado"
     assert estudios.obtener(3).estado == EstadoEstudio.TURNO_SACADO
     assert client.get("/turnos/habilitados").json() == [
-        {"estudio_id": 3, "estado": "TurnoSacado", "motivo": "nueva_reserva"}
+        {"estudio_id": 3, "estado": "TurnoSacado", "motivo": "nueva_reserva", "inasistencias": 0}
     ]
 
 

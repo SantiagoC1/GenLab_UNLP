@@ -29,6 +29,7 @@ class EstudioHabilitadoSalida(BaseModel):
     estado: EstadoEstudio
     # Why the study can book: it is Pagado, Autorizado or has a new booking enabled.
     motivo: Literal["pagado", "autorizado", "nueva_reserva"]
+    inasistencias: int = 0
 
 
 class ReservarEntrada(BaseModel):
@@ -59,3 +60,24 @@ class TurnoSalida(BaseModel):
 class CancelacionSalida(BaseModel):
     turno: TurnoSalida
     estudio_estado: EstadoEstudio
+
+
+class AgendaSalida(BaseModel):
+    """An appointment as the extraction lab sees it."""
+
+    turno_id: int
+    estudio_id: int
+    paciente: str
+    laboratorio: str
+    inicio: datetime
+    ya_paso: bool
+    inasistencias: int
+
+
+class InasistenciaSalida(BaseModel):
+    turno: TurnoSalida
+    estudio_estado: EstadoEstudio
+    inasistencias: int
+    limite: int
+    limite_alcanzado: bool
+    paciente_avisado: bool

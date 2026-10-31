@@ -12,8 +12,10 @@ from app.modules.presupuesto_pago.repositorio import obtener_repositorio as obte
 from app.modules.turnos import reglas
 from app.modules.turnos.repositorio import RepositorioTurnos, obtener_repositorio
 from app.modules.turnos.schemas import (
+    AgendaSalida,
     CancelacionSalida,
     EstudioHabilitadoSalida,
+    InasistenciaSalida,
     LaboratorioSalida,
     ReservarEntrada,
     TurnoSalida,
@@ -24,6 +26,10 @@ from app.modules.turnos.servicio import TurnosServicio
 # Turnos y documentos: el paciente, sobre sus propios estudios.
 exigir_paciente = require_role(Rol.PACIENTE)
 UsuarioPaciente = Annotated[dict, Depends(exigir_paciente)]
+# The extraction labs do not work inside the platform: the administrative user reports what they
+# tell us (absences, samples). [assumption] P3: who registers an absence is still open.
+exigir_administrativo = require_role(Rol.ADMINISTRATIVO_LABORATORIO)
+administrativo = [Depends(exigir_administrativo)]
 
 
 def obtener_servicio(
@@ -119,3 +125,15 @@ def cancelar_turno(
 ) -> CancelacionSalida:
     """Cancela un turno futuro sin costo y devuelve el estudio al estado previo."""
     return servicio.cancelar(usuario["email"], turno_id)
+
+
+@router.get("/agenda", dependencies=administrativo)
+def ver_agenda_de_los_laboratorios(servicio: Servicio) -> list[AgendaSalida]:
+    """Turnos Programados de los laboratorios (para el simulador del laboratorio de extracción)."""
+    return servicio.agenda()
+
+
+@router.post("/{turno_id}/inasistencia", dependencies=administrativo)
+def registrar_inasistencia(turno_id: int, servicio: Servicio) -> InasistenciaSalida:
+    """Registra la inasistencia, avisa la cantidad acumulada y habilita una nueva reserva."""
+    return servicio.registrar_inasistencia(turno_id)

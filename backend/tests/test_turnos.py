@@ -263,7 +263,7 @@ def test_no_se_reserva_el_estudio_de_otro_ni_en_un_laboratorio_inexistente(clien
 
 def test_se_listan_los_estudios_habilitados_y_los_turnos_del_paciente(client, entorno):
     assert client.get("/turnos/habilitados").json() == [
-        {"estudio_id": 1, "estado": "Pagado", "motivo": "pagado"}
+        {"estudio_id": 1, "estado": "Pagado", "motivo": "pagado", "inasistencias": 0}
     ]
     reservar(client, a_las(MARTES, 9))
     assert client.get("/turnos/habilitados").json() == []
