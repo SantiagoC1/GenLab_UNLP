@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app import knowledge, llm, scope
+from app.cache import cache
 from app.config import get_settings
 from app.conversations import store
 from app.providers import NoProviderAvailable
@@ -98,14 +99,22 @@ def _log_query(
     )
 
 
-def _answer_with_rules(question: str, history: list[dict]) -> tuple[str, Kind]:
-    """Responde sin modelo: reglas de alcance y el texto de la base más parecido."""
+def _shortcut(question: str) -> tuple[str, Kind] | None:
+    """Respuesta fija a lo que las reglas resuelven del todo: no hace falta gastar cuota del modelo."""
     if scope.is_greeting(question):
         return scope.GREETING_MESSAGE, Kind.ANSWER
     if scope.is_courtesy(question):
         return scope.COURTESY_MESSAGE, Kind.ANSWER
     if scope.asks_for_diagnosis(question):
         return scope.MESSAGES[Kind.REFER_TO_DOCTOR], Kind.REFER_TO_DOCTOR
+    return None
+
+
+def _answer_with_rules(question: str, history: list[dict]) -> tuple[str, Kind]:
+    """Responde sin modelo: reglas de alcance y la parte del texto de la base que corresponde."""
+    shortcut = _shortcut(question)
+    if shortcut:
+        return shortcut
 
     documents = knowledge.load_knowledge()
     matches = knowledge.search(question, documents)
@@ -116,25 +125,39 @@ def _answer_with_rules(question: str, history: list[dict]) -> tuple[str, Kind]:
     if not matches:
         kind = Kind.NO_INFORMATION if scope.is_about_genetics(question) else Kind.OUT_OF_SCOPE
         return scope.MESSAGES[kind], kind
-    return llm.extract([doc for doc, _ in matches[:2]]), Kind.ANSWER
+    return llm.extract([doc for doc, _ in matches[:2]], question), Kind.ANSWER
 
 
-def _answer(question: str, history: list[dict]) -> tuple[str, Kind, str]:
+def _answer(question: str, history: list[dict], cacheable: bool) -> tuple[str, Kind, str]:
     """Decide cómo responder la consulta y devuelve (texto, tipo, quién respondió).
 
-    Con modelo, este interpreta la consulta y la clasifica. Si no hay modelo o fallan todos
-    los proveedores, se responde con reglas y con el texto de la base, para no dejar al
-    paciente sin respuesta.
+    Primero lo que las reglas resuelven solas (saludos, derivaciones) y la caché de consultas
+    repetidas, para no gastar cuota. Después, el modelo, que interpreta y clasifica la consulta.
+    Si no hay modelo o fallan todos los proveedores, se responde con reglas y con el texto de la
+    base, para no dejar al paciente sin respuesta.
     """
+    shortcut = _shortcut(question)
+    if shortcut:
+        return (*shortcut, "rules")
+
+    # Solo el primer mensaje de una conversación: con historial la respuesta depende del contexto
+    use_cache = cacheable and not history
+    if use_cache and (hit := cache.get(question)):
+        return hit.text, hit.kind, "cache"
+
     if llm.llm_enabled():
+        documents = knowledge.select_for_prompt(question, history, knowledge.load_knowledge())
         try:
-            reply = llm.generate(question, history, list(knowledge.load_knowledge()))
+            reply = llm.generate(question, history, documents)
         except NoProviderAvailable:
             logger.warning("No language model provider answered; falling back to the rules")
         except Exception:
             logger.exception("Falló el modelo de lenguaje")
         else:
-            return reply.respuesta.strip(), reply.tipo, reply.provider or "model"
+            text = reply.respuesta.strip()
+            if use_cache:
+                cache.put(question, text, reply.tipo)
+            return text, reply.tipo, reply.provider or "model"
     text, kind = _answer_with_rules(question, history)
     return text, kind, "rules"
 
@@ -166,12 +189,16 @@ def chat(request: ChatRequest, consumer: str = Depends(get_consumer)) -> ChatRes
             headers={"Retry-After": str(retry_after)},
         )
 
-    question = _scrub(request.mensaje.strip())
+    stripped = request.mensaje.strip()
+    question = _scrub(stripped)
     if not question:
         raise HTTPException(status_code=422, detail="La consulta no puede estar vacía.")
 
     conversation_id = request.conversacion_id or str(uuid.uuid4())
-    text, kind, provider = _answer(question, store.history(consumer, conversation_id))
+    # Una consulta con datos tapados no se cachea
+    text, kind, provider = _answer(
+        question, store.history(consumer, conversation_id), cacheable=question == stripped
+    )
     store.add(consumer, conversation_id, question, text)
     _log_query(consumer, conversation_id, question, text, kind, provider)
     return ChatResponse(respuesta=text, conversacion_id=conversation_id, tipo=kind)

@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.cache import ResponseCache
 from app.config import get_settings
 from app.conversations import ConversationStore
 from app.main import app
@@ -22,6 +23,7 @@ def isolated_state(monkeypatch):
     monkeypatch.setattr(settings, "chatbot_available", True)
     monkeypatch.setattr("app.main.store", ConversationStore())
     monkeypatch.setattr("app.main.limiter", RateLimiter())
+    monkeypatch.setattr("app.main.cache", ResponseCache())
 
 
 @pytest.fixture

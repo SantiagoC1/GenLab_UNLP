@@ -1,6 +1,7 @@
 import logging
 
 from app import llm
+from app.cache import ResponseCache
 from app.config import get_settings
 from app.knowledge import load_knowledge
 from app.scope import Kind
@@ -171,6 +172,8 @@ def test_uses_the_language_model_when_configured(client, monkeypatch):
 def test_the_model_decides_the_type_of_each_query(client, monkeypatch):
     enable_model(monkeypatch)
     for kind in Kind:
+        # la misma consulta de cada vuelta no puede salir de la caché
+        monkeypatch.setattr("app.main.cache", ResponseCache())
         monkeypatch.setattr(
             llm,
             "generate",

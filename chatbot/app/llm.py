@@ -1,5 +1,5 @@
 from app.config import get_settings
-from app.knowledge import Document
+from app.knowledge import Document, best_fragment
 from app.prompt import SYSTEM_PROMPT, Reply, build_prompt
 from app.providers import generate_with_fallback, provider_chain
 
@@ -21,7 +21,9 @@ def generate(question: str, history: list[dict], documents: list[Document]) -> R
     return generate_with_fallback(question, history, documents)
 
 
-def extract(documents: list[Document]) -> str:
-    """Respuesta sin modelo: el texto del tema más parecido, sin su título."""
+def extract(documents: list[Document], question: str = "") -> str:
+    """Respuesta sin modelo: la parte del tema más parecido que responde la consulta."""
+    if question:
+        return best_fragment(question, documents[0])
     lines = [line for line in documents[0].body.splitlines() if not line.startswith("# ")]
     return "\n".join(lines).strip()
