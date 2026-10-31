@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class GenerarCuponesEntrada(BaseModel):
@@ -14,3 +14,27 @@ class CuponSalida(BaseModel):
     qr: str | None = Field(description="Imagen del QR (data URI), vacía si el código no entra")
     medico: str | None = None
     paciente: str | None = None
+
+
+class MedicoSalida(BaseModel):
+    contacto: str
+    nombre: str
+    matricula: str
+
+
+class AsignarAMedicoEntrada(BaseModel):
+    contacto_medico: str = Field(min_length=1)
+    codigos: list[str] = Field(min_length=1, max_length=100)
+
+    @field_validator("codigos")
+    @classmethod
+    def _sin_repetidos(cls, codigos: list[str]) -> list[str]:
+        if len(set(codigos)) != len(codigos):
+            raise ValueError("Hay cupones repetidos.")
+        return codigos
+
+
+class AsignacionSalida(BaseModel):
+    medico: MedicoSalida
+    codigos: list[str]
+    medico_avisado: bool
