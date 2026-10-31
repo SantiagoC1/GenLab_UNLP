@@ -51,4 +51,4 @@ make lint      # ruff, eslint y prettier
 
 No hay migraciones: las tablas están en `supabase/*.sql` y se ejecutan a mano, en orden, en el SQL Editor de Supabase. Las claves de Supabase van en el `.env` propio (`SUPABASE_URL`, `SUPABASE_KEY` y `SUPABASE_SERVICE_ROLE_KEY`).
 
-Nunca subas secretos: `.env` está en `.gitignore`. La clave de Anthropic va solo en `ANTHROPIC_API_KEY`.
+Nunca subas secretos: `.env` está en `.gitignore`. Las claves de los modelos del chatbot (`GEMINI_API_KEY`, `GROQ_API_KEY`, `NVIDIA_API_KEY`) van solo en el `.env`.

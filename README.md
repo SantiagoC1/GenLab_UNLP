@@ -42,7 +42,7 @@ Pompe urgente (paciente menor de 4 meses) no es un estado: es una marca de prior
 |---|---|
 | Frontend | React, Vite, TypeScript, Tailwind, react-router, TanStack Query |
 | Backend | FastAPI (Python 3.12) con Supabase (PostgreSQL y Auth) |
-| Chatbot | FastAPI separado, con la API de Anthropic |
+| Chatbot | FastAPI separado, con modelos de IA gratuitos (Gemini, Groq, NVIDIA) y respaldo por reglas |
 | Local | docker-compose con los tres servicios; la base es la de Supabase |
 | Calidad | ruff y pytest (backend y chatbot), eslint, prettier y vitest (frontend) |
 | CI | GitHub Actions: lint y tests en cada PR |
@@ -75,7 +75,7 @@ Comandos útiles:
 
 **En Windows** `make` no viene instalado. Instalalo con `winget install GnuWin32.Make`, usá WSL, o corré directamente los comandos de `docker compose` que figuran dentro del `Makefile`.
 
-Antes de la primera ejecución, completá en `.env` lo que necesites. Las claves (por ejemplo la de Anthropic para el chatbot) nunca se suben al repositorio.
+Antes de la primera ejecución, completá en `.env` lo que necesites. Las claves (por ejemplo las de los modelos de IA del chatbot) nunca se suben al repositorio.
 
 ## Estructura del repositorio
 
@@ -122,7 +122,9 @@ curl -X POST http://localhost:8001/chat \
   -d '{"mensaje": "¿Qué es un exoma clínico?", "conversacion_id": null}'
 ```
 
-Devuelve `{ "respuesta": "...", "conversacion_id": "..." }`. Por ahora responde un texto fijo. Con `CHATBOT_DISPONIBLE=false`, tanto `/health` como `/chat` responden 503 con un mensaje claro.
+Devuelve `{ "respuesta": "...", "conversacion_id": "...", "tipo": "..." }`. Prueba Gemini, Groq y NVIDIA (planes gratuitos) y, si ninguno responde, contesta con reglas y con su base de conocimiento. Con `CHATBOT_AVAILABLE=false`, tanto `/health` como `/chat` responden 503 con un mensaje claro.
+
+Más detalle: [`chatbot/README.md`](chatbot/README.md), [contrato de la API](docs/Contrato_API_Chatbot.md) y [guía para consumirlo](docs/Guia_consumo_chatbot.md).
 
 ## Cómo trabajamos
 
@@ -152,7 +154,7 @@ Donde la consigna era ambigua, se eligió la opción más simple:
 - **Rol de desarrollo.** Hasta que exista el ingreso real (tarea 1.4), el rol sale de un selector visible solo en modo dev y se guarda en `localStorage`.
 - **Tests de humo.** Cada paquete de `modules/` expone `GET /<modulo>/ping` solo para probar que el router está registrado. Se borra cuando el paquete tenga endpoints reales.
 - **Estados.** `EstadoEstudio` usa valores sin espacios (`TurnoSacado`, `EnViajeACorea`). Pompe urgente es un booleano aparte.
-- **Chatbot.** `CHATBOT_DISPONIBLE=false` lo apaga. Más adelante `/health` también debería reflejar si el modelo de lenguaje responde.
+- **Chatbot.** `CHATBOT_AVAILABLE=false` lo apaga. Si fallan los modelos de lenguaje, el chatbot sigue respondiendo con reglas y `/health` no lo refleja.
 - **Ruff.** Se desactivó la regla E501 (largo de línea). El formateador se ocupa del código.
 - **Hash y sesiones.** `core/security.py` solo declara el contrato (`requiere_rol`). Lo implementa la tarea 1.4.
 
