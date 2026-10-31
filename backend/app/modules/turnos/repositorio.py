@@ -77,6 +77,10 @@ class RepositorioTurnos(ABC):
     def obtener_turno(self, turno_id: int) -> Turno | None: ...
 
     @abstractmethod
+    def marcar_turno(self, turno_id: int, estado: str, anular_recordatorio: bool = False) -> Turno:
+        """Cambia el estado del turno; al cancelarlo se anula también su recordatorio."""
+
+    @abstractmethod
     def turno_vigente_de_estudio(self, estudio_id: int) -> Turno | None:
         """El turno Programado del estudio, si tiene uno."""
 
@@ -182,6 +186,13 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
 
     def obtener_turno(self, turno_id: int) -> Turno | None:
         return self.turnos.get(turno_id)
+
+    def marcar_turno(self, turno_id: int, estado: str, anular_recordatorio: bool = False) -> Turno:
+        turno = self.turnos[turno_id]
+        turno.estado = estado
+        if anular_recordatorio:
+            turno.recordatorio.anulado = True
+        return turno
 
     def turno_vigente_de_estudio(self, estudio_id: int) -> Turno | None:
         return next(

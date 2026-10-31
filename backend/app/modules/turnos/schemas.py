@@ -54,3 +54,8 @@ class TurnoSalida(BaseModel):
     # Published from the booking while the appointment is valid (M6-RF4).
     orden_extraccion_url: str | None = None
     consentimiento_url: str | None = None
+
+
+class CancelacionSalida(BaseModel):
+    turno: TurnoSalida
+    estudio_estado: EstadoEstudio
