@@ -15,6 +15,8 @@ APERTURA = time(9, 0)
 CIERRE = time(18, 0)
 # M6-RF8: at this many absences the patient is told; nothing is blocked until P2 is resolved.
 LIMITE_INASISTENCIAS = 5
+# M6-RF9: the blood sample needs at least this volume to continue the process.
+VOLUMEN_MINIMO_ML = 2.0
 # [assumption] How far ahead an appointment can be booked.
 HORIZONTE_DIAS = 60
 

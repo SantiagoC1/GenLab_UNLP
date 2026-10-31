@@ -40,6 +40,16 @@ class Recordatorio:
     anulado: bool = False
 
 
+@dataclass(frozen=True)
+class Muestra:
+    """A blood sample reported by the extraction lab. Every one is kept (table `samples`)."""
+
+    id: int
+    estudio_id: int
+    volumen_ml: float
+    tomada_en: datetime
+
+
 @dataclass
 class Turno:
     id: int
@@ -83,6 +93,15 @@ class RepositorioTurnos(ABC):
     @abstractmethod
     def turno_vigente_de_estudio(self, estudio_id: int) -> Turno | None:
         """El turno Programado del estudio, si tiene uno."""
+
+    @abstractmethod
+    def registrar_muestra(
+        self, estudio_id: int, volumen_ml: float, tomada_en: datetime
+    ) -> Muestra: ...
+
+    @abstractmethod
+    def listar_muestras(self, estudio_id: int) -> list[Muestra]:
+        """Las muestras del estudio, de la primera a la última."""
 
     @abstractmethod
     def listar_programados(self) -> list[Turno]:
@@ -154,6 +173,7 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
     def __init__(self) -> None:
         self.laboratorios = {lab.id: lab for lab in laboratorios_de_ejemplo()}
         self.turnos: dict[int, Turno] = {}
+        self.muestras: list[Muestra] = []
 
     def listar_laboratorios(self, provincia: str | None = None) -> list[Laboratorio]:
         return [lab for lab in self.laboratorios.values() if provincia in (None, lab.provincia)]
@@ -211,6 +231,14 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
             ),
             None,
         )
+
+    def registrar_muestra(self, estudio_id: int, volumen_ml: float, tomada_en: datetime) -> Muestra:
+        muestra = Muestra(len(self.muestras) + 1, estudio_id, volumen_ml, tomada_en)
+        self.muestras.append(muestra)
+        return muestra
+
+    def listar_muestras(self, estudio_id: int) -> list[Muestra]:
+        return [m for m in self.muestras if m.estudio_id == estudio_id]
 
     def listar_programados(self) -> list[Turno]:
         return sorted(
