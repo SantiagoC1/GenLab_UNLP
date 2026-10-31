@@ -1,13 +1,40 @@
-"""Acceso a los estudios para el presupuesto.
+"""Access to the studies for the budget, the coverage and the payment.
 
-TODO: la tabla de estudios la define el Integrante A (tareas T1 y 3.4). Cuando exista, se
-reemplaza `RepositorioEstudiosEnMemoria` por una implementación con SQLAlchemy sin tocar el
-servicio ni el router.
+TODO: the studies table is defined by Integrante A (tasks T1 and 3.4). When it exists, swap
+`RepositorioEstudiosEnMemoria` for an implementation backed by the database without touching
+the services or the routers.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+
+from app.core.enums import EstadoEstudio
+from app.modules.presupuesto_pago.estado import validate_transition
+
+PENDIENTE = "Pendiente"
+AUTORIZADO = "Autorizado"
+RECHAZADO = "Rechazado"
+
+
+@dataclass
+class Cobertura:
+    """Social security coverage of a study (table `authorizations`)."""
+
+    obra_social: str
+    porcentaje: int
+    estado: str = PENDIENTE
+    identificador_externo: str | None = None
+    motivo_rechazo: str | None = None
+    elegida_en: datetime | None = None
+    resuelta_en: datetime | None = None
+
+
+@dataclass
+class CambioEstado:
+    desde: EstadoEstudio | None
+    hacia: EstadoEstudio
+    en: datetime
 
 
 @dataclass
@@ -16,8 +43,11 @@ class EstudioParaPresupuesto:
     paciente: str
     contacto_paciente: str
     genes: list[str]
+    estado: EstadoEstudio = EstadoEstudio.CREADO
     presupuesto_importe_usd: int | None = None
     presupuesto_emitido_en: datetime | None = None
+    cobertura: Cobertura | None = None
+    historial: list[CambioEstado] = field(default_factory=list)
 
     @property
     def tiene_presupuesto(self) -> bool:
@@ -30,6 +60,10 @@ class RepositorioEstudios(ABC):
         """Estudios en estado Creado que todavía no tienen presupuesto."""
 
     @abstractmethod
+    def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
+        """Estudios de la cuenta del paciente (identificada por su mail)."""
+
+    @abstractmethod
     def obtener(self, estudio_id: int) -> EstudioParaPresupuesto | None: ...
 
     @abstractmethod
@@ -37,6 +71,16 @@ class RepositorioEstudios(ABC):
         self, estudio_id: int, importe_usd: int, emitido_en: datetime
     ) -> EstudioParaPresupuesto:
         """Publica el presupuesto del estudio."""
+
+    @abstractmethod
+    def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
+        """Guarda la cobertura por obra social del estudio."""
+
+    @abstractmethod
+    def cambiar_estado(
+        self, estudio_id: int, nuevo: EstadoEstudio, en: datetime
+    ) -> EstudioParaPresupuesto:
+        """Cambia el estado si la transición es válida y la deja en el historial."""
 
 
 def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
@@ -68,6 +112,9 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
     def listar_creados_sin_presupuesto(self) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if not e.tiene_presupuesto]
 
+    def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
+        return [e for e in self.estudios.values() if e.contacto_paciente == contacto]
+
     def obtener(self, estudio_id: int) -> EstudioParaPresupuesto | None:
         return self.estudios.get(estudio_id)
 
@@ -77,6 +124,20 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
         estudio = self.estudios[estudio_id]
         estudio.presupuesto_importe_usd = importe_usd
         estudio.presupuesto_emitido_en = emitido_en
+        return estudio
+
+    def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
+        estudio = self.estudios[estudio_id]
+        estudio.cobertura = cobertura
+        return estudio
+
+    def cambiar_estado(
+        self, estudio_id: int, nuevo: EstadoEstudio, en: datetime
+    ) -> EstudioParaPresupuesto:
+        estudio = self.estudios[estudio_id]
+        validate_transition(estudio.estado, nuevo)
+        estudio.historial.append(CambioEstado(estudio.estado, nuevo, en))
+        estudio.estado = nuevo
         return estudio
 
 
