@@ -18,6 +18,7 @@ def isolated_state(monkeypatch):
     monkeypatch.setattr(settings, "nvidia_api_key", "")
     monkeypatch.setattr(settings, "openrouter_api_key", "")
     monkeypatch.setattr(settings, "chatbot_llm_providers", "gemini,groq,nvidia")
+    monkeypatch.setattr(settings, "chatbot_use_llm", True)
     cooldown.reset()
     monkeypatch.setattr(settings, "chatbot_api_keys", "")
     monkeypatch.setattr(settings, "chatbot_available", True)
