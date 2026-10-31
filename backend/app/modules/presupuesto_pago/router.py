@@ -1,15 +1,20 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.core.enums import Rol
 from app.core.security import require_role
 from app.integrations.avisos import AvisosIntegracion, obtener_avisos
+from app.integrations.cupones import CuponesIntegracion, obtener_cupones
 from app.integrations.obras_sociales import ObrasSocialesIntegracion, obtener_obras_sociales
+from app.modules.cupones.repositorio import RepositorioCupones
+from app.modules.cupones.repositorio import obtener_repositorio as obtener_repositorio_cupones
 from app.modules.presupuesto_pago.paciente import PacienteServicio
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios, obtener_repositorio
 from app.modules.presupuesto_pago.schemas import (
+    AplicarCuponEntrada,
     AsientoFinancieroSalida,
+    CuponAplicadoSalida,
     DetalleEstudioSalida,
     ElegirCoberturaEntrada,
     EstudioDelPacienteSalida,
@@ -46,8 +51,10 @@ def obtener_servicio_paciente(
     repositorio: Annotated[RepositorioEstudios, Depends(obtener_repositorio)],
     obras_sociales: Annotated[ObrasSocialesIntegracion, Depends(obtener_obras_sociales)],
     avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
+    cupones: Annotated[CuponesIntegracion, Depends(obtener_cupones)],
+    repositorio_cupones: Annotated[RepositorioCupones, Depends(obtener_repositorio_cupones)],
 ) -> PacienteServicio:
-    return PacienteServicio(repositorio, obras_sociales, avisos)
+    return PacienteServicio(repositorio, obras_sociales, avisos, cupones, repositorio_cupones)
 
 
 ServicioPaciente = Annotated[PacienteServicio, Depends(obtener_servicio_paciente)]
@@ -121,3 +128,33 @@ def ver_registro_financiero(
 ) -> list[AsientoFinancieroSalida]:
     """Todas las operaciones asentadas: importe, paciente, estudio, método, fecha y cupón."""
     return [AsientoFinancieroSalida(**vars(a)) for a in repositorio.listar_asientos()]
+
+
+@router.post("/mis-estudios/{estudio_id}/cupon")
+def aplicar_cupon(
+    estudio_id: int,
+    datos: AplicarCuponEntrada,
+    usuario: UsuarioPaciente,
+    servicio: ServicioPaciente,
+) -> CuponAplicadoSalida:
+    """Consulta al módulo de cupones si está Vigente y devuelve el nuevo importe."""
+    return servicio.aplicar_cupon(usuario["email"], estudio_id, datos.codigo)
+
+
+@router.post("/mis-estudios/{estudio_id}/cupon-pdf")
+async def aplicar_cupon_con_pdf(
+    estudio_id: int,
+    request: Request,
+    usuario: UsuarioPaciente,
+    servicio: ServicioPaciente,
+) -> CuponAplicadoSalida:
+    """Igual que el anterior, pero adjuntando el PDF del cupón (cuerpo `application/pdf`)."""
+    return servicio.aplicar_cupon_con_pdf(usuario["email"], estudio_id, await request.body())
+
+
+@router.delete("/mis-estudios/{estudio_id}/cupon")
+def quitar_cupon(
+    estudio_id: int, usuario: UsuarioPaciente, servicio: ServicioPaciente
+) -> EstudioDelPacienteSalida:
+    """Vuelve al importe original."""
+    return servicio.quitar_cupon(usuario["email"], estudio_id)

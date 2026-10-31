@@ -10,12 +10,20 @@ export interface Cobertura {
   motivo_rechazo: string | null
 }
 
+export interface CuponAplicado {
+  codigo: string
+  descuento: number
+  importe_original_usd: number
+  importe_con_descuento_usd: number
+}
+
 export interface EstudioDelPaciente {
   id: number
   estado: string
   cantidad_genes: number
   importe_usd: number | null
   cobertura: Cobertura | null
+  cupon_aplicado?: CuponAplicado | null
 }
 
 export const MIS_ESTUDIOS_KEY = ['presupuesto', 'mis-estudios']

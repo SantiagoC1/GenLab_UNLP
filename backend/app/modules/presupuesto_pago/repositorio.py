@@ -30,6 +30,12 @@ class Cobertura:
     resuelta_en: datetime | None = None
 
 
+@dataclass(frozen=True)
+class CuponAplicado:
+    codigo: str
+    descuento: int  # percentage
+
+
 @dataclass
 class AsientoFinanciero:
     """One entry of the financial record: every operation leaves one."""
@@ -60,6 +66,7 @@ class EstudioParaPresupuesto:
     presupuesto_importe_usd: int | None = None
     presupuesto_emitido_en: datetime | None = None
     cobertura: Cobertura | None = None
+    cupon_aplicado: CuponAplicado | None = None
     historial: list[CambioEstado] = field(default_factory=list)
 
     @property
@@ -88,6 +95,12 @@ class RepositorioEstudios(ABC):
     @abstractmethod
     def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
         """Guarda la cobertura por obra social del estudio."""
+
+    @abstractmethod
+    def guardar_cupon_aplicado(
+        self, estudio_id: int, cupon: CuponAplicado | None
+    ) -> EstudioParaPresupuesto:
+        """Guarda (o quita) el cupón que el paciente aplicó antes de pagar."""
 
     @abstractmethod
     def cambiar_estado(
@@ -158,6 +171,13 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
     def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
         estudio = self.estudios[estudio_id]
         estudio.cobertura = cobertura
+        return estudio
+
+    def guardar_cupon_aplicado(
+        self, estudio_id: int, cupon: CuponAplicado | None
+    ) -> EstudioParaPresupuesto:
+        estudio = self.estudios[estudio_id]
+        estudio.cupon_aplicado = cupon
         return estudio
 
     def cambiar_estado(

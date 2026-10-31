@@ -60,6 +60,10 @@ class RepositorioCupones(ABC):
     @abstractmethod
     def asignar_a_paciente(self, codigo: str, contacto_paciente: str) -> Cupon: ...
 
+    @abstractmethod
+    def marcar_usado(self, codigo: str) -> None:
+        """Refleja acá que el módulo de cupones lo marcó como usado (si lo conocemos)."""
+
 
 class RepositorioPacientes(ABC):
     """Patients of each treating doctor.
@@ -120,6 +124,10 @@ class RepositorioCuponesEnMemoria(RepositorioCupones):
         cupon = self.cupones[codigo]
         cupon.paciente = contacto_paciente
         return cupon
+
+    def marcar_usado(self, codigo: str) -> None:
+        if codigo in self.cupones:
+            self.cupones[codigo].estado = "Usado"
 
 
 def _medicos_de_ejemplo() -> list[Medico]:
