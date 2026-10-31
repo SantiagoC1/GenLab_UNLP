@@ -38,3 +38,25 @@ class AsignacionSalida(BaseModel):
     medico: MedicoSalida
     codigos: list[str]
     medico_avisado: bool
+
+
+class PacienteSalida(BaseModel):
+    contacto: str
+    nombre: str
+
+
+class MisCuponesMedicoSalida(BaseModel):
+    cantidad: int
+    cupones: list[CuponSalida]
+
+
+class AsignarAPacienteEntrada(BaseModel):
+    contacto_paciente: str = Field(min_length=1)
+    codigo: str = Field(min_length=1)
+
+
+class AsignacionAPacienteSalida(BaseModel):
+    paciente: PacienteSalida
+    cupon: CuponSalida
+    disponibles: int
+    paciente_avisado: bool
