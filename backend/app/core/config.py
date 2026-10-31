@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     code_expire_minutes: int = 10
     cors_origins: str = "http://localhost:5173"
     chatbot_url: str = "http://localhost:8001"
+    # Solo desarrollo: acepta X-Dev-Role en lugar del login. Nunca activarlo fuera de la máquina
+    # de quien desarrolla (ver app/core/dev_auth.py).
+    dev_auth: bool = False
 
     # Un setting por integración: "simulador" o "real".
     integracion_familiograma: ModoIntegracion = "simulador"

@@ -7,6 +7,10 @@ export interface Session {
 }
 
 const SESSION_KEY = 'genlab.session'
+/** Rol elegido en el selector DEV (solo desarrollo). */
+export const DEV_ROLE_KEY = 'genlab.rol-dev'
+/** Cuenta opcional para el modo DEV: se manda como X-Dev-User. */
+export const DEV_USER_KEY = 'genlab.user-dev'
 const DEVICE_KEY = 'genlab.device'
 
 /** La sesión vive solo en la pestaña (sessionStorage): al cerrarla hay que volver a ingresar. */
@@ -20,6 +24,18 @@ export function readSession(): Session | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Solo en desarrollo y sin sesión real: encabezados que el backend acepta cuando tiene
+ * DEV_AUTH=true. En un build de producción (`import.meta.env.DEV` falso) no manda nada.
+ */
+export function devHeaders(): Record<string, string> {
+  if (!import.meta.env.DEV || readSession()) return {}
+  const guardado = localStorage.getItem(DEV_ROLE_KEY)
+  const rol = ROLES.find((r) => r === guardado) ?? 'paciente'
+  const usuario = localStorage.getItem(DEV_USER_KEY)
+  return { 'X-Dev-Role': rol, ...(usuario ? { 'X-Dev-User': usuario } : {}) }
 }
 
 export function saveSession(session: Session): void {

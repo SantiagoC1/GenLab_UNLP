@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.core import dev_auth
 from app.core.config import get_settings
 from app.core.enums import Rol
 from app.core.errors import Forbidden, InvalidSession, MustChangePassword
@@ -66,11 +67,18 @@ def create_session_token(user_id: str) -> str:
     return create_token(user_id, SESSION, get_settings().session_expire_minutes)
 
 
-def get_session_user(credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)):
+def get_session_user(
+    request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)
+):
     """Devuelve el usuario de la sesión, aunque todavía tenga que cambiar la contraseña inicial.
 
     Solo lo usa el endpoint de cambio de contraseña. Para todo lo demás, `get_current_user`.
     """
+
+    # Solo con DEV_AUTH=true (desarrollo): la sesión sale de los encabezados X-Dev-*.
+    simulated = dev_auth.user_from_request(request)
+    if simulated is not None:
+        return simulated
 
     if credentials is None:
         raise InvalidSession("Sesión inválida o vencida.")

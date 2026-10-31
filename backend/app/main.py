@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core import dev_auth
 from app.core.config import get_settings
 from app.core.errors import register_handlers
+from app.dev_demo import seed_demo
 from app.modules.acceso.router import router as router_acceso
 from app.modules.avisos.router import router as router_avisos
 from app.modules.bioinformatica.router import router as router_bioinformatica
@@ -24,6 +26,8 @@ def create_app():
         allow_headers=["*"],
     )
     register_handlers(app)
+    dev_auth.warn_if_enabled()
+    seed_demo()
 
     @app.get("/health", tags=["sistema"])
     def health() -> dict[str, str]:
