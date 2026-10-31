@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app import knowledge, llm, scope
 from app.cache import cache
@@ -45,6 +45,14 @@ class ChatRequest(BaseModel):
     conversacion_id: str | None = Field(
         default=None, description="Identificador para mantener el contexto de la conversación."
     )
+
+    @field_validator("mensaje")
+    @classmethod
+    def message_is_not_blank(cls, value: str) -> str:
+        # Falla como cualquier otro error de validación: mismo 422 y mismo formato
+        if not value.strip():
+            raise ValueError("La consulta no puede estar vacía.")
+        return value
 
 
 class ChatResponse(BaseModel):
@@ -191,9 +199,6 @@ def chat(request: ChatRequest, consumer: str = Depends(get_consumer)) -> ChatRes
 
     stripped = request.mensaje.strip()
     question = _scrub(stripped)
-    if not question:
-        raise HTTPException(status_code=422, detail="La consulta no puede estar vacía.")
-
     conversation_id = request.conversacion_id or str(uuid.uuid4())
     # Una consulta con datos tapados no se cachea
     text, kind, provider = _answer(

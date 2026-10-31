@@ -262,3 +262,46 @@ def test_every_mention_of_treatment_is_referred_to_the_doctor(client):
     ]:
         body = ask(client, question).json()
         assert body["tipo"] == "derivar_medico", question
+
+
+def test_every_422_has_the_same_format(client):
+    cases = [
+        {"mensaje": ""},
+        {"mensaje": "   "},
+        {"mensaje": "a" * 1001},
+        {},
+    ]
+    for payload in cases:
+        r = client.post("/chat", json=payload)
+        assert r.status_code == 422, payload
+        detail = r.json()["detail"]
+        assert isinstance(detail, list) and detail, payload
+        assert {"type", "loc", "msg"} <= set(detail[0]), payload
+        assert detail[0]["loc"][:2] == ["body", "mensaje"], payload
+    blank = client.post("/chat", json={"mensaje": "   "}).json()["detail"][0]
+    assert "no puede estar vacía" in blank["msg"]
+
+
+def test_errors_use_the_documented_status_codes(client, monkeypatch):
+    # 401 con clave inválida, 429 con Retry-After, 503 con el servicio apagado
+    monkeypatch.setattr(get_settings(), "chatbot_api_keys", "a:ka")
+    assert ask(client, "hola").status_code == 401
+    assert ask(client, "hola").json() == {"detail": "Clave de API inválida."}
+    monkeypatch.setattr(get_settings(), "chatbot_api_keys", "")
+    monkeypatch.setattr(get_settings(), "chatbot_rate_limit", 1)
+    ask(client, "hola")
+    limited = ask(client, "hola")
+    assert limited.status_code == 429
+    assert limited.headers["Retry-After"].isdigit()
+    assert isinstance(limited.json()["detail"], str)
+    monkeypatch.setattr(get_settings(), "chatbot_available", False)
+    for r in (client.get("/health"), ask(client, "hola")):
+        assert r.status_code == 503
+        assert isinstance(r.json()["detail"], str)
+
+
+def test_health_is_ok_again_when_the_service_comes_back(client, monkeypatch):
+    monkeypatch.setattr(get_settings(), "chatbot_available", False)
+    assert client.get("/health").status_code == 503
+    monkeypatch.setattr(get_settings(), "chatbot_available", True)
+    assert client.get("/health").json() == {"estado": "ok"}
