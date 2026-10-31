@@ -44,12 +44,24 @@ class CoberturaSalida(BaseModel):
     motivo_rechazo: str | None = None
 
 
+class AplicarCuponEntrada(BaseModel):
+    codigo: str = Field(min_length=1, max_length=64)
+
+
+class CuponAplicadoSalida(BaseModel):
+    codigo: str
+    descuento: int
+    importe_original_usd: int
+    importe_con_descuento_usd: int
+
+
 class EstudioDelPacienteSalida(BaseModel):
     id: int
     estado: EstadoEstudio
     cantidad_genes: int
     importe_usd: int | None
     cobertura: CoberturaSalida | None
+    cupon_aplicado: CuponAplicadoSalida | None = None
 
 
 class PagarEntrada(BaseModel):
@@ -60,7 +72,10 @@ class PagarEntrada(BaseModel):
 class PagoSalida(BaseModel):
     estudio_id: int
     estado: EstadoEstudio
+    importe_original_usd: int
     importe_usd: int
+    cupon: str | None = None
+    cupon_informado: bool = False
     metodo: str
     pagado_en: datetime
     paciente_avisado: bool

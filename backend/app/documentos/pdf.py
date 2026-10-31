@@ -81,3 +81,11 @@ def build_pdf(lines: list[Line], qr: list[list[bool]] | None = None) -> bytes:
         xref,
     )
     return bytes(out)
+
+
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+
+def is_pdf(content: bytes) -> bool:
+    """A real PDF starts with the %PDF- signature, whatever the file name says."""
+    return content.startswith(b"%PDF-")

@@ -1,25 +1,42 @@
 """What the patient can do with their own studies: coverage, payment and reauthorization."""
 
+import re
 from datetime import UTC, datetime
 
 from app.core.enums import EstadoEstudio
 from app.core.errors import BusinessRuleError, InvalidIntegration
+from app.documentos.pdf import MAX_UPLOAD_BYTES, is_pdf
 from app.integrations.avisos import AvisosIntegracion
+from app.integrations.cupones import CuponesIntegracion
 from app.integrations.obras_sociales import ObrasSocialesIntegracion
+from app.modules.cupones.repositorio import RepositorioCupones
 from app.modules.presupuesto_pago.repositorio import (
     PENDIENTE,
     Cobertura,
+    CuponAplicado,
     EstudioParaPresupuesto,
     RepositorioEstudios,
 )
 from app.modules.presupuesto_pago.schemas import (
     CoberturaSalida,
+    CuponAplicadoSalida,
     EstudioDelPacienteSalida,
     ObraSocialSalida,
     PagoSalida,
 )
 
 INTEGRACION_OBRAS_SOCIALES = "obras_sociales"
+INTEGRACION_CUPONES = "cupones"
+VIGENTE = "Vigente"
+# The coupon PDFs the platform issues print the code after the label "Código:".
+CODIGO_EN_EL_PDF = re.compile(rb"C.digo:\s*([A-Za-z0-9_-]{3,64})")
+
+
+def importe_con_descuento(importe_usd: int, descuento: int) -> int:
+    """Applies the percentage and rounds to whole dollars (half up)."""
+    return (importe_usd * (100 - descuento) + 50) // 100
+
+
 CANAL_AVISO = "email"
 METODO_PAGO_SIMULADO = "simulado"
 
@@ -38,10 +55,14 @@ class PacienteServicio:
         repositorio: RepositorioEstudios,
         obras_sociales: ObrasSocialesIntegracion,
         avisos: AvisosIntegracion,
+        cupones: CuponesIntegracion,
+        repositorio_cupones: RepositorioCupones,
     ):
         self.repositorio = repositorio
         self.obras_sociales = obras_sociales
         self.avisos = avisos
+        self.cupones = cupones
+        self.repositorio_cupones = repositorio_cupones
 
     # --- reading --------------------------------------------------------------------------
 
@@ -100,11 +121,36 @@ class PacienteServicio:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
         self._exigir_pago_posible(estudio)
 
-        importe = estudio.presupuesto_importe_usd
+        original = estudio.presupuesto_importe_usd
+        importe = original
+        codigo = None
+        if estudio.cupon_aplicado is not None:
+            # The coupon may have been used or expired since it was applied: ask again.
+            cupon = self._validar_cupon(estudio.cupon_aplicado.codigo)
+            if cupon["estado"] != VIGENTE:
+                self.repositorio.guardar_cupon_aplicado(estudio.id, None)
+                raise BusinessRuleError(
+                    f"El cupón {cupon['codigo']} ya no está Vigente ({cupon['estado']}): "
+                    "se mantiene el importe original.",
+                    code="cupon_no_vigente",
+                )
+            codigo = cupon["codigo"]
+            importe = importe_con_descuento(original, cupon["descuento"])
+
+        informado = False
+        if codigo is not None:
+            # M4-RF6: the use is reported to the coupons module. Nothing is recorded if it fails.
+            try:
+                self.cupones.marcar_cupon_usado(codigo)
+            except Exception:
+                raise InvalidIntegration(INTEGRACION_CUPONES) from None
+            self.repositorio_cupones.marcar_usado(codigo)
+            informado = True
+
         ahora = datetime.now(UTC)
         # Nothing is recorded before this point, so leaving without paying changes nothing.
         self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.PAGADO, ahora)
-        asiento = self.repositorio.registrar_asiento(estudio, importe, metodo, ahora)
+        asiento = self.repositorio.registrar_asiento(estudio, importe, metodo, ahora, codigo)
         avisado = avisar(
             self.avisos,
             estudio.contacto_paciente,
@@ -113,10 +159,79 @@ class PacienteServicio:
         return PagoSalida(
             estudio_id=estudio.id,
             estado=estudio.estado,
+            importe_original_usd=original,
             importe_usd=asiento.importe_usd,
+            cupon=codigo,
+            cupon_informado=informado,
             metodo=asiento.metodo,
             pagado_en=asiento.fecha,
             paciente_avisado=avisado,
+        )
+
+    # --- M4-RF6: apply a discount coupon ------------------------------------------------------
+
+    def aplicar_cupon(self, contacto: str, estudio_id: int, codigo: str) -> CuponAplicadoSalida:
+        estudio = self.estudio_del_paciente(contacto, estudio_id)
+        self._exigir_pago_posible(estudio)
+        codigo = codigo.strip()
+
+        conocido = self.repositorio_cupones.obtener(codigo)
+        # A coupon the platform handed out can only be used by the patient who received it.
+        if conocido is not None and conocido.paciente != contacto:
+            raise BusinessRuleError(
+                "Ese cupón no está asignado a tu cuenta.", code="cupon_de_otro_paciente"
+            )
+
+        cupon = self._validar_cupon(codigo)
+        if cupon["estado"] != VIGENTE:
+            # The reason is shown and the original amount is kept.
+            raise BusinessRuleError(
+                f"El cupón {codigo} no se puede aplicar: su estado es {cupon['estado']}.",
+                code="cupon_no_vigente",
+            )
+        aplicado = CuponAplicado(cupon["codigo"], cupon["descuento"])
+        self.repositorio.guardar_cupon_aplicado(estudio.id, aplicado)
+        return self._cupon_salida(estudio, aplicado)
+
+    def aplicar_cupon_con_pdf(
+        self, contacto: str, estudio_id: int, contenido: bytes
+    ) -> CuponAplicadoSalida:
+        if not contenido:
+            raise BusinessRuleError("El archivo está vacío.", status_code=422)
+        if len(contenido) > MAX_UPLOAD_BYTES:
+            raise BusinessRuleError("El archivo pesa más de 5 MB.", status_code=413)
+        if not is_pdf(contenido):
+            raise BusinessRuleError(
+                "El archivo no es un PDF.", status_code=422, code="archivo_no_pdf"
+            )
+        encontrado = CODIGO_EN_EL_PDF.search(contenido)
+        if encontrado is None:
+            raise BusinessRuleError(
+                "No se encontró el código del cupón en el PDF. Probá ingresando el código.",
+                status_code=422,
+                code="cupon_sin_codigo",
+            )
+        return self.aplicar_cupon(contacto, estudio_id, encontrado.group(1).decode())
+
+    def quitar_cupon(self, contacto: str, estudio_id: int) -> EstudioDelPacienteSalida:
+        estudio = self.estudio_del_paciente(contacto, estudio_id)
+        return self._salida(self.repositorio.guardar_cupon_aplicado(estudio.id, None))
+
+    def _validar_cupon(self, codigo: str) -> dict:
+        try:
+            return self.cupones.validar_cupon(codigo)
+        except Exception:
+            raise InvalidIntegration(INTEGRACION_CUPONES) from None
+
+    @staticmethod
+    def _cupon_salida(estudio: EstudioParaPresupuesto, cupon: CuponAplicado) -> CuponAplicadoSalida:
+        return CuponAplicadoSalida(
+            codigo=cupon.codigo,
+            descuento=cupon.descuento,
+            importe_original_usd=estudio.presupuesto_importe_usd,
+            importe_con_descuento_usd=importe_con_descuento(
+                estudio.presupuesto_importe_usd, cupon.descuento
+            ),
         )
 
     @staticmethod
@@ -159,14 +274,17 @@ class PacienteServicio:
                 f"El estudio ya está {estudio.estado.value}: no admite elegir la cobertura."
             )
 
-    @staticmethod
-    def _salida(estudio: EstudioParaPresupuesto) -> EstudioDelPacienteSalida:
+    @classmethod
+    def _salida(cls, estudio: EstudioParaPresupuesto) -> EstudioDelPacienteSalida:
         cobertura = estudio.cobertura
         return EstudioDelPacienteSalida(
             id=estudio.id,
             estado=estudio.estado,
             cantidad_genes=len(estudio.genes),
             importe_usd=estudio.presupuesto_importe_usd,
+            cupon_aplicado=None
+            if estudio.cupon_aplicado is None
+            else cls._cupon_salida(estudio, estudio.cupon_aplicado),
             cobertura=None
             if cobertura is None
             else CoberturaSalida(
