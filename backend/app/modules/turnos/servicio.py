@@ -8,6 +8,7 @@ from app.modules.presupuesto_pago.repositorio import EstudioParaPresupuesto, Rep
 from app.modules.turnos import documentos, reglas
 from app.modules.turnos.reglas import ARG
 from app.modules.turnos.repositorio import (
+    AUSENTE,
     CANCELADO,
     PROGRAMADO,
     Laboratorio,
@@ -17,8 +18,10 @@ from app.modules.turnos.repositorio import (
     TurnoOcupado,
 )
 from app.modules.turnos.schemas import (
+    AgendaSalida,
     CancelacionSalida,
     EstudioHabilitadoSalida,
+    InasistenciaSalida,
     LaboratorioSalida,
     TurnoSalida,
     TurnosLibresSalida,
@@ -73,7 +76,10 @@ class TurnosServicio:
             if motivo is not None:
                 habilitados.append(
                     EstudioHabilitadoSalida(
-                        estudio_id=estudio.id, estado=estudio.estado, motivo=motivo
+                        estudio_id=estudio.id,
+                        estado=estudio.estado,
+                        motivo=motivo,
+                        inasistencias=self.turnos.contar_inasistencias(estudio.id),
                     )
                 )
         return habilitados
@@ -130,7 +136,9 @@ class TurnosServicio:
             )
         if turno.inicio <= self.ahora:
             raise BusinessRuleError(
-                "El horario del turno ya pasó: no se puede cancelar.", code="turno_pasado"
+                "El horario del turno ya pasó: no se puede cancelar. Si no asistió, el laboratorio "
+                "lo registra como inasistencia.",
+                code="turno_pasado",
             )
 
         # The state returns before the appointment is released, so an invalid change leaves
@@ -159,6 +167,66 @@ class TurnosServicio:
         if entradas and entradas[-1].desde in (EstadoEstudio.PAGADO, EstadoEstudio.AUTORIZADO):
             return entradas[-1].desde
         return None
+
+    # --- M6-RF8: absences ------------------------------------------------------------------------
+
+    def agenda(self) -> list[AgendaSalida]:
+        agenda = []
+        for turno in self.turnos.listar_programados():
+            estudio = self.estudios.obtener(turno.estudio_id)
+            laboratorio = self._laboratorio_existente(turno.laboratorio_id)
+            agenda.append(
+                AgendaSalida(
+                    turno_id=turno.id,
+                    estudio_id=turno.estudio_id,
+                    paciente=estudio.paciente if estudio else "",
+                    laboratorio=laboratorio.nombre,
+                    inicio=turno.inicio,
+                    ya_paso=turno.inicio <= self.ahora,
+                    inasistencias=self.turnos.contar_inasistencias(turno.estudio_id),
+                )
+            )
+        return agenda
+
+    def registrar_inasistencia(self, turno_id: int) -> InasistenciaSalida:
+        turno = self.turnos.obtener_turno(turno_id)
+        if turno is None:
+            raise BusinessRuleError("No existe el turno.", status_code=404)
+        if turno.estado != PROGRAMADO:
+            raise BusinessRuleError(
+                f"El turno está {turno.estado}: no se puede registrar una inasistencia.",
+                code="turno_no_vigente",
+            )
+        if turno.inicio > self.ahora:
+            raise BusinessRuleError(
+                "El horario del turno todavía no pasó: no se puede registrar una inasistencia.",
+                code="turno_futuro",
+            )
+        estudio = self.estudios.obtener(turno.estudio_id)
+
+        # The study stays in TurnoSacado and, with no valid appointment left, a new booking is
+        # enabled (M6-RF3). The slot was already in the past, so there is nothing to free.
+        ausente = self.turnos.marcar_turno(turno.id, AUSENTE, anular_recordatorio=True)
+        cantidad = self.turnos.contar_inasistencias(estudio.id)
+        alcanzado = cantidad >= reglas.LIMITE_INASISTENCIAS
+        palabra = "inasistencia" if cantidad == 1 else "inasistencias"
+        mensaje = (
+            "Registramos que no asistió a su turno de extracción del "
+            f"{turno.inicio.astimezone(ARG):%d/%m/%Y a las %H:%M}. "
+            f"Acumula {cantidad} {palabra}."
+        )
+        if alcanzado:
+            mensaje += f" Llegó al límite de {reglas.LIMITE_INASISTENCIAS} inasistencias."
+        mensaje += " Puede reprogramar su turno desde la plataforma."
+        avisado = avisar(self.avisos, estudio.contacto_paciente, mensaje)
+        return InasistenciaSalida(
+            turno=self._turno_salida(ausente, self._laboratorio_existente(turno.laboratorio_id)),
+            estudio_estado=estudio.estado,
+            inasistencias=cantidad,
+            limite=reglas.LIMITE_INASISTENCIAS,
+            limite_alcanzado=alcanzado,
+            paciente_avisado=avisado,
+        )
 
     def mis_turnos(self, contacto: str) -> list[TurnoSalida]:
         ids = [e.id for e in self.estudios.listar_de_paciente(contacto)]

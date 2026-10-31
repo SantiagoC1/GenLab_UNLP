@@ -5,6 +5,7 @@ import { mockApi, renderApp, startTestSession } from '../../test-utils'
 const PATH = '/paciente/turnos'
 const MIS_TURNOS = 'GET /turnos/mis-turnos'
 const CANCELAR = 'POST /turnos/7/cancelar'
+const HABILITADOS = 'GET /turnos/habilitados'
 
 const LAB = {
   id: 1,
@@ -37,6 +38,7 @@ describe('Mis turnos: cancelar', () => {
   it('pide confirmación y cancela un turno futuro', async () => {
     let turnos = [TURNO]
     const mock = mockApi({
+      [HABILITADOS]: { body: [] },
       [MIS_TURNOS]: () => ({ body: turnos }),
       [CANCELAR]: () => {
         turnos = [{ ...TURNO, estado: 'Cancelado', puede_cancelar: false }]
@@ -60,7 +62,7 @@ describe('Mis turnos: cancelar', () => {
   })
 
   it('se puede arrepentir antes de confirmar', async () => {
-    const mock = mockApi({ [MIS_TURNOS]: { body: [TURNO] } })
+    const mock = mockApi({ [HABILITADOS]: { body: [] }, [MIS_TURNOS]: { body: [TURNO] } })
     renderApp(PATH)
     const user = userEvent.setup()
 
@@ -72,7 +74,10 @@ describe('Mis turnos: cancelar', () => {
   })
 
   it('un turno cuya hora ya pasó no se puede cancelar', async () => {
-    mockApi({ [MIS_TURNOS]: { body: [{ ...TURNO, puede_cancelar: false }] } })
+    mockApi({
+      [HABILITADOS]: { body: [] },
+      [MIS_TURNOS]: { body: [{ ...TURNO, puede_cancelar: false }] },
+    })
     renderApp(PATH)
 
     expect(await screen.findByText(/El horario de este turno ya pasó/)).toBeInTheDocument()
@@ -81,6 +86,7 @@ describe('Mis turnos: cancelar', () => {
 
   it('muestra el error cuando el servidor no deja cancelar', async () => {
     mockApi({
+      [HABILITADOS]: { body: [] },
       [MIS_TURNOS]: { body: [TURNO] },
       [CANCELAR]: {
         status: 409,
@@ -96,8 +102,35 @@ describe('Mis turnos: cancelar', () => {
   })
 
   it('invita a sacar un turno cuando todavía no hay ninguno', async () => {
-    mockApi({ [MIS_TURNOS]: { body: [] } })
+    mockApi({ [HABILITADOS]: { body: [] }, [MIS_TURNOS]: { body: [] } })
     renderApp(PATH)
     expect(await screen.findByText(/Todavía no sacaste ningún turno/)).toBeInTheDocument()
+  })
+
+  it('avisa las inasistencias acumuladas y ofrece reprogramar', async () => {
+    mockApi({
+      [HABILITADOS]: {
+        body: [{ estudio_id: 1, estado: 'TurnoSacado', motivo: 'nueva_reserva', inasistencias: 2 }],
+      },
+      [MIS_TURNOS]: { body: [{ ...TURNO, estado: 'Ausente', puede_cancelar: false }] },
+    })
+    renderApp(PATH)
+
+    expect(await screen.findByText(/registramos 2 inasistencias/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Reprogramar el turno' })).toBeInTheDocument()
+    expect(screen.queryByText(/límite de 5 inasistencias/)).not.toBeInTheDocument()
+  })
+
+  it('al llegar a 5 inasistencias lo informa pero deja reprogramar', async () => {
+    mockApi({
+      [HABILITADOS]: {
+        body: [{ estudio_id: 1, estado: 'TurnoSacado', motivo: 'nueva_reserva', inasistencias: 5 }],
+      },
+      [MIS_TURNOS]: { body: [] },
+    })
+    renderApp(PATH)
+
+    expect(await screen.findByText(/Llegaste al límite de 5 inasistencias/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Reprogramar el turno' })).toBeInTheDocument()
   })
 })

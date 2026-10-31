@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { api } from '../../lib/api'
-import { MIS_TURNOS_KEY, formatearFechaHora, type Turno } from '../../lib/turnos'
+import {
+  HABILITADOS_KEY,
+  LIMITE_INASISTENCIAS,
+  MIS_TURNOS_KEY,
+  formatearFechaHora,
+  type Habilitado,
+  type Turno,
+} from '../../lib/turnos'
 
 interface Cancelacion {
   turno: Turno
@@ -19,6 +26,15 @@ export default function TurnosPantalla() {
     queryKey: MIS_TURNOS_KEY,
     queryFn: () => api<Turno[]>('/turnos/mis-turnos'),
   })
+
+  const habilitados = useQuery({
+    queryKey: HABILITADOS_KEY,
+    queryFn: () => api<Habilitado[]>('/turnos/habilitados'),
+  })
+  // M6-RF8: studies that missed an appointment and can book again.
+  const reprogramables = (habilitados.data ?? []).filter(
+    (h) => h.motivo === 'nueva_reserva' && h.inasistencias > 0,
+  )
 
   const cancelar = useMutation({
     mutationFn: (turno: number) =>
@@ -49,6 +65,18 @@ export default function TurnosPantalla() {
           </Alert>
         )}
       </div>
+
+      {reprogramables.map((h) => (
+        <Alert key={h.estudio_id} kind="info">
+          Estudio {h.estudio_id}: registramos {h.inasistencias}{' '}
+          {h.inasistencias === 1 ? 'inasistencia' : 'inasistencias'}.{' '}
+          {h.inasistencias >= LIMITE_INASISTENCIAS &&
+            `Llegaste al límite de ${LIMITE_INASISTENCIAS} inasistencias; por ahora no se aplica ninguna restricción. `}
+          <Link to="../turno" className="font-medium underline">
+            Reprogramar el turno
+          </Link>
+        </Alert>
+      ))}
 
       {turnos.data?.length === 0 && (
         <p className="mt-4 text-sm text-slate-500">

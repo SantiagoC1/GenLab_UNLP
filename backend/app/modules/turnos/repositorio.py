@@ -85,6 +85,14 @@ class RepositorioTurnos(ABC):
         """El turno Programado del estudio, si tiene uno."""
 
     @abstractmethod
+    def listar_programados(self) -> list[Turno]:
+        """Los turnos Programados de todos los laboratorios, del más próximo al más lejano."""
+
+    @abstractmethod
+    def contar_inasistencias(self, estudio_id: int) -> int:
+        """Cuántos turnos del estudio se registraron como Ausente."""
+
+    @abstractmethod
     def listar_de_estudios(self, estudio_ids: list[int]) -> list[Turno]:
         """Todos los turnos de esos estudios, del más reciente al más antiguo."""
 
@@ -202,6 +210,16 @@ class RepositorioTurnosEnMemoria(RepositorioTurnos):
                 if t.estudio_id == estudio_id and t.estado == PROGRAMADO
             ),
             None,
+        )
+
+    def listar_programados(self) -> list[Turno]:
+        return sorted(
+            (t for t in self.turnos.values() if t.estado == PROGRAMADO), key=lambda t: t.inicio
+        )
+
+    def contar_inasistencias(self, estudio_id: int) -> int:
+        return sum(
+            1 for t in self.turnos.values() if t.estudio_id == estudio_id and t.estado == AUSENTE
         )
 
     def listar_de_estudios(self, estudio_ids: list[int]) -> list[Turno]:

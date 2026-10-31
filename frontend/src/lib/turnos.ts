@@ -23,6 +23,17 @@ export interface Turno {
 }
 
 export const MIS_TURNOS_KEY = ['turnos', 'mis-turnos']
+export const HABILITADOS_KEY = ['turnos', 'habilitados']
+
+/** Con este número de inasistencias se le avisa al paciente (no hay bloqueo todavía). */
+export const LIMITE_INASISTENCIAS = 5
+
+export interface Habilitado {
+  estudio_id: number
+  estado: string
+  motivo: 'pagado' | 'autorizado' | 'nueva_reserva'
+  inasistencias: number
+}
 
 const ZONA = 'America/Argentina/Buenos_Aires'
 

@@ -11,17 +11,13 @@ import {
   HORIZONTE_DIAS,
   formatearFechaHora,
   formatearHora,
+  HABILITADOS_KEY,
   hoyEnArgentina,
   sumarDias,
+  type Habilitado,
   type Laboratorio,
   type Turno,
 } from '../../lib/turnos'
-
-interface Habilitado {
-  estudio_id: number
-  estado: string
-  motivo: 'pagado' | 'autorizado' | 'nueva_reserva'
-}
 
 interface TurnosLibres {
   laboratorio_id: number
@@ -40,7 +36,7 @@ export default function TurnoPantalla() {
   const [inicio, setInicio] = useState<string | null>(null)
 
   const habilitados = useQuery({
-    queryKey: ['turnos', 'habilitados'],
+    queryKey: HABILITADOS_KEY,
     queryFn: () => api<Habilitado[]>('/turnos/habilitados'),
   })
   const laboratorios = useQuery({
