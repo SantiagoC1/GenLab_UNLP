@@ -10,9 +10,7 @@ from app.modules.acceso.catalogs import PROVINCES
 MIN_PASSWORD_LENGTH = 8  # la especificación no define una política de contraseñas
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
-# Nombre de cada campo tal como se le muestra a la persona (los identificadores van en inglés).
-# REUTILIZABLE: las validaciones de otros módulos (por ejemplo, el alta de paciente en M3)
-# pueden usarlo para armar sus mensajes.
+
 FIELD_LABELS = {
     "role": "rol",
     "first_name": "nombre",
@@ -24,6 +22,7 @@ FIELD_LABELS = {
     "new_password": "contraseña nueva",
     "confirmation": "confirmación de la contraseña",
     "code": "código",
+    "message": "mensaje",
 }
 
 
