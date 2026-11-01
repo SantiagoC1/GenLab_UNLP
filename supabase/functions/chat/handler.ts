@@ -1,9 +1,3 @@
-// Lógica de `POST /chat` y `GET /health`. Port de chatbot/app/main.py.
-//
-// Es una función pura de Request a Response: todo lo que toca el mundo exterior (base de datos,
-// proveedores de IA) entra por `Deps`, así los tests la ejercitan sin red ni Supabase.
-// index.ts arma las dependencias reales.
-
 import type { Config } from "./config.ts";
 import { bestFragment, search, selectForPrompt } from "./knowledge.ts";
 import type { Document, Turn } from "./knowledge.ts";
@@ -32,12 +26,10 @@ const CACHEABLE_KINDS: readonly Kind[] = [Kind.ANSWER, Kind.OUT_OF_SCOPE, Kind.N
 export interface Deps {
   config: Config;
   store: Store;
-  /** Proveedores de IA ya filtrados (solo los configurados), en orden. */
   providers: Provider[];
   documents: Document[];
 }
 
-// --- Respuestas ---------------------------------------------------------------------------
 
 function corsHeaders(config: Config): Record<string, string> {
   return {
@@ -61,7 +53,7 @@ function detail(config: Config, status: number, message: string, extra: Record<s
 
 const UNAVAILABLE_MESSAGE = "El chatbot no está disponible por el momento. Intentá de nuevo más tarde.";
 
-// --- Pedido -------------------------------------------------------------------------------
+
 
 interface ValidationError {
   type: string;
@@ -124,15 +116,7 @@ export function parseRequest(raw: string): ParsedRequest {
   return { ok: true, message: mensaje as string, conversationId: (conversationId as string | null | undefined) ?? null };
 }
 
-// --- Autenticación ------------------------------------------------------------------------
 
-/**
- * Devuelve el id del consumidor, o null si no está autorizado.
- *
- * Dos controles, como pide la guía de la cátedra: la clave publishable en el header `apikey`
- * (el mundo exterior la conoce) y un token propio de cada consumidor en `x-chatbot-token`
- * (el que identifica a quién consulta y se puede revocar sin afectar a los demás).
- */
 async function authenticate(req: Request, deps: Deps): Promise<string | null> {
   const { config, store } = deps;
   if (config.authDisabled) return "anonimo";
@@ -145,8 +129,6 @@ async function authenticate(req: Request, deps: Deps): Promise<string | null> {
   if (!token) return null;
   return await store.authenticate(token);
 }
-
-// --- Respuesta ----------------------------------------------------------------------------
 
 /** Tapa mails y números largos (DNI, teléfonos) antes de guardar la consulta (M11-RF7 y RF10). */
 export function scrub(text: string): string {
@@ -200,7 +182,7 @@ async function bestEffort(label: string, action: () => Promise<unknown>): Promis
 /**
  * Decide cómo responder la consulta y devuelve [texto, tipo, quién respondió].
  *
- * Primero lo que las reglas resuelven solas (saludos, derivaciones) y la caché de consultas
+ * Primero lo que las reglas resuelven solas (saludos, derivaciones) y caché de consultas
  * repetidas, para no gastar cuota. Después, el modelo, que interpreta y clasifica la consulta.
  * Si no hay modelo o fallan todos los proveedores, se responde con reglas y con el texto de la
  * base, para no dejar al paciente sin respuesta.
@@ -261,8 +243,6 @@ async function answer(
   return [text, kind, "rules"];
 }
 
-// --- Handler ------------------------------------------------------------------------------
-
 export async function handleRequest(req: Request, deps: Deps): Promise<Response> {
   const { config, store } = deps;
   try {
@@ -270,7 +250,6 @@ export async function handleRequest(req: Request, deps: Deps): Promise<Response>
       return new Response(null, { status: 204, headers: corsHeaders(config) });
     }
 
-    // GET /health: no consume cuota de los proveedores de IA ni pide credenciales
     if (req.method === "GET") {
       return config.available
         ? json(config, 200, { estado: "ok" })
@@ -278,8 +257,6 @@ export async function handleRequest(req: Request, deps: Deps): Promise<Response>
     }
     if (req.method !== "POST") return detail(config, 405, "Método no permitido.");
 
-    // El orden de las verificaciones es el del contrato: clave (401), pedido (422),
-    // servicio disponible (503) y límite de consultas (429).
     const consumer = await authenticate(req, deps);
     if (consumer === null) return detail(config, 401, "Clave de API inválida.");
 
@@ -307,7 +284,6 @@ export async function handleRequest(req: Request, deps: Deps): Promise<Response>
       console.error("historial falló", error);
     }
 
-    // Una consulta con datos tapados no se cachea
     const [text, kind, provider] = await answer(deps, question, history, question === stripped);
 
     await bestEffort("guardar conversación", () =>

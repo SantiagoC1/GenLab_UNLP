@@ -1,7 +1,6 @@
 // Base de conocimiento: búsqueda y selección de textos. Port de chatbot/app/knowledge.py.
 //
-// Los textos curados siguen siendo los `.md` de chatbot/knowledge/. El script
-// scripts/build-knowledge.mjs los empaqueta en knowledge.generated.ts, que es lo que se despliega.
+// Los textos curados siguen siendo los `.md` de chatbot/knowledge/.
 
 import { GENERIC_DOMAIN_TERMS, minus, tokenize } from "./text.ts";
 
@@ -9,7 +8,6 @@ const TITLE_WEIGHT = 3;
 const BODY_WEIGHT = 1;
 const MIN_SCORE = 3;
 
-/** Un texto tal como lo deja el script de empaquetado (sin tokens). */
 export interface RawDocument {
   topic: string;
   claves: string;
@@ -44,12 +42,6 @@ export function buildDocuments(raw: readonly RawDocument[]): Document[] {
   }));
 }
 
-/**
- * Devuelve los textos que responden la consulta, del más al menos parecido.
- *
- * El puntaje suma 3 por cada palabra de la consulta que está en el tema o en las claves del
- * texto, y 1 por cada una que está en el cuerpo. Solo cuentan los que llegan al mínimo.
- */
 export function search(
   question: string,
   documents: readonly Document[],
@@ -73,13 +65,6 @@ export interface PromptLimits {
   topDocuments: number;
 }
 
-/**
- * Elige los textos que se le pasan al modelo.
- *
- * Con una base chica van todos (el modelo resuelve sinónimos y continuaciones). Cuando la base
- * supera `maxDocuments`, van solo los más parecidos a la consulta (junto con la anterior, si es una
- * continuación). Si el buscador no encuentra nada, van todos.
- */
 export function selectForPrompt(
   question: string,
   history: readonly Turn[],
@@ -117,16 +102,6 @@ function units(body: string): string[] {
   return result;
 }
 
-/**
- * Devuelve la parte del texto que responde la consulta, más su frase final.
- *
- * Las palabras que solo nombran el tema ("Pompe") no cuentan: lo que importa es lo que se pregunta
- * sobre él. Cada palabra de la consulta pesa más cuanto en menos párrafos aparece. Gana el párrafo
- * de mayor puntaje y, a igual puntaje, el primero. La última frase (que sugiere consultar al médico
- * tratante) siempre acompaña la respuesta y no participa del puntaje. Si ningún párrafo comparte
- * palabras con la consulta, o si la consulta solo nombra el tema ("¿qué es Pompe?"), devuelve el
- * texto completo.
- */
 export function bestFragment(question: string, document: Document): string {
   const parts = units(document.body);
   if (parts.length < 3) return parts.join("\n\n");
