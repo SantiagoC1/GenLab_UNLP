@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.core.enums import Rol
-from app.core.errors import BusinessRuleError
 from app.core.security import get_session_user, require_role
+from app.core.validation import raise_if_invalid
 from app.modules.acceso import service
 from app.modules.acceso.catalogs import ADMIN_CREATABLE_ROLES, SELF_SIGNUP_ROLES
 from app.modules.acceso.schemas import (
@@ -26,16 +26,6 @@ router = APIRouter(prefix="/acceso", tags=["acceso"])
 ADMIN_ONLY = require_role(Rol.ADMINISTRADOR_GENERAL)
 
 
-# REUTILIZABLE: los routers de los otros módulos tienen que responder igual a los errores de
-# validación. Cuando el segundo módulo lo necesite, se mueve a `app/core/`.
-def _raise_if_invalid(errors: list[str]) -> None:
-    """
-    Si hay errores de validación, responde 422 con todos los mensajes juntos.
-    """
-    if errors:
-        raise BusinessRuleError(" ".join(errors), status_code=422)
-
-
 def _session_response(token: str, user: dict) -> dict:
     return {
         "access_token": token,
@@ -55,7 +45,7 @@ def get_catalogs():
 def register(data: RegisterData):
     """Escenario 1: autoalta."""
     data = data.model_dump()
-    _raise_if_invalid(validate_user_data(data, SELF_SIGNUP_ROLES, with_password=True))
+    raise_if_invalid(validate_user_data(data, SELF_SIGNUP_ROLES, with_password=True))
     token, user = service.register_user(data)
     return _session_response(token, user)
 
@@ -64,7 +54,7 @@ def register(data: RegisterData):
 def login(data: LoginData):
     """Escenario 4, paso 1: contraseña. Si el dispositivo es nuevo, envía el código por mail."""
     data = data.model_dump()
-    _raise_if_invalid(validate_login(data))
+    raise_if_invalid(validate_login(data))
     result = service.login_user(data["email"], data["password"], data["device_id"])
     if result["state"] == "authenticated":
         session = _session_response(result["token"], result["user"])
@@ -76,7 +66,7 @@ def login(data: LoginData):
 def verify_code(data: VerifyCodeData):
     """Escenario 4, paso 2: código recibido por mail."""
     data = data.model_dump()
-    _raise_if_invalid(validate_code(data))
+    raise_if_invalid(validate_code(data))
     token, user = service.verify_login_code(
         data["email"], data["code"], data["challenge"], data["device_id"]
     )
@@ -87,7 +77,7 @@ def verify_code(data: VerifyCodeData):
 def change_password(data: ChangePasswordData, user: dict = Depends(get_session_user)):
     """Escenario 3: cambio de la contraseña. Funciona aunque falte cambiar la inicial."""
     data = data.model_dump()
-    _raise_if_invalid(validate_password_change(data))
+    raise_if_invalid(validate_password_change(data))
     service.change_password(user, data["current_password"], data["new_password"])
     return {"state": "password_changed"}
 
@@ -102,7 +92,7 @@ def list_users(admin_user: dict = Depends(ADMIN_ONLY)):
 def create_user(data: CreateUserData, admin_user: dict = Depends(ADMIN_ONLY)):
     """Escenario 2: alta de un usuario por el administrador general."""
     data = data.model_dump()
-    _raise_if_invalid(validate_user_data(data, ADMIN_CREATABLE_ROLES, with_password=False))
+    raise_if_invalid(validate_user_data(data, ADMIN_CREATABLE_ROLES, with_password=False))
     return service.create_user_as_admin(data, admin_user)
 
 
