@@ -284,6 +284,7 @@ export async function handleRequest(req: Request, deps: Deps): Promise<Response>
       console.error("historial falló", error);
     }
 
+
     const [text, kind, provider] = await answer(deps, question, history, question === stripped);
 
     await bestEffort("guardar conversación", () =>
