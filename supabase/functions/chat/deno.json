@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "test": "deno test --allow-read tests/",
+    "build-knowledge": "deno run --allow-read --allow-write scripts/build-knowledge.mjs",
+    "check-knowledge": "deno run --allow-read scripts/build-knowledge.mjs --check"
+  }
+}
