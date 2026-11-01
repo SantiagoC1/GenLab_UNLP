@@ -20,7 +20,6 @@ import PacienteTurnoPantalla from './paciente/TurnoPantalla'
 import PacienteDocumentosPantalla from './paciente/DocumentosPantalla'
 import PacienteTurnosPantalla from './paciente/TurnosPantalla'
 import PacienteResultadoPantalla from './paciente/ResultadoPantalla'
-import PacienteChatbotPantalla from './paciente/ChatbotPantalla'
 import AdministrativoLaboratorioPresupuestosPantalla from './administrativo_laboratorio/PresupuestosPantalla'
 import AdministrativoLaboratorioAutorizacionesPantalla from './administrativo_laboratorio/AutorizacionesPantalla'
 import AdministrativoLaboratorioDatosCrudosPantalla from './administrativo_laboratorio/DatosCrudosPantalla'
@@ -170,12 +169,6 @@ export const PANTALLAS: Pantalla[] = [
     ruta: 'resultado',
     titulo: 'Descargar el resultado del estudio',
     componente: PacienteResultadoPantalla,
-  },
-  {
-    rol: 'paciente',
-    ruta: 'chatbot',
-    titulo: 'Consultar al chatbot',
-    componente: PacienteChatbotPantalla,
   },
   {
     rol: 'administrativo_laboratorio',

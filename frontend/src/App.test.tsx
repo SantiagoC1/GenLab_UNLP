@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -5,12 +6,16 @@ import App from './App'
 import { RolProvider } from './roles/RolProvider'
 
 function renderizar(ruta: string) {
+  // El menú del paciente incluye el chatbot, que usa TanStack Query
+  const queryClient = new QueryClient()
   return render(
-    <MemoryRouter initialEntries={[ruta]}>
-      <RolProvider>
-        <App />
-      </RolProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[ruta]}>
+        <RolProvider>
+          <App />
+        </RolProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
