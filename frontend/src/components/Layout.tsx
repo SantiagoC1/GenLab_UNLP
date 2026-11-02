@@ -6,6 +6,7 @@ import {isMockRole, useMockActor, type MockRole } from '../lib/mockIdentity'
 import { PANTALLAS } from '../roles/pantallas'
 import { useRol } from '../roles/rol-context'
 import { ETIQUETA_ROL } from '../roles/roles'
+import { ChatbotPopup } from './ChatbotPopup'
 import { SelectorDeRol } from './RoleSelector'
 
 type NoticeSummary = {
@@ -148,6 +149,8 @@ export function Layout() {
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <Outlet />
       </main>
+
+      {rol === 'paciente' && <ChatbotPopup />}
     </div>
   )
 }

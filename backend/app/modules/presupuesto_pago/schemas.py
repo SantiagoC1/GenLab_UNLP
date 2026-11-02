@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.core.enums import EstadoEstudio
 
 
 class EstudioPendienteSalida(BaseModel):
@@ -23,3 +25,27 @@ class PresupuestoEmitidoSalida(BaseModel):
     importe_usd: int
     emitido_en: datetime
     paciente_avisado: bool
+
+
+class ObraSocialSalida(BaseModel):
+    nombre: str
+    cobertura: int
+
+
+class ElegirCoberturaEntrada(BaseModel):
+    obra_social: str = Field(min_length=1, max_length=120)
+
+
+class CoberturaSalida(BaseModel):
+    obra_social: str
+    porcentaje: int
+    estado: str
+    motivo_rechazo: str | None = None
+
+
+class EstudioDelPacienteSalida(BaseModel):
+    id: int
+    estado: EstadoEstudio
+    cantidad_genes: int
+    importe_usd: int | None
+    cobertura: CoberturaSalida | None
