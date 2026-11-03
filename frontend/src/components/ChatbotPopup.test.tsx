@@ -42,7 +42,7 @@ beforeEach(() => {
 })
 
 async function openChat(user: User) {
-  await user.click(await screen.findByRole('button', { name: 'Abrir chat' }))
+  await user.click(await screen.findByRole('button', { name: 'Consultar al chatbot' }))
 }
 
 async function typeAndSend(user: User, text: string) {
@@ -54,14 +54,14 @@ describe('Chatbot del paciente', () => {
   it('muestra el botón en las pantallas del paciente', async () => {
     startTestSession('paciente')
     renderLayout()
-    expect(await screen.findByRole('button', { name: 'Abrir chat' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Consultar al chatbot' })).toBeInTheDocument()
   })
 
   it('no lo muestra en las pantallas de otros roles', async () => {
     startTestSession('administrador_general')
     renderLayout()
     await screen.findByRole('navigation', { name: 'Principal' })
-    expect(screen.queryByRole('button', { name: 'Abrir chat' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Consultar al chatbot' })).not.toBeInTheDocument()
   })
 
   it('envía la consulta y muestra la respuesta, con el aviso de que no da diagnósticos', async () => {

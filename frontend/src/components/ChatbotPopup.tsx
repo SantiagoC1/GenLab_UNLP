@@ -230,15 +230,14 @@ export function ChatbotPopup() {
       <button
         ref={launcher}
         type="button"
-        aria-label="Abrir chat"
         aria-expanded={false}
         onClick={() => setOpen(true)}
-        className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex min-h-12 items-center gap-2 rounded-full bg-brand px-5 text-sm font-medium text-white shadow-float transition-colors duration-150 hover:bg-brand-strong"
+        className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex min-h-12 items-center gap-2 rounded-full bg-brand px-5 text-sm font-medium text-white shadow-float transition-colors duration-150 hover:bg-brand-strong"
       >
         <span aria-hidden="true" className="text-lg leading-none">
           💬
         </span>
-        <span className="hidden xs:inline">Consultar al chatbot</span>
+        <span className="sr-only xs:not-sr-only">Consultar al chatbot</span>
       </button>
     )
   }
@@ -256,13 +255,15 @@ export function ChatbotPopup() {
       className="animate-sheet-up fixed inset-x-0 bottom-0 z-50 flex h-dvh flex-col bg-surface sm:inset-x-auto sm:right-[max(1rem,env(safe-area-inset-right))] sm:bottom-[max(1rem,env(safe-area-inset-bottom))] sm:h-[35rem] sm:max-h-[calc(100dvh-2rem)] sm:w-[23.75rem] sm:rounded-sheet sm:border sm:border-line-soft sm:shadow-float"
     >
       <header className="flex items-center justify-between gap-2 border-b border-line-soft px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
-        <h2 className="text-base font-semibold text-brand-strong">Chatbot de GenLab</h2>
+        <h2 className="text-base font-semibold whitespace-nowrap text-brand-strong">
+          Chatbot de GenLab
+        </h2>
         <div className="flex items-center gap-1">
           {items.length > 0 && (
             <button
               type="button"
               onClick={newConversation}
-              className="min-h-11 rounded-control px-2 text-sm font-medium text-brand-strong hover:bg-page"
+              className="min-h-11 rounded-control px-2 text-sm font-medium whitespace-nowrap text-brand-strong hover:bg-page"
             >
               Nueva conversación
             </button>
