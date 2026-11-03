@@ -1,5 +1,5 @@
 import type { Config } from "./config.ts";
-import { bestFragment, search, selectForPrompt } from "./knowledge.ts";
+import { bestFragment, isFollowUp, search, selectForPrompt } from "./knowledge.ts";
 import type { Document, Turn } from "./knowledge.ts";
 import { NoProviderAvailable, generateWithFallback } from "./providers.ts";
 import type { Provider } from "./providers.ts";
@@ -159,7 +159,7 @@ export function answerWithRules(
 
   let matches = search(question, documents);
   const previous = history.filter((t) => t.role === "user").map((t) => t.content);
-  if (!matches.length && previous.length) {
+  if (!matches.length && previous.length && isFollowUp(question)) {
     // Una continuación ("¿y cómo se hereda?") se entiende con la consulta anterior
     matches = search(`${previous[previous.length - 1]} ${question}`, documents);
   }

@@ -64,6 +64,17 @@ export interface PromptLimits {
   maxDocuments: number;
   topDocuments: number;
 }
+/** Identifica preguntas que dependen del contexto anterior. */
+export function isFollowUp(question: string): boolean {
+  const normalized = question
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  return /^(?:[¿?]?\s*)?(?:y\s+)?(?:eso|esto|esa|ese|como|cuando|por que|de que manera|se hereda|que significa)\b/.test(normalized)
+    && !/\b(?:enfermedad de|sindrome de)\b/.test(normalized);
+}
 
 export function selectForPrompt(
   question: string,
@@ -72,10 +83,24 @@ export function selectForPrompt(
   limits: PromptLimits,
 ): Document[] {
   if (documents.length <= limits.maxDocuments) return [...documents];
-  const previous = history.filter((t) => t.role === "user").map((t) => t.content);
-  const query = previous.length ? `${previous[previous.length - 1]} ${question}` : question;
-  const matches = search(query, documents);
-  if (!matches.length) return [...documents];
+
+  let matches = search(question, documents);
+
+  if (!matches.length && isFollowUp(question)) {
+    const previous = history
+      .filter((t) => t.role === "user")
+      .map((t) => t.content);
+
+    if (previous.length) {
+      matches = search(
+        `${previous[previous.length - 1]} ${question}`,
+        documents,
+      );
+    }
+  }
+
+  if (!matches.length) return [];
+
   return matches.slice(0, limits.topDocuments).map((m) => m.doc);
 }
 
