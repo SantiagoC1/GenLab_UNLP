@@ -6,8 +6,8 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS = {
-  primary: 'bg-teal-700 text-white hover:bg-teal-800',
-  secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-100',
+  primary: 'bg-brand text-white hover:bg-brand-strong disabled:hover:bg-brand',
+  secondary: 'border border-line bg-surface text-ink hover:bg-page disabled:hover:bg-surface',
 }
 
 export function Button({
@@ -23,9 +23,15 @@ export function Button({
       type="button"
       disabled={disabled || loading}
       aria-busy={loading}
-      className={`rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
       {...rest}
     >
+      {loading && (
+        <span
+          aria-hidden="true"
+          className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+        />
+      )}
       {children}
     </button>
   )
