@@ -77,10 +77,10 @@ export function PersonFields({ values, errors, roles, catalogs, onChange }: Prop
             onChange={(e) => onChange('licenseNumber', e.target.value)}
           />
           <fieldset>
-            <legend className="text-sm font-medium text-slate-800">Especialidades</legend>
+            <legend className="text-sm font-medium text-ink">Especialidades</legend>
             <div className="mt-1 grid gap-1 sm:grid-cols-2">
               {catalogs?.specialties.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm text-slate-800">
+                <label key={s.id} className="flex min-h-11 items-center gap-2 text-sm text-ink">
                   <input
                     type="checkbox"
                     checked={values.specialties.includes(s.id)}

@@ -32,3 +32,6 @@ Thumbs.db
 pgdata/
 
 supabase/.temp/
+
+# UI screenshots (before/after) generated for review
+docs/ui-screenshots/
