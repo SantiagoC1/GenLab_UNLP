@@ -1,9 +1,3 @@
-"""Acceso a las tablas `pathologies`, `symptoms` y `pathology_symptoms`.
-
-Usa el cliente admin (service role), que no pasa por RLS. El cliente no tiene transacciones: si un
-paso falla, se deshacen a mano los anteriores. Para que sea atómico hay una propuesta en
-`supabase/pathology_functions.sql` (todavía sin usar).
-"""
 
 import unicodedata
 
