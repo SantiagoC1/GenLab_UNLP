@@ -72,7 +72,7 @@ export function isFollowUp(question: string): boolean {
     .toLowerCase()
     .trim();
 
-  return /^(?:[¿?]?\s*)?(?:y\s+)?(?:eso|esto|esa|ese|como|cuando|por que|de que manera|se hereda|que significa)\b/.test(normalized)
+  return /^(?:[¿?]?\s*)?(?:y\s+)?(?:eso|esto|esa|ese|como|cuando|por que|de que manera|se hereda|que significa|(?:los|las|el|la)\s+(?:sintomas|sintoma|causas|signos))\b/.test(normalized)
     && !/\b(?:enfermedad de|sindrome de)\b/.test(normalized);
 }
 
