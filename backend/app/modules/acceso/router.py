@@ -51,7 +51,7 @@ def register(data: RegisterData):
 
 @router.post("/login")
 def login(data: LoginData):
-    data = data.model_dump()
+    data = data.model_dump() # convierte a diccionario para trabajar en otras funciones
     raise_if_invalid(validate_login(data))
     result = service.login_user(data["email"], data["password"], data["device_id"])
     if result["state"] == "authenticated":
