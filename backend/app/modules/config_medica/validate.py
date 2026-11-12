@@ -1,6 +1,8 @@
 """Validaciones de los datos de M2. Cada función devuelve una lista de errores:
 si la lista está vacía, los datos son válidos."""
 
+import unicodedata
+
 from app.core.enums import CdssStrategy
 from app.models import pathology as pathology_model
 
@@ -14,6 +16,11 @@ MAX_SECONDARY = 30
 
 def _has_control_characters(text: str) -> bool:
     return any(ord(char) < 32 or ord(char) == 127 for char in text)
+
+
+def _code_key(code: str) -> str:
+    """Clave para comparar códigos: `"SIM-001"`, `" sim-001 "` y `"ＳＩＭ-001"` son el mismo."""
+    return unicodedata.normalize("NFKC", code).strip().casefold()
 
 
 def _is_valid_text(value) -> bool:
@@ -53,10 +60,10 @@ def validate_symptoms(data: dict) -> list[str]:
         errors.append("Hay un síntoma secundario que no es válido.")
         return errors
 
-    codes = [symptom["code"].strip() for symptom in secondary]
+    codes = [_code_key(symptom["code"]) for symptom in secondary]
     if len(set(codes)) != len(codes):
         errors.append("Los síntomas secundarios no pueden repetirse.")
-    if cardinal_ok and cardinal["code"].strip() in codes:
+    if cardinal_ok and _code_key(cardinal["code"]) in codes:
         errors.append("El síntoma cardinal no puede repetirse como secundario.")
     return errors
 
@@ -67,7 +74,9 @@ def validate_pathology(data: dict) -> list[str]:
     name = data.get("name")
     if not isinstance(name, str) or not name.strip():
         errors.append("Ingresá el nombre de la patología.")
-    elif len(name.strip()) > MAX_NAME_LENGTH or _has_control_characters(name):
+    elif _has_control_characters(name):
+        errors.append("El nombre no puede tener caracteres de control.")
+    elif len(pathology_model.normalize_name(name)) > MAX_NAME_LENGTH:
         errors.append(f"El nombre no puede tener más de {MAX_NAME_LENGTH} caracteres.")
     elif pathology_model.name_exists(name):
         errors.append("Ya existe una patología con ese nombre.")

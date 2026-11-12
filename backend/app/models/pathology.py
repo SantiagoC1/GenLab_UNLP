@@ -5,6 +5,8 @@ paso falla, se deshacen a mano los anteriores. Para que sea atómico hay una pro
 `supabase/pathology_functions.sql` (todavía sin usar).
 """
 
+import unicodedata
+
 from postgrest.exceptions import APIError
 
 from app.database import supabase_admin
@@ -44,11 +46,26 @@ def find_by_id(pathology_id: int) -> dict | None:
     return _to_pathology(rows[0]) if rows else None
 
 
+def normalize_name(name: str) -> str:
+    """El nombre como se guarda: en forma NFC y con los espacios juntos (`"Fabry  X"` = `"Fabry X"`)."""
+    return " ".join(unicodedata.normalize("NFC", name).split())
+
+
+def name_key(name: str) -> str:
+    """Clave para comparar nombres: ignora mayúsculas, espacios y las formas equivalentes de Unicode
+    (por ejemplo `ß` y `ss`, o una letra con tilde escrita en una o en dos piezas)."""
+    folded = unicodedata.normalize("NFKC", normalize_name(name)).casefold()
+    return unicodedata.normalize("NFKC", folded)
+
+
 def name_exists(name: str) -> bool:
-    """Indica si ya hay una patología con ese nombre, sin distinguir mayúsculas (M2-RF3)."""
+    """Indica si ya hay una patología con ese nombre (M2-RF3).
+
+    Es más estricta que el índice único de la base (`lower(name)`): todo lo que el índice rechaza,
+    esta función también, así que el índice solo queda como respaldo ante una carrera."""
     rows = _table("pathologies").select("name").execute().data
-    wanted = name.strip().casefold()
-    return any(row["name"].strip().casefold() == wanted for row in rows)
+    wanted = name_key(name)
+    return any(name_key(row["name"]) == wanted for row in rows)
 
 
 def _links(pathology_id: int, cardinal: dict, secondary: list[dict]) -> list[dict]:

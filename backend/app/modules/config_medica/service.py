@@ -20,7 +20,7 @@ def create_pathology(data: dict) -> dict:
     """Escenario 5: da de alta la patología con su cardinal y sus secundarios."""
     try:
         return pathology_model.create(
-            data["name"].strip(),
+            pathology_model.normalize_name(data["name"]),
             _clean(data["cardinal"]),
             [_clean(symptom) for symptom in data["secondary"]],
         )
