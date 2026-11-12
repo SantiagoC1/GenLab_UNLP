@@ -1,12 +1,6 @@
-// Configuración de la función, leída de las variables de entorno (secretos de Supabase).
-// Port de chatbot/app/config.py. Los nombres son los mismos, salvo los de acceso (ver abajo).
-// Los secretos de Supabase no pueden empezar con SUPABASE_.
-
 export type Env = Record<string, string | undefined>;
 
 export interface Config {
-  // Acceso
-  /** Clave publishable del proyecto: el header `apikey` tiene que coincidir (como en la guía de la cátedra). */
   publishableKey: string;
   /** Solo desarrollo: no pide `apikey` ni token. */
   authDisabled: boolean;

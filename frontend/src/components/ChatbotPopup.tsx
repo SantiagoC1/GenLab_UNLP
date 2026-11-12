@@ -11,10 +11,7 @@ interface Bubble {
   text: string
 }
 
-/**
- * Escenario 40 · M11-RF12: ventana flotante para consultar al chatbot sobre genética.
- * Se muestra en todas las pantallas del paciente.
- */
+
 export function ChatbotPopup() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')

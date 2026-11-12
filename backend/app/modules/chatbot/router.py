@@ -10,7 +10,6 @@ from app.modules.chatbot import service
 from app.modules.chatbot.schemas import MessageData
 from app.modules.chatbot.validate import validate_message
 
-# M11. Chatbot para el paciente
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 
 PATIENT_ONLY = require_role(Rol.PACIENTE)

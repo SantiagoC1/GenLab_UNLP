@@ -6,7 +6,6 @@ import App from './App'
 import { RolProvider } from './roles/RolProvider'
 
 function renderizar(ruta: string) {
-  // El menú del paciente incluye el chatbot, que usa TanStack Query
   const queryClient = new QueryClient()
   return render(
     <QueryClientProvider client={queryClient}>

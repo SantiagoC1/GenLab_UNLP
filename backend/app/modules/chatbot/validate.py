@@ -1,13 +1,10 @@
-"""Validaciones de M11. Cada función devuelve una lista de errores:
-si la lista está vacía, los datos son válidos."""
-
 from app.modules.acceso.validate import required_field_error
 
-MAX_MESSAGE_LENGTH = 1000  # M11-RF9: el límite de la Edge Function
+MAX_MESSAGE_LENGTH = 1000 
 MAX_CONVERSATION_ID_LENGTH = 200
 
 
-def validate_message(data: dict) -> list[str]:
+def validate_message(data: dict):
     """Valida el mensaje del paciente y, si viene, el identificador de la conversación."""
     errors = []
     message = data.get("message")
