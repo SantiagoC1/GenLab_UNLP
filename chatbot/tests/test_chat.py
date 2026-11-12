@@ -305,3 +305,11 @@ def test_health_is_ok_again_when_the_service_comes_back(client, monkeypatch):
     assert client.get("/health").status_code == 503
     monkeypatch.setattr(get_settings(), "chatbot_available", True)
     assert client.get("/health").json() == {"estado": "ok"}
+
+
+def test_rules_mode_shows_the_stages_with_their_introduction(client):
+    """La introducción "…estas etapas:" viaja con la lista numerada, no sola."""
+    body = ask(client, "¿Cómo son las etapas de un estudio?").json()
+    assert body["tipo"] == "respuesta"
+    assert "1. Tu médico pide el estudio" in body["respuesta"]
+    assert "6. Cuando el resultado está disponible" in body["respuesta"]

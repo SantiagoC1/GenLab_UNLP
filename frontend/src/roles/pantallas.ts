@@ -20,7 +20,6 @@ import PacienteTurnoPantalla from './paciente/TurnoPantalla'
 import PacienteDocumentosPantalla from './paciente/DocumentosPantalla'
 import PacienteTurnosPantalla from './paciente/TurnosPantalla'
 import PacienteResultadoPantalla from './paciente/ResultadoPantalla'
-import PacienteChatbotPantalla from './paciente/ChatbotPantalla'
 import AdministrativoLaboratorioPresupuestosPantalla from './administrativo_laboratorio/PresupuestosPantalla'
 import AdministrativoLaboratorioAutorizacionesPantalla from './administrativo_laboratorio/AutorizacionesPantalla'
 import AdministrativoLaboratorioDatosCrudosPantalla from './administrativo_laboratorio/DatosCrudosPantalla'
@@ -28,9 +27,9 @@ import AdministrativoLaboratorioLotesPantalla from './administrativo_laboratorio
 import AdministrativoLaboratorioRetiroFedexPantalla from './administrativo_laboratorio/RetiroFedexPantalla'
 import AdministrativoLaboratorioUbicacionMuestraPantalla from './administrativo_laboratorio/UbicacionMuestraPantalla'
 import AdministrativoLaboratorioSimuladoresPantalla from './administrativo_laboratorio/SimuladoresPantalla'
-import TransportistaOrdenDelDiaPantalla from './transportista/OrdenDelDiaPantalla'
-import TransportistaRetiroDeMuestrasPantalla from './transportista/RetiroDeMuestrasPantalla'
-import TransportistaEntregaDeMuestrasPantalla from './transportista/EntregaDeMuestrasPantalla'
+import CarrierDailyRoutePage from './carrier/DailyRoutePage'
+import TransportistaRetiroDeMuestrasPantalla from './carrier/RetiroDeMuestrasPantalla'
+import TransportistaEntregaDeMuestrasPantalla from './carrier/EntregaDeMuestrasPantalla'
 import BioinformaticoEstudiosDisponiblesPantalla from './bioinformatico/EstudiosDisponiblesPantalla'
 import BioinformaticoAnalisisPantalla from './bioinformatico/AnalisisPantalla'
 import type { ComponentType } from 'react'
@@ -172,12 +171,6 @@ export const PANTALLAS: Pantalla[] = [
     componente: PacienteResultadoPantalla,
   },
   {
-    rol: 'paciente',
-    ruta: 'chatbot',
-    titulo: 'Consultar al chatbot',
-    componente: PacienteChatbotPantalla,
-  },
-  {
     rol: 'administrativo_laboratorio',
     ruta: 'presupuestos',
     titulo: 'Emitir el presupuesto',
@@ -223,7 +216,7 @@ export const PANTALLAS: Pantalla[] = [
     rol: 'transportista',
     ruta: 'orden-del-dia',
     titulo: 'Orden del día',
-    componente: TransportistaOrdenDelDiaPantalla,
+    componente: CarrierDailyRoutePage,
   },
   {
     rol: 'transportista',
