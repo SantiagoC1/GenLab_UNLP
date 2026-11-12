@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ApiError } from '../lib/api'
 import {
   MIN_SECONDARY_SYMPTOMS,
@@ -62,14 +62,35 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
   const saving = create.isPending || replace.isPending
   const error = create.error ?? replace.error
 
+  const [announcement, setAnnouncement] = useState('')
+  const cardinalRef = useRef<HTMLDivElement>(null)
+  const secondaryRef = useRef<HTMLDivElement>(null)
+
   const chooseCardinal = (symptom: Symptom) => {
+    setAnnouncement(`Se eligió ${symptom.term} como síntoma cardinal.`)
     setCardinal(symptom)
     // Un síntoma no puede ser cardinal y secundario a la vez
     setSecondary((current) => current.filter((item) => item.code !== symptom.code))
   }
 
-  const complete =
-    name.trim().length > 0 && cardinal !== null && secondary.length >= MIN_SECONDARY_SYMPTOMS
+  const missing: string[] = []
+  if (!editing && name.trim().length === 0) missing.push('el nombre')
+  if (cardinal === null) missing.push('el síntoma cardinal')
+  if (secondary.length < MIN_SECONDARY_SYMPTOMS)
+    missing.push(`al menos ${MIN_SECONDARY_SYMPTOMS} síntomas secundarios`)
+  const complete = missing.length === 0
+
+  // Al quitar un síntoma el botón desaparece: el foco pasa al bloque para no perderse
+  const removeCardinal = () => {
+    setAnnouncement(`Se quitó ${cardinal?.term}.`)
+    setCardinal(null)
+    cardinalRef.current?.focus()
+  }
+  const removeSecondary = (symptom: Symptom) => {
+    setAnnouncement(`Se quitó ${symptom.term}.`)
+    setSecondary((current) => current.filter((item) => item.code !== symptom.code))
+    secondaryRef.current?.focus()
+  }
 
   const save = () => {
     if (!cardinal) return
@@ -99,7 +120,7 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
         />
       )}
 
-      <div>
+      <div ref={cardinalRef} tabIndex={-1} className="outline-none">
         <SymptomSearch
           label="Buscar síntoma cardinal"
           single
@@ -109,27 +130,38 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
         <SymptomList
           label="Síntoma cardinal elegido"
           items={cardinal ? [cardinal] : []}
-          onRemove={() => setCardinal(null)}
+          onRemove={removeCardinal}
         />
       </div>
 
-      <div>
+      <div ref={secondaryRef} tabIndex={-1} className="outline-none">
         <SymptomSearch
           label="Buscar síntomas secundarios"
           selected={cardinal ? [cardinal, ...secondary] : secondary}
-          onSelect={(symptom) => setSecondary((current) => [...current, symptom])}
+          onSelect={(symptom) => {
+            setAnnouncement(`Se agregó ${symptom.term} a los síntomas secundarios.`)
+            setSecondary((current) => [...current, symptom])
+          }}
         />
         <SymptomList
           label="Síntomas secundarios elegidos"
           items={secondary}
-          onRemove={(symptom) =>
-            setSecondary((current) => current.filter((item) => item.code !== symptom.code))
-          }
+          onRemove={removeSecondary}
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p id="secondary-help" className="mt-1 text-xs text-slate-500">
           Cargá al menos {MIN_SECONDARY_SYMPTOMS} síntomas secundarios.
         </p>
       </div>
+
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
+
+      {!complete && (
+        <p id="missing-help" className="text-sm text-slate-700">
+          Para guardar falta: {missing.join(', ')}.
+        </p>
+      )}
 
       {error && (
         <Alert kind="error">
@@ -138,7 +170,12 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
       )}
 
       <div className="flex gap-2">
-        <Button type="submit" loading={saving} disabled={!complete}>
+        <Button
+          type="submit"
+          loading={saving}
+          disabled={!complete}
+          aria-describedby={complete ? undefined : 'missing-help'}
+        >
           {editing ? 'Guardar cambios' : 'Guardar patología'}
         </Button>
         <Button variant="secondary" onClick={onCancel}>

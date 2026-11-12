@@ -84,6 +84,7 @@ export function useSaveCdssStrategy() {
         method: 'PUT',
         ...json({ strategy }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: STRATEGY_KEY }),
+    // Se guarda la respuesta en la caché: así el radio no vuelve un instante al valor anterior
+    onSuccess: (saved) => queryClient.setQueryData(STRATEGY_KEY, saved),
   })
 }

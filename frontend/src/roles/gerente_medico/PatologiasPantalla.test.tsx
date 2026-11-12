@@ -106,6 +106,46 @@ describe('PatologiasPantalla', () => {
     expect(await screen.findByRole('heading', { name: 'Fabry' })).toBeInTheDocument()
   })
 
+  it('says what is missing while the save button is disabled', async () => {
+    mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
+    const user = userEvent.setup()
+    renderWithQuery(<PatologiasPantalla />)
+
+    await user.click(await screen.findByRole('button', { name: 'Nueva patología' }))
+    const save = screen.getByRole('button', { name: 'Guardar patología' })
+    const hint = screen.getByText(/Para guardar falta/)
+
+    expect(save).toBeDisabled()
+    expect(save).toHaveAccessibleDescription(hint.textContent ?? '')
+    expect(hint).toHaveTextContent(
+      'el nombre, el síntoma cardinal, al menos 2 síntomas secundarios',
+    )
+
+    await user.type(screen.getByLabelText('Nombre de la patología'), 'Fabry')
+    await find(user, 'Buscar síntoma cardinal', 'dol', 'Dolor')
+    expect(screen.getByText(/Para guardar falta/)).toHaveTextContent(
+      'Para guardar falta: al menos 2 síntomas secundarios.',
+    )
+  })
+
+  it('announces the changes and keeps the focus when a symptom is removed', async () => {
+    mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
+    const user = userEvent.setup()
+    renderWithQuery(<PatologiasPantalla />)
+
+    await user.click(await screen.findByRole('button', { name: 'Nueva patología' }))
+    await find(user, 'Buscar síntomas secundarios', 'fie', 'Fiebre')
+    expect(screen.getByText('Se agregó Fiebre a los síntomas secundarios.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Quitar Fiebre' }))
+
+    expect(screen.getByText('Se quitó Fiebre.')).toBeInTheDocument()
+    expect(document.body).not.toBe(document.activeElement)
+    expect(screen.getByLabelText('Buscar síntomas secundarios').closest('[tabindex="-1"]')).toBe(
+      document.activeElement,
+    )
+  })
+
   it('does not offer the cardinal symptom again as a secondary one', async () => {
     mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
     const user = userEvent.setup()

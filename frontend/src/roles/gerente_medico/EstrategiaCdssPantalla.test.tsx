@@ -39,8 +39,12 @@ describe('EstrategiaCdssPantalla', () => {
 
   it('saves the chosen strategy and confirms it', async () => {
     let current = 'menor_diferencia'
+    let reads = 0
     const mock = mockApi({
-      [GET]: () => ({ body: { strategy: current } }),
+      [GET]: () => {
+        reads += 1
+        return { body: { strategy: current } }
+      },
       [PUT]: () => {
         current = 'sintomas_coincidentes'
         return { body: { strategy: current } }
@@ -55,6 +59,8 @@ describe('EstrategiaCdssPantalla', () => {
     expect(await screen.findByText('Se guardó la estrategia del CDSS.')).toBeInTheDocument()
     expect(sentTo(mock, PUT)).toEqual([{ strategy: 'sintomas_coincidentes' }])
     expect(option(/Más síntomas coincidentes/)).toBeChecked()
+    // La respuesta del guardado reemplaza a la caché: no hay lectura extra ni vuelta al valor viejo
+    expect(reads).toBe(1)
   })
 
   it('shows the message of the server when it cannot save', async () => {
