@@ -84,6 +84,27 @@ def test_name_exists_ignores_case_and_spaces(client_with):
     assert pathology_model.name_exists("Fabry") is False
 
 
+@pytest.mark.parametrize(
+    ("stored", "typed"),
+    [
+        ("Niemann-Pick", "NIEMANN-PICK"),
+        ("Fabry clásico", "Fabry  clásico"),  # espacios internos de más
+        ("Fabry clásico", "Fabry clásico"),  # la tilde escrita en dos piezas
+        ("Straße", "STRASSE"),  # ß y ss: casefold las iguala, lower() no
+        ("Fabry", "Ｆａｂｒｙ"),  # letras de ancho completo
+        ("Fabry X", "Fabry X"),  # espacio no cortante
+    ],
+)
+def test_name_exists_treats_equivalent_unicode_forms_as_the_same(client_with, stored, typed):
+    client_with(responses={("pathologies", "select"): [{"name": stored}]})
+
+    assert pathology_model.name_exists(typed) is True
+
+
+def test_names_are_stored_in_nfc_with_single_spaces():
+    assert pathology_model.normalize_name("  Fabry   clásico ") == "Fabry clásico"
+
+
 def test_creating_saves_the_symptoms_then_the_pathology_then_the_links(client_with):
     fake = client_with(
         responses={

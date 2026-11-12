@@ -35,7 +35,8 @@ class FakeCatalog:
         return next((p for p in self.pathologies if p["id"] == pathology_id), None)
 
     def name_exists(self, name):
-        return any(p["name"].casefold() == name.strip().casefold() for p in self.pathologies)
+        key = pathology_model.name_key(name)
+        return any(pathology_model.name_key(p["name"]) == key for p in self.pathologies)
 
     def create(self, name, cardinal, secondary):
         if self.fail_with:
@@ -148,6 +149,10 @@ def test_creating_requires_a_session(client, catalog):
         (valid_payload(name=None), "nombre de la patología"),
         (valid_payload(name="   "), "nombre de la patología"),
         (valid_payload(name="x" * 101), "más de 100 caracteres"),
+        (valid_payload(name="Fa\x00bry"), "caracteres de control"),
+        (valid_payload(name="Fa\tbry"), "caracteres de control"),
+        (valid_payload(secondary=[FEVER, {**FEVER, "code": " sim-002 "}]), "no pueden repetirse"),
+        (valid_payload(secondary=[{**PAIN, "code": "sim-001"}, FEVER]), "no puede repetirse"),
         (valid_payload(cardinal=None), "síntoma cardinal"),
         (valid_payload(cardinal={"code": "", "term": "Dolor"}), "cardinal no es válido"),
         (valid_payload(cardinal={"code": "SIM-001"}), "cardinal no es válido"),
@@ -191,6 +196,45 @@ def test_creating_reports_all_the_errors_together(client, login_as, catalog):
     assert "nombre" in detail
     assert "cardinal" in detail
     assert "secundarios" in detail
+
+
+@pytest.mark.parametrize(
+    ("payload", "stored_name"),
+    [
+        (valid_payload(name="x" * 100), "x" * 100),
+        (valid_payload(name="  Fabry   clásico "), "Fabry clásico"),
+        (valid_payload(secondary=[{"code": f"S-{n}", "term": "t"} for n in range(30)]), "Fabry"),
+        (valid_payload(secondary=[FEVER, TIREDNESS]), "Fabry"),
+    ],
+)
+def test_creating_accepts_the_limits_and_normalizes_the_name(
+    client, login_as, catalog, payload, stored_name
+):
+    login_as(Rol.GERENTE_MEDICO)
+    fake = catalog()
+
+    response = client.post(LIST_URL, json=payload)
+
+    assert response.status_code == 201
+    assert fake.created[0][0] == stored_name
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "POMPE ",  # espacio no cortante al final
+        "ＰＯＭＰＥ",  # letras de ancho completo
+    ],
+)
+def test_creating_does_not_duplicate_equivalent_names(client, login_as, catalog, name):
+    login_as(Rol.GERENTE_MEDICO)
+    fake = catalog([stored(name="Pompe")])
+
+    response = client.post(LIST_URL, json=valid_payload(name=name))
+
+    assert response.status_code == 422
+    assert "Ya existe una patología con ese nombre" in response.json()["detalle"]
+    assert fake.created == []
 
 
 @pytest.mark.parametrize("name", ["Pompe", "pompe", "  POMPE "])
