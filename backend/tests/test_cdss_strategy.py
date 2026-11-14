@@ -23,8 +23,8 @@ class FakeSettings:
 def settings(monkeypatch):
     def _install(value=None):
         fake = FakeSettings(value)
-        monkeypatch.setattr("app.models.app_setting.get", fake.get)
-        monkeypatch.setattr("app.models.app_setting.save", fake.save)
+        monkeypatch.setattr("app.modules.config_medica.repository.get_setting", fake.get)
+        monkeypatch.setattr("app.modules.config_medica.repository.save_setting", fake.save)
         return fake
 
     return _install

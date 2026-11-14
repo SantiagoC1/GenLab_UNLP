@@ -1,7 +1,8 @@
-"""Acceso a la tabla `users` y a `user_specialties`.
+"""Acceso a las tablas `users`, `user_specialties`, `specialties` y `trusted_devices`.
 
-Usa el cliente admin (service role), que no pasa por RLS. Las contraseñas no están acá:
-las maneja Supabase Auth.
+Usa el cliente admin (service role), que no pasa por RLS. Las contraseñas no están acá: las
+maneja Supabase Auth. De los dispositivos de confianza se guarda solo el hash del identificador
+del navegador, nunca el identificador (M1-RF8).
 """
 
 from app.database import supabase_admin
@@ -23,7 +24,7 @@ def find_by_email(email: str):
     return response.data[0] if response.data else None
 
 
-def list_all():
+def list_users():
     """Devuelve todos los usuarios, ordenados por apellido y nombre."""
     response = _users().select("*").order("last_name").order("first_name").execute()
     return response.data
@@ -69,3 +70,33 @@ def update(user_id: str, fields: dict):
 def delete(user_id: str):
     """Borra la fila del usuario (no el usuario de Auth)."""
     _users().delete().eq("id", user_id).execute()
+
+
+def list_specialties():
+    """Devuelve todas las especialidades (id y name), ordenadas por nombre."""
+    response = supabase_admin.table("specialties").select("*").order("name").execute()
+    return response.data
+
+
+def _devices():
+    return supabase_admin.table("trusted_devices")
+
+
+def device_exists(user_id: str, device_hash: str) -> bool:
+    """Indica si ese dispositivo ya es de confianza para ese usuario."""
+    response = (
+        _devices()
+        .select("user_id")
+        .eq("user_id", user_id)
+        .eq("device_hash", device_hash)
+        .limit(1)
+        .execute()
+    )
+    return bool(response.data)
+
+
+def add_device(user_id: str, device_hash: str) -> None:
+    """Marca el dispositivo como de confianza. Si ya lo era, no hace nada."""
+    _devices().upsert(
+        {"user_id": user_id, "device_hash": device_hash}, on_conflict="user_id,device_hash"
+    ).execute()

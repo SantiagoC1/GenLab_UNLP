@@ -3,8 +3,7 @@ si la lista está vacía, los datos son válidos."""
 
 import re
 
-from app.models import specialty as specialty_model
-from app.models import user as user_model
+from app.modules.acceso import repository
 from app.modules.acceso.catalogs import PROVINCES
 
 MIN_PASSWORD_LENGTH = 8  # la especificación no define una política de contraseñas
@@ -23,6 +22,10 @@ FIELD_LABELS = {
     "confirmation": "confirmación de la contraseña",
     "code": "código",
     "message": "mensaje",
+    "dni": "DNI",
+    "birth_date": "fecha de nacimiento",
+    "suspicion_type": "tipo de sospecha",
+    "clinical_summary": "resumen de historia clínica",
 }
 
 
@@ -72,7 +75,7 @@ def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) ->
     if email:
         if not EMAIL_PATTERN.match(email):
             errors.append("El mail no tiene un formato válido.")
-        elif user_model.find_by_email(email) is not None:
+        elif repository.find_by_email(email) is not None:
             errors.append("Ya existe un usuario con ese mail.")
 
     password = data.get("password")
@@ -94,7 +97,7 @@ def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) ->
             errors.append("El transportista debe indicar la provincia que cubre.")
         elif province not in PROVINCES:
             errors.append("La provincia no está en el catálogo.")
-        elif user_model.carrier_exists_in(province):
+        elif repository.carrier_exists_in(province):
             errors.append(f"Ya hay un transportista para {province}.")
 
     return errors
@@ -104,7 +107,7 @@ def _validate_specialties(specialty_ids: list | None) -> list[str]:
     """Valida que haya al menos una especialidad y que todas estén en el catálogo."""
     if not specialty_ids:
         return ["El médico tratante debe indicar al menos una especialidad."]
-    catalog_ids = {specialty["id"] for specialty in specialty_model.list_all()}
+    catalog_ids = {specialty["id"] for specialty in repository.list_specialties()}
     if not set(specialty_ids) <= catalog_ids:
         return ["Alguna especialidad no está en el catálogo."]
     return []

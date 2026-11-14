@@ -4,7 +4,7 @@ si la lista está vacía, los datos son válidos."""
 import unicodedata
 
 from app.core.enums import CdssStrategy
-from app.models import pathology as pathology_model
+from app.modules.config_medica import repository
 
 MAX_NAME_LENGTH = 100
 MAX_FIELD_LENGTH = 200
@@ -74,9 +74,9 @@ def validate_pathology(data: dict) -> list[str]:
         errors.append("Ingresá el nombre de la patología.")
     elif _has_control_characters(name):
         errors.append("El nombre no puede tener caracteres de control.")
-    elif len(pathology_model.normalize_name(name)) > MAX_NAME_LENGTH:
+    elif len(repository.normalize_name(name)) > MAX_NAME_LENGTH:
         errors.append(f"El nombre no puede tener más de {MAX_NAME_LENGTH} caracteres.")
-    elif pathology_model.name_exists(name):
+    elif repository.name_exists(name):
         errors.append("Ya existe una patología con ese nombre.")
     return errors + validate_symptoms(data)
 

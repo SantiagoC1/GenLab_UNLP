@@ -8,7 +8,7 @@ from app.core import dev_auth
 from app.core.config import get_settings
 from app.core.enums import Rol
 from app.core.errors import Forbidden, InvalidSession, MustChangePassword
-from app.models import user as user_model
+from app.modules.acceso import repository as user_repository
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -87,7 +87,7 @@ def get_session_user(
     except jwt.InvalidTokenError:
         raise InvalidSession("Sesión inválida o vencida.") from None
 
-    user = user_model.find_by_id(claims["sub"])
+    user = user_repository.find_by_id(claims["sub"])
 
     if user is None or user["blocked"]:
         raise InvalidSession("Sesión inválida o vencida.")

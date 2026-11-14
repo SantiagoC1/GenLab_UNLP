@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.enums import Rol
-from app.models import pathology as pathology_model
+from app.modules.config_medica import repository as pathology_model
 
 LIST_URL = "/config_medica/pathologies"
 READERS = [Rol.GERENTE_MEDICO, Rol.MEDICO_TRATANTE]
@@ -60,7 +60,7 @@ def catalog(monkeypatch):
     def _install(pathologies=None):
         fake = FakeCatalog(pathologies)
         for name in ("list_all", "find_by_id", "name_exists", "create", "replace_symptoms"):
-            monkeypatch.setattr(f"app.models.pathology.{name}", getattr(fake, name))
+            monkeypatch.setattr(f"app.modules.config_medica.repository.{name}", getattr(fake, name))
         return fake
 
     return _install

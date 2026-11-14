@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from postgrest.exceptions import APIError
 
-from app.models import pathology as pathology_model
+from app.modules.config_medica import repository as pathology_model
 
 PAIN = {"code": "SIM-001", "term": "Dolor"}
 FEVER = {"code": "SIM-002", "term": "Fiebre"}

@@ -1,4 +1,11 @@
+"""Acceso a las tablas `pathologies`, `pathology_symptoms`, `symptoms` y `app_settings`.
+
+Usa el cliente admin (service role), que no pasa por RLS. El cliente no tiene transacciones:
+si un paso falla, se deshacen a mano los anteriores.
+"""
+
 import unicodedata
+from datetime import UTC, datetime
 
 from postgrest.exceptions import APIError
 
@@ -114,3 +121,22 @@ def replace_symptoms(pathology_id: int, cardinal: dict, secondary: list[dict]) -
             _table("pathology_symptoms").insert(previous).execute()
         raise
     return find_by_id(pathology_id)
+
+
+def get_setting(key: str) -> str | None:
+    """Devuelve el valor de esa clave, o None si no está guardada."""
+    rows = supabase_admin.table("app_settings").select("value").eq("key", key).limit(1).execute()
+    return rows.data[0]["value"] if rows.data else None
+
+
+def save_setting(key: str, value: str, user_id: str) -> None:
+    """Guarda el valor de la clave y quién lo cambió."""
+    supabase_admin.table("app_settings").upsert(
+        {
+            "key": key,
+            "value": value,
+            "updated_by": user_id,
+            "updated_at": datetime.now(UTC).isoformat(),
+        },
+        on_conflict="key",
+    ).execute()

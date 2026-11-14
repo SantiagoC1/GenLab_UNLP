@@ -17,9 +17,7 @@ from app.core.errors import (
 from app.core.security import CHALLENGE, create_session_token, create_token, decode_token
 from app.database import new_auth_client, supabase_admin
 from app.integrations.avisos import obtener_avisos
-from app.models import specialty as specialty_model
-from app.models import trusted_device as trusted_device_model
-from app.models import user as user_model
+from app.modules.acceso import repository
 from app.modules.acceso.catalogs import PROVINCES
 
 logger = logging.getLogger(__name__)
@@ -39,12 +37,12 @@ def _public_data(user: dict):
 
 def get_catalogs():
     """Devuelve las especialidades y las provincias, para los formularios de alta."""
-    return {"specialties": specialty_model.list_all(), "provinces": list(PROVINCES)}
+    return {"specialties": repository.list_specialties(), "provinces": list(PROVINCES)}
 
 
 def list_users():
     """Devuelve los datos de todos los usuarios, para el listado del administrador."""
-    return [_public_data(user) for user in user_model.list_all()]
+    return [_public_data(user) for user in repository.list_users()]
 
 
 def _is_unique_violation(error: Exception, column: str) -> bool:
@@ -86,7 +84,7 @@ def create_account(data: dict, password: str, must_change_password: bool):
     is_doctor = role == "medico_tratante"
     province = data.get("province") if is_carrier else None
     try:
-        return user_model.create(
+        return repository.create(
             {
                 "id": auth_user.user.id,
                 "email": email,
@@ -133,13 +131,13 @@ def create_user_as_admin(data: dict, admin_user: dict):
         "Vas a tener que cambiarla en tu primer ingreso."
     )
     if get_settings().integracion_avisos == "simulador":
-        logger.warning("[simulador de avisos] para %s: %s", user["email"], message)
+        logger.warning("[simulador de avisos] credenciales enviadas a %s", user["email"])
     try:
         sent = obtener_avisos().enviar_aviso(user["email"], "mail", message)
     except Exception:
         sent = False
     if not sent:
-        user_model.delete(user["id"])
+        repository.delete(user["id"])
         supabase_admin.auth.admin.delete_user(user["id"])
         raise InvalidIntegration("avisos")
     return _public_data(user)
@@ -147,7 +145,7 @@ def create_user_as_admin(data: dict, admin_user: dict):
 
 def _get_active_user(email: str):
     """Devuelve el usuario con ese mail. Falla si no existe o si la cuenta está bloqueada."""
-    user = user_model.find_by_email(email)
+    user = repository.find_by_email(email)
     # Mismo mensaje que con una contraseña incorrecta, para no revelar qué mails existen
     if user is None:
         raise Unauthenticated("Credenciales inválidas.")
@@ -163,7 +161,7 @@ def _fail(user: dict, message: str) -> NoReturn:
     """
     failed_attempts = user["failed_attempts"] + 1
     blocked = failed_attempts >= get_settings().max_failed_attempts
-    user_model.update(user["id"], {"failed_attempts": failed_attempts, "blocked": blocked})
+    repository.update(user["id"], {"failed_attempts": failed_attempts, "blocked": blocked})
     if blocked:
         raise AccountBlocked("Cuenta bloqueada por demasiados intentos fallidos.")
     raise Unauthenticated(message)
@@ -193,8 +191,8 @@ def login_user(email: str, password: str, device_id: str | None = None):
         _fail(user, "Credenciales inválidas.")
 
     device_hash = _hash_device(device_id)
-    if device_hash and trusted_device_model.exists(user["id"], device_hash):
-        user_model.update(user["id"], {"failed_attempts": 0})
+    if device_hash and repository.device_exists(user["id"], device_hash):
+        repository.update(user["id"], {"failed_attempts": 0})
         return {"state": "authenticated", "token": create_session_token(user["id"]), "user": user}
 
     try:
@@ -234,9 +232,9 @@ def verify_login_code(email: str, code: str, challenge: str, device_id: str | No
     except Exception:
         _fail(user, "Código inválido o vencido.")
 
-    user_model.update(user["id"], {"failed_attempts": 0})
+    repository.update(user["id"], {"failed_attempts": 0})
     if device_hash:
-        trusted_device_model.add(user["id"], device_hash)
+        repository.add_device(user["id"], device_hash)
     return create_session_token(user["id"]), user
 
 
@@ -252,7 +250,7 @@ def change_password(user: dict, current_password: str, new_password: str):
     if current_password == new_password:
         raise BusinessRuleError("La contraseña nueva tiene que ser distinta de la actual.", 422)
     supabase_admin.auth.admin.update_user_by_id(user["id"], {"password": new_password})
-    user_model.update(user["id"], {"must_change_password": False, "failed_attempts": 0})
+    repository.update(user["id"], {"must_change_password": False, "failed_attempts": 0})
 
 
 def unblock_user(user_id: str):
@@ -260,7 +258,7 @@ def unblock_user(user_id: str):
 
     Solo lo llama el administrador general (el router lo restringe).
     """
-    user = user_model.find_by_id(user_id)
+    user = repository.find_by_id(user_id)
     if user is None:
         raise BusinessRuleError("No existe ese usuario.", 404)
-    return _public_data(user_model.update(user_id, {"blocked": False, "failed_attempts": 0}))
+    return _public_data(repository.update(user_id, {"blocked": False, "failed_attempts": 0}))
