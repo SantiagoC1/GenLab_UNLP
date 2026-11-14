@@ -11,7 +11,6 @@ interface Bubble {
   text: string
 }
 
-
 export function ChatbotPopup() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')

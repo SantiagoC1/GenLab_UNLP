@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import {isMockRole, useMockActor, type MockRole } from '../lib/mockIdentity'
+import { isMockRole, useMockActor, type MockRole } from '../lib/mockIdentity'
 import { PANTALLAS } from '../roles/pantallas'
 import { useRol } from '../roles/rol-context'
 import { ETIQUETA_ROL } from '../roles/roles'
@@ -36,9 +35,7 @@ function NoticeMenuLink({ role }: { role: MockRole }) {
           actor_id: actorId,
         })
 
-        const data = await api<NoticeSummary>(
-          `/notifications/summary?${params.toString()}`,
-        )
+        const data = await api<NoticeSummary>(`/notifications/summary?${params.toString()}`)
 
         if (active) setPendingCount(data.pending_count)
       } catch {
@@ -104,17 +101,9 @@ export function Layout() {
           <p className="text-xs text-slate-500">{ETIQUETA_ROL[rol]}</p>
         </div>
 
-        <nav
-          aria-label="Principal"
-          className="space-y-1"
-          onClick={() => setOpen(false)}
-        >
+        <nav aria-label="Principal" className="space-y-1" onClick={() => setOpen(false)}>
           {menu.map((screen) => (
-            <NavLink
-              key={screen.ruta}
-              to={`/${screen.rol}/${screen.ruta}`}
-              className={linkClass}
-            >
+            <NavLink key={screen.ruta} to={`/${screen.rol}/${screen.ruta}`} className={linkClass}>
               {screen.titulo}
             </NavLink>
           ))}

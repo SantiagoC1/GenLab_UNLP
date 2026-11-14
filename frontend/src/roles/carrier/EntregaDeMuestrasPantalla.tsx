@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 
@@ -23,11 +22,7 @@ type DeliveryResponse = {
 function getLocalDate(): string {
   const now = new Date()
 
-  return new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000,
-  )
-    .toISOString()
-    .slice(0, 10)
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
 
 function formatDateTime(value: string): string {
@@ -39,8 +34,7 @@ function formatDateTime(value: string): string {
 
 export default function EntregaDeMuestrasPantalla() {
   const [selectedDate] = useState(getLocalDate)
-  const [deliveryStatus, setDeliveryStatus] =
-    useState<DeliveryStatus | null>(null)
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus | null>(null)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,9 +53,7 @@ export default function EntregaDeMuestrasPantalla() {
   useEffect(() => {
     let isActive = true
 
-    api<DeliveryStatus>(
-      `/logistics/delivery/status?date=${encodeURIComponent(selectedDate)}`,
-    )
+    api<DeliveryStatus>(`/logistics/delivery/status?date=${encodeURIComponent(selectedDate)}`)
       .then((status) => {
         if (isActive) {
           setDeliveryStatus(status)
@@ -107,9 +99,7 @@ export default function EntregaDeMuestrasPantalla() {
       try {
         await loadStatus()
       } catch {
-        setError(
-          'La entrega se registró, pero no se pudo actualizar su estado. Recargá la página.',
-        )
+        setError('La entrega se registró, pero no se pudo actualizar su estado. Recargá la página.')
       }
     } catch {
       setIsModalOpen(false)
@@ -130,13 +120,10 @@ export default function EntregaDeMuestrasPantalla() {
   return (
     <section className="space-y-5 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">
-          Entrega de muestras
-        </h1>
+        <h1 className="text-2xl font-semibold">Entrega de muestras</h1>
 
         <p className="text-sm text-gray-500">
-          Registrá la llegada y entrega de las muestras
-          en el laboratorio central.
+          Registrá la llegada y entrega de las muestras en el laboratorio central.
         </p>
       </header>
 
@@ -145,17 +132,12 @@ export default function EntregaDeMuestrasPantalla() {
       ) : deliveryStatus ? (
         <div className="max-w-2xl space-y-4">
           <div className="rounded-lg border bg-white p-5">
-            <h2 className="text-lg font-semibold">
-              Estado del recorrido
-            </h2>
+            <h2 className="text-lg font-semibold">Estado del recorrido</h2>
 
-            <p className="mt-3 text-sm text-gray-600">
-              Laboratorios completados
-            </p>
+            <p className="mt-3 text-sm text-gray-600">Laboratorios completados</p>
 
             <p className="mt-1 text-xl font-semibold">
-              {deliveryStatus.completed_stops} de{' '}
-              {deliveryStatus.total_stops}
+              {deliveryStatus.completed_stops} de {deliveryStatus.total_stops}
             </p>
 
             <p
@@ -181,8 +163,7 @@ export default function EntregaDeMuestrasPantalla() {
                 </p>
 
                 <p className="mt-2 text-sm text-green-700">
-                  Fecha y hora:{' '}
-                  {formatDateTime(deliveryStatus.delivered_at)}
+                  Fecha y hora: {formatDateTime(deliveryStatus.delivered_at)}
                 </p>
 
                 <p className="mt-1 text-sm text-green-700">
@@ -203,14 +184,12 @@ export default function EntregaDeMuestrasPantalla() {
             )}
           </div>
 
-          {!deliveryStatus.can_deliver &&
-            !deliveryStatus.delivered_at && (
-              <p className="text-sm text-gray-600">
-                Para registrar la entrega, primero debés
-                completar el retiro de muestras en todos
-                los laboratorios del recorrido.
-              </p>
-            )}
+          {!deliveryStatus.can_deliver && !deliveryStatus.delivered_at && (
+            <p className="text-sm text-gray-600">
+              Para registrar la entrega, primero debés completar el retiro de muestras en todos los
+              laboratorios del recorrido.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -230,10 +209,7 @@ export default function EntregaDeMuestrasPantalla() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              !isSubmitting
-            ) {
+            if (event.target === event.currentTarget && !isSubmitting) {
               setIsModalOpen(false)
             }
           }}
@@ -250,25 +226,17 @@ export default function EntregaDeMuestrasPantalla() {
               }
             }}
           >
-            <h2
-              id="delivery-dialog-title"
-              className="text-xl font-semibold"
-            >
+            <h2 id="delivery-dialog-title" className="text-xl font-semibold">
               Confirmar entrega de muestras
             </h2>
 
-            <p
-              id="delivery-dialog-description"
-              className="mt-3 text-sm text-gray-600"
-            >
-              ¿Confirmás que llegaste al laboratorio central
-              y entregaste todas las muestras recolectadas
-              durante el recorrido?
+            <p id="delivery-dialog-description" className="mt-3 text-sm text-gray-600">
+              ¿Confirmás que llegaste al laboratorio central y entregaste todas las muestras
+              recolectadas durante el recorrido?
             </p>
 
             <p className="mt-4 text-sm text-gray-500">
-              Una vez registrada, la entrega no podrá
-              confirmarse nuevamente.
+              Una vez registrada, la entrega no podrá confirmarse nuevamente.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -287,9 +255,7 @@ export default function EntregaDeMuestrasPantalla() {
                 onClick={handleDelivery}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isSubmitting
-                  ? 'Registrando...'
-                  : 'Confirmar entrega'}
+                {isSubmitting ? 'Registrando...' : 'Confirmar entrega'}
               </button>
             </div>
           </div>

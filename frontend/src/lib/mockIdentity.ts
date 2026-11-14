@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 
 export type MockRole = 'medico_tratante' | 'paciente' | 'bioinformatico'

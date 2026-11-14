@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 
@@ -24,9 +23,7 @@ type DailyRoute = {
 function getLocalDate(): string {
   const now = new Date()
 
-  const localDate = new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000,
-  )
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
 
   return localDate.toISOString().slice(0, 10)
 }
@@ -42,9 +39,7 @@ export default function DailyRoutePage() {
 
     setIsLoading(true)
 
-    api<DailyRoute>(
-      `/logistics/daily-route?date=${encodeURIComponent(selectedDate)}`,
-    )
+    api<DailyRoute>(`/logistics/daily-route?date=${encodeURIComponent(selectedDate)}`)
       .then((result) => {
         if (isActive) {
           setDailyRoute(result)
@@ -71,9 +66,7 @@ export default function DailyRoutePage() {
   return (
     <section className="space-y-5 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">
-          Recorrido del día
-        </h1>
+        <h1 className="text-2xl font-semibold">Orden del día</h1>
 
         <p className="text-sm text-gray-500">
           Consultá los laboratorios asignados para la fecha seleccionada.
@@ -99,14 +92,12 @@ export default function DailyRoutePage() {
       ) : (
         <>
           <p>
-            Provincia: {dailyRoute.province} ·{' '}
-            {dailyRoute.stops.length}{' '}
+            Provincia: {dailyRoute.province} · {dailyRoute.stops.length}{' '}
             {dailyRoute.stops.length === 1 ? 'parada' : 'paradas'}
           </p>
 
           <p className="text-sm text-gray-600">
-            El recorrido tiene un orden establecido.
-            Las paradas no se pueden saltear ni reordenar.
+            El recorrido tiene un orden establecido. Las paradas no se pueden saltear ni reordenar.
           </p>
 
           {dailyRoute.stops.length === 0 ? (
@@ -114,10 +105,7 @@ export default function DailyRoutePage() {
           ) : (
             <ol className="space-y-3">
               {dailyRoute.stops.map((stop) => (
-                <li
-                  key={stop.laboratory_id}
-                  className="rounded-lg border p-4"
-                >
+                <li key={stop.laboratory_id} className="rounded-lg border p-4">
                   <strong>
                     {stop.position}. {stop.laboratory}
                   </strong>
@@ -128,14 +116,10 @@ export default function DailyRoutePage() {
 
                   <p
                     className={`mt-2 text-sm font-medium ${
-                      stop.picked_up_at
-                        ? 'text-green-700'
-                        : 'text-amber-700'
+                      stop.picked_up_at ? 'text-green-700' : 'text-amber-700'
                     }`}
                   >
-                    {stop.picked_up_at
-                      ? 'Completado'
-                      : 'Sin recolectar'}
+                    {stop.picked_up_at ? 'Completado' : 'Sin recolectar'}
                   </p>
                 </li>
               ))}

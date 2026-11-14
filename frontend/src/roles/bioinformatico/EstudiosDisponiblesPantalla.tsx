@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, json } from '../../lib/api'
 
@@ -38,13 +37,10 @@ function formatDate(value: string): string {
 
 export default function EstudiosDisponiblesPantalla() {
   const [studies, setStudies] = useState<AvailableStudy[]>([])
-  const [assignedStudies, setAssignedStudies] = useState<
-    StudyAssignment[]
-  >([])
+  const [assignedStudies, setAssignedStudies] = useState<StudyAssignment[]>([])
 
   const [analystId, setAnalystId] = useState('analyst-1')
-  const [selectedStudy, setSelectedStudy] =
-    useState<AvailableStudy | null>(null)
+  const [selectedStudy, setSelectedStudy] = useState<AvailableStudy | null>(null)
   const [genes, setGenes] = useState<StudyGenes | null>(null)
 
   const [isLoading, setIsLoading] = useState(true)
@@ -54,31 +50,24 @@ export default function EstudiosDisponiblesPantalla() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const loadStudies = useCallback(
-    async (selectedAnalyst: string) => {
-      try {
-        const [available, assigned] = await Promise.all([
-          api<AvailableStudy[]>(
-            '/bioinformatics/studies/available',
-          ),
-          api<StudyAssignment[]>(
-            `/bioinformatics/studies/assigned?analyst_id=${encodeURIComponent(
-              selectedAnalyst,
-            )}`,
-          ),
-        ])
+  const loadStudies = useCallback(async (selectedAnalyst: string) => {
+    try {
+      const [available, assigned] = await Promise.all([
+        api<AvailableStudy[]>('/bioinformatics/studies/available'),
+        api<StudyAssignment[]>(
+          `/bioinformatics/studies/assigned?analyst_id=${encodeURIComponent(selectedAnalyst)}`,
+        ),
+      ])
 
-        setStudies(available)
-        setAssignedStudies(assigned)
-        setError('')
-      } catch {
-        setError('No se pudieron consultar los estudios.')
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [],
-  )
+      setStudies(available)
+      setAssignedStudies(assigned)
+      setError('')
+    } catch {
+      setError('No se pudieron consultar los estudios.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     void loadStudies(analystId)
@@ -92,9 +81,7 @@ export default function EstudiosDisponiblesPantalla() {
     setIsLoadingGenes(true)
 
     try {
-      const result = await api<StudyGenes>(
-        `/bioinformatics/studies/${study.id}/genes`,
-      )
+      const result = await api<StudyGenes>(`/bioinformatics/studies/${study.id}/genes`)
 
       setGenes(result)
     } catch (caughtError) {
@@ -156,13 +143,10 @@ export default function EstudiosDisponiblesPantalla() {
     <section className="space-y-6 p-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">
-            Estudios disponibles
-          </h1>
+          <h1 className="text-2xl font-semibold">Estudios disponibles</h1>
 
           <p className="mt-2 text-sm text-gray-600">
-            Consultá los estudios recibidos desde Corea y
-            seleccioná uno para comenzar su análisis.
+            Consultá los estudios recibidos desde Corea y seleccioná uno para comenzar su análisis.
           </p>
         </div>
 
@@ -180,10 +164,7 @@ export default function EstudiosDisponiblesPantalla() {
       </header>
 
       <div className="max-w-sm rounded-xl border bg-white p-4">
-        <label
-          htmlFor="analyst-selector"
-          className="block text-sm font-medium"
-        >
+        <label htmlFor="analyst-selector" className="block text-sm font-medium">
           Bioinformático de prueba
         </label>
 
@@ -209,8 +190,7 @@ export default function EstudiosDisponiblesPantalla() {
         </select>
 
         <p className="mt-2 text-xs text-gray-500">
-          Selector disponible únicamente para probar la
-          asignación entre distintos usuarios.
+          Selector disponible únicamente para probar la asignación entre distintos usuarios.
         </p>
       </div>
 
@@ -233,9 +213,7 @@ export default function EstudiosDisponiblesPantalla() {
       )}
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          Pendientes de asignación
-        </h2>
+        <h2 className="text-lg font-semibold">Pendientes de asignación</h2>
 
         {isLoading ? (
           <p>Cargando estudios...</p>
@@ -259,24 +237,16 @@ export default function EstudiosDisponiblesPantalla() {
               <tbody>
                 {studies.map((study) => (
                   <tr key={study.id} className="border-t">
-                    <td className="p-4 font-medium">
-                      #{study.id}
-                    </td>
-                    <td className="p-4">
-                      #{study.batch_id}
-                    </td>
+                    <td className="p-4 font-medium">#{study.id}</td>
+                    <td className="p-4">#{study.batch_id}</td>
                     <td className="p-4">
                       {study.pompe_urgent ? (
-                        <span className="font-semibold text-red-700">
-                          Pompe urgente
-                        </span>
+                        <span className="font-semibold text-red-700">Pompe urgente</span>
                       ) : (
                         'Normal'
                       )}
                     </td>
-                    <td className="p-4">
-                      {formatDate(study.arrived_at)}
-                    </td>
+                    <td className="p-4">{formatDate(study.arrived_at)}</td>
                     <td className="p-4">
                       <button
                         type="button"
@@ -295,9 +265,7 @@ export default function EstudiosDisponiblesPantalla() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          Mis estudios asignados
-        </h2>
+        <h2 className="text-lg font-semibold">Mis estudios asignados</h2>
 
         {assignedStudies.length === 0 ? (
           <div className="rounded-xl border bg-white p-5 text-sm">
@@ -317,22 +285,11 @@ export default function EstudiosDisponiblesPantalla() {
 
               <tbody>
                 {assignedStudies.map((assignment) => (
-                  <tr
-                    key={assignment.study_id}
-                    className="border-t"
-                  >
-                    <td className="p-4 font-medium">
-                      #{assignment.study_id}
-                    </td>
-                    <td className="p-4">
-                      #{assignment.batch_id}
-                    </td>
-                    <td className="p-4">
-                      En análisis
-                    </td>
-                    <td className="p-4">
-                      {formatDate(assignment.assigned_at)}
-                    </td>
+                  <tr key={assignment.study_id} className="border-t">
+                    <td className="p-4 font-medium">#{assignment.study_id}</td>
+                    <td className="p-4">#{assignment.batch_id}</td>
+                    <td className="p-4">En análisis</td>
+                    <td className="p-4">{formatDate(assignment.assigned_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -349,32 +306,22 @@ export default function EstudiosDisponiblesPantalla() {
             aria-labelledby="study-dialog-title"
             className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
           >
-            <h2
-              id="study-dialog-title"
-              className="text-xl font-semibold"
-            >
+            <h2 id="study-dialog-title" className="text-xl font-semibold">
               Estudio #{selectedStudy.id}
             </h2>
 
             <p className="mt-3 text-sm">
-              <strong>Patología sospechada:</strong>{' '}
-              {selectedStudy.pathology}
+              <strong>Patología sospechada:</strong> {selectedStudy.pathology}
             </p>
 
             {selectedStudy.pompe_urgent && (
-              <p className="mt-2 font-semibold text-red-700">
-                Prioridad Pompe urgente
-              </p>
+              <p className="mt-2 font-semibold text-red-700">Prioridad Pompe urgente</p>
             )}
 
-            <h3 className="mt-5 font-semibold">
-              Genes para el análisis
-            </h3>
+            <h3 className="mt-5 font-semibold">Genes para el análisis</h3>
 
             {isLoadingGenes ? (
-              <p className="mt-2 text-sm">
-                Consultando genes...
-              </p>
+              <p className="mt-2 text-sm">Consultando genes...</p>
             ) : genes ? (
               <div className="mt-3 space-y-3">
                 <ul className="list-inside list-disc text-sm">
@@ -384,25 +331,17 @@ export default function EstudiosDisponiblesPantalla() {
                 </ul>
 
                 <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
-                  Lista generada por un simulador.
-                  No representa una recomendación clínica.
+                  Lista generada por un simulador. No representa una recomendación clínica.
                 </p>
               </div>
             ) : (
-              <p className="mt-2 text-sm">
-                No se pudo obtener la lista de genes.
-              </p>
+              <p className="mt-2 text-sm">No se pudo obtener la lista de genes.</p>
             )}
 
             <p className="mt-4 text-sm text-gray-600">
               Si confirmás, el estudio quedará asignado a{' '}
-              <strong>
-                {ANALYSTS.find(
-                  (analyst) => analyst.id === analystId,
-                )?.name}
-              </strong>{' '}
-              y dejará de estar disponible para otros
-              bioinformáticos.
+              <strong>{ANALYSTS.find((analyst) => analyst.id === analystId)?.name}</strong> y dejará
+              de estar disponible para otros bioinformáticos.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -420,17 +359,11 @@ export default function EstudiosDisponiblesPantalla() {
 
               <button
                 type="button"
-                disabled={
-                  isTaking ||
-                  isLoadingGenes ||
-                  !genes
-                }
+                disabled={isTaking || isLoadingGenes || !genes}
                 onClick={() => void handleTakeStudy()}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                {isTaking
-                  ? 'Asignando...'
-                  : 'Confirmar asignación'}
+                {isTaking ? 'Asignando...' : 'Confirmar asignación'}
               </button>
             </div>
           </div>

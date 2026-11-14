@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react'
 
 type Props = {
@@ -19,21 +18,13 @@ const TIME_OPTIONS = Array.from({ length: 19 }, (_, index) => {
 })
 
 function toDateKey(year: number, month: number, day: number): string {
-  return [
-    year,
-    String(month + 1).padStart(2, '0'),
-    String(day).padStart(2, '0'),
-  ].join('-')
+  return [year, String(month + 1).padStart(2, '0'), String(day).padStart(2, '0')].join('-')
 }
 
 function todayKey(): string {
   const now = new Date()
 
-  return toDateKey(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  )
+  return toDateKey(now.getFullYear(), now.getMonth(), now.getDate())
 }
 
 function isPastTime(dateKey: string, time: string): boolean {
@@ -53,9 +44,7 @@ export default function FedexDateTimePicker({
   const [selectedDate = '', selectedTime = ''] = value.split('T')
 
   const [visibleMonth, setVisibleMonth] = useState(() => {
-    const initial = selectedDate
-      ? new Date(`${selectedDate}T12:00:00`)
-      : new Date()
+    const initial = selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date()
 
     return new Date(initial.getFullYear(), initial.getMonth(), 1)
   })
@@ -73,15 +62,14 @@ export default function FedexDateTimePicker({
 
   const cells: (number | null)[] = [
     ...Array.from({ length: weekdayOffset }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, index) => index + 1)
-      .filter((day) => {
-        const weekday = new Date(year, month, day).getDay()
-        return weekday !== 0 && weekday !== 6
-      }),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1).filter((day) => {
+      const weekday = new Date(year, month, day).getDay()
+      return weekday !== 0 && weekday !== 6
+    }),
   ]
 
   while (cells.length % 5 !== 0) {
-   cells.push(null)
+    cells.push(null)
   }
 
   function changeMonth(offset: number) {
@@ -89,16 +77,12 @@ export default function FedexDateTimePicker({
   }
 
   function selectDate(dateKey: string) {
-    const validTime = TIME_OPTIONS.find(
-      (time) => !isPastTime(dateKey, time),
-    )
+    const validTime = TIME_OPTIONS.find((time) => !isPastTime(dateKey, time))
 
     if (!validTime) return
 
     const nextTime =
-      selectedTime &&
-      TIME_OPTIONS.includes(selectedTime) &&
-      !isPastTime(dateKey, selectedTime)
+      selectedTime && TIME_OPTIONS.includes(selectedTime) && !isPastTime(dateKey, selectedTime)
         ? selectedTime
         : validTime
 
@@ -114,10 +98,8 @@ export default function FedexDateTimePicker({
   const currentMonth = new Date()
   const canGoPrevious =
     previousMonth.getFullYear() > currentMonth.getFullYear() ||
-    (
-      previousMonth.getFullYear() === currentMonth.getFullYear() &&
-      previousMonth.getMonth() >= currentMonth.getMonth()
-    )
+    (previousMonth.getFullYear() === currentMonth.getFullYear() &&
+      previousMonth.getMonth() >= currentMonth.getMonth())
 
   return (
     <div className="space-y-4">
@@ -148,10 +130,7 @@ export default function FedexDateTimePicker({
 
         <div className="grid grid-cols-5 gap-1 text-center">
           {WEEKDAYS.map((weekday) => (
-            <div
-              key={weekday}
-              className="py-2 text-xs font-semibold text-gray-500"
-            >
+            <div key={weekday} className="py-2 text-xs font-semibold text-gray-500">
               {weekday}
             </div>
           ))}
@@ -164,29 +143,20 @@ export default function FedexDateTimePicker({
             const dateKey = toDateKey(year, month, day)
             const isHoliday = holidaySet.has(dateKey)
             const isPast = dateKey < todayKey()
-            const hasAvailableTime = TIME_OPTIONS.some(
-              (time) => !isPastTime(dateKey, time),
-            )
+            const hasAvailableTime = TIME_OPTIONS.some((time) => !isPastTime(dateKey, time))
 
-            const isUnavailable =
-                isHoliday ||
-                isPast ||
-                !hasAvailableTime
+            const isUnavailable = isHoliday || isPast || !hasAvailableTime
 
             const isSelected = selectedDate === dateKey
 
             const tooltip = isHoliday
-                ? 'Feriado'
-                : isPast || !hasAvailableTime
-                    ? 'Fecha no disponible'
-                    : undefined
+              ? 'Feriado'
+              : isPast || !hasAvailableTime
+                ? 'Fecha no disponible'
+                : undefined
 
             return (
-              <div
-                key={dateKey}
-                title={tooltip}
-                className="relative"
-              >
+              <div key={dateKey} title={tooltip} className="relative">
                 <button
                   type="button"
                   disabled={disabled || isUnavailable}
@@ -217,10 +187,7 @@ export default function FedexDateTimePicker({
       </div>
 
       <div className="max-w-sm">
-        <label
-          htmlFor="fedex-pickup-time"
-          className="mb-2 block text-sm font-medium"
-        >
+        <label htmlFor="fedex-pickup-time" className="mb-2 block text-sm font-medium">
           Horario de retiro
         </label>
 
@@ -228,19 +195,13 @@ export default function FedexDateTimePicker({
           id="fedex-pickup-time"
           value={selectedTime}
           disabled={disabled || !selectedDate}
-          onChange={(event) =>
-            onChange(`${selectedDate}T${event.target.value}`)
-          }
+          onChange={(event) => onChange(`${selectedDate}T${event.target.value}`)}
           className="w-full rounded-lg border border-gray-300 bg-white p-3 disabled:bg-gray-100"
         >
           <option value="">Seleccioná un horario</option>
 
           {TIME_OPTIONS.map((time) => (
-            <option
-              key={time}
-              value={time}
-              disabled={isPastTime(selectedDate, time)}
-            >
+            <option key={time} value={time} disabled={isPastTime(selectedDate, time)}>
               {time}
             </option>
           ))}

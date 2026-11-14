@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 
@@ -28,11 +27,7 @@ type PickupResponse = {
 function getLocalDate(): string {
   const now = new Date()
 
-  return new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000,
-  )
-    .toISOString()
-    .slice(0, 10)
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
 
 function formatDate(value: string): string {
@@ -53,9 +48,7 @@ export default function RetiroDeMuestrasPantalla() {
   useEffect(() => {
     let isActive = true
 
-    api<DailyRoute>(
-      `/logistics/daily-route?date=${encodeURIComponent(selectedDate)}`,
-    )
+    api<DailyRoute>(`/logistics/daily-route?date=${encodeURIComponent(selectedDate)}`)
       .then((route) => {
         if (isActive) {
           setDailyRoute(route)
@@ -78,13 +71,9 @@ export default function RetiroDeMuestrasPantalla() {
     }
   }, [selectedDate])
 
-  const stops = [...(dailyRoute?.stops ?? [])].sort(
-    (a, b) => a.position - b.position,
-  )
+  const stops = [...(dailyRoute?.stops ?? [])].sort((a, b) => a.position - b.position)
 
-  const nextPendingStop = stops.find(
-    (stop) => stop.picked_up_at === null,
-  )
+  const nextPendingStop = stops.find((stop) => stop.picked_up_at === null)
 
   function openConfirmation(stop: RouteStop) {
     if (isSubmitting) {
@@ -125,9 +114,7 @@ export default function RetiroDeMuestrasPantalla() {
 
       setSelectedStop(null)
 
-      setSuccess(
-        `Se registró correctamente el retiro de muestras de ${stop.laboratory}.`,
-      )
+      setSuccess(`Se registró correctamente el retiro de muestras de ${stop.laboratory}.`)
 
       try {
         const updatedRoute = await api<DailyRoute>(
@@ -164,9 +151,7 @@ export default function RetiroDeMuestrasPantalla() {
   return (
     <section className="space-y-5 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">
-          Retiro de muestras
-        </h1>
+        <h1 className="text-2xl font-semibold">Retiro de muestras</h1>
 
         <p className="text-sm text-gray-500">
           Registrá el retiro de las muestras de cada laboratorio.
@@ -174,8 +159,7 @@ export default function RetiroDeMuestrasPantalla() {
       </header>
 
       <p className="text-sm text-gray-600">
-        Los laboratorios deben completarse en el orden establecido
-        por el recorrido.
+        Los laboratorios deben completarse en el orden establecido por el recorrido.
       </p>
 
       {isLoading ? (
@@ -185,8 +169,7 @@ export default function RetiroDeMuestrasPantalla() {
       ) : (
         <>
           <p className="text-sm">
-            Fecha: {formatDate(selectedDate)} · Provincia:{' '}
-            {dailyRoute.province}
+            Fecha: {formatDate(selectedDate)} · Provincia: {dailyRoute.province}
           </p>
 
           {stops.length > 0 && !nextPendingStop && (
@@ -198,14 +181,10 @@ export default function RetiroDeMuestrasPantalla() {
           <ol className="space-y-3">
             {stops.map((stop) => {
               const isCompleted = stop.picked_up_at !== null
-              const isNext =
-                nextPendingStop?.laboratory_id === stop.laboratory_id
+              const isNext = nextPendingStop?.laboratory_id === stop.laboratory_id
 
               return (
-                <li
-                  key={stop.laboratory_id}
-                  className="rounded-lg border bg-white p-4"
-                >
+                <li key={stop.laboratory_id} className="rounded-lg border bg-white p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h2 className="font-semibold">
@@ -218,14 +197,10 @@ export default function RetiroDeMuestrasPantalla() {
 
                       <p
                         className={`mt-2 text-sm font-medium ${
-                          isCompleted
-                            ? 'text-green-700'
-                            : 'text-amber-700'
+                          isCompleted ? 'text-green-700' : 'text-amber-700'
                         }`}
                       >
-                        {isCompleted
-                          ? 'Completado'
-                          : 'Sin recolectar'}
+                        {isCompleted ? 'Completado' : 'Sin recolectar'}
                       </p>
                     </div>
 
@@ -281,25 +256,16 @@ export default function RetiroDeMuestrasPantalla() {
               }
             }}
           >
-            <h2
-              id="pickup-dialog-title"
-              className="text-xl font-semibold text-gray-900"
-            >
+            <h2 id="pickup-dialog-title" className="text-xl font-semibold text-gray-900">
               Confirmar retiro de muestras
             </h2>
 
-            <p
-              id="pickup-dialog-description"
-              className="mt-3 text-sm text-gray-600"
-            >
-              ¿Confirmás que retiraste todas las muestras
-              asignadas al siguiente laboratorio?
+            <p id="pickup-dialog-description" className="mt-3 text-sm text-gray-600">
+              ¿Confirmás que retiraste todas las muestras asignadas al siguiente laboratorio?
             </p>
 
             <div className="mt-4 rounded-lg bg-gray-50 p-4">
-              <p className="font-medium text-gray-900">
-                {selectedStop.laboratory}
-              </p>
+              <p className="font-medium text-gray-900">{selectedStop.laboratory}</p>
 
               <p className="mt-1 text-sm text-gray-600">
                 {selectedStop.address}, {selectedStop.province}
@@ -307,8 +273,7 @@ export default function RetiroDeMuestrasPantalla() {
             </div>
 
             <p className="mt-4 text-sm text-gray-500">
-              Una vez confirmado, el laboratorio quedará marcado
-              como completado.
+              Una vez confirmado, el laboratorio quedará marcado como completado.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -327,9 +292,7 @@ export default function RetiroDeMuestrasPantalla() {
                 onClick={handlePickup}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isSubmitting
-                  ? 'Registrando...'
-                  : 'Confirmar retiro'}
+                {isSubmitting ? 'Registrando...' : 'Confirmar retiro'}
               </button>
             </div>
           </div>

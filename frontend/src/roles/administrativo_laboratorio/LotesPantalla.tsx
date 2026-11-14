@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 
@@ -15,8 +14,7 @@ type Batch = {
   can_schedule_pickup: boolean
 }
 
-const API_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString('es-AR', {
@@ -63,13 +61,10 @@ export default function LotesPantalla() {
     <section className="space-y-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">
-            Lotes de estudios
-          </h1>
+          <h1 className="text-2xl font-semibold">Lotes de estudios</h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            Consultá el estado de los lotes y sus
-            autorizaciones del Ministerio de Salud.
+            Consultá el estado de los lotes y sus autorizaciones del Ministerio de Salud.
           </p>
         </div>
 
@@ -86,9 +81,7 @@ export default function LotesPantalla() {
         </button>
       </header>
 
-      {isLoading && (
-        <p role="status">Cargando lotes...</p>
-      )}
+      {isLoading && <p role="status">Cargando lotes...</p>}
 
       {error && (
         <p role="alert" className="text-sm text-red-700">
@@ -98,33 +91,23 @@ export default function LotesPantalla() {
 
       {!isLoading && !error && batches.length === 0 && (
         <div className="rounded-lg border bg-white p-6">
-          <p className="text-gray-600">
-            Todavía no se registraron lotes de estudios.
-          </p>
+          <p className="text-gray-600">Todavía no se registraron lotes de estudios.</p>
         </div>
       )}
 
       {!isLoading && batches.length > 0 && (
         <div className="grid gap-4">
           {batches.map((batch) => (
-            <article
-              key={batch.id}
-              className="rounded-xl border bg-white p-5 shadow-sm"
-            >
+            <article key={batch.id} className="rounded-xl border bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">
-                    Lote #{batch.id}
-                  </h2>
+                  <h2 className="text-lg font-semibold">Lote #{batch.id}</h2>
                   {batch.is_urgent && (
                     <span className="mt-2 inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
                       Pompe urgente
                     </span>
                   )}
-                  <p className="mt-1 text-sm text-gray-600">
-                    {batch.study_count} de 10 estudios
-                  </p>
-
+                  <p className="mt-1 text-sm text-gray-600">{batch.study_count} de 10 estudios</p>
                 </div>
 
                 <span
@@ -137,51 +120,32 @@ export default function LotesPantalla() {
               <div className="mt-4 space-y-2 text-sm text-gray-600">
                 {batch.is_urgent && (
                   <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                    Este lote se cerró anticipadamente porque contiene
-                    un estudio con prioridad Pompe urgente.
-                    Requiere el permiso del Ministerio de Salud y
-                    atención prioritaria para programar su retiro.
+                    Este lote se cerró anticipadamente porque contiene un estudio con prioridad
+                    Pompe urgente. Requiere el permiso del Ministerio de Salud y atención
+                    prioritaria para programar su retiro.
                   </p>
                 )}
 
-                {batch.closed_at && (
-                  <p>
-                    Cierre: {formatDateTime(batch.closed_at)}
-                  </p>
-                )}
+                {batch.closed_at && <p>Cierre: {formatDateTime(batch.closed_at)}</p>}
 
-                {batch.closed_at && (
-                  <p>
-                    Cierre: {formatDateTime(batch.closed_at)}
-                  </p>
-                )}
+                {batch.closed_at && <p>Cierre: {formatDateTime(batch.closed_at)}</p>}
 
-                {batch.authorized_at && (
-                  <p>
-                    Autorización:{' '}
-                    {formatDateTime(batch.authorized_at)}
-                  </p>
-                )}
+                {batch.authorized_at && <p>Autorización: {formatDateTime(batch.authorized_at)}</p>}
 
                 {batch.state === 'Abierto' && (
-                  <p>
-                    El lote continúa recibiendo estudios.
-                    Se cerrará al completar 10.
-                  </p>
+                  <p>El lote continúa recibiendo estudios. Se cerrará al completar 10.</p>
                 )}
 
                 {batch.state === 'Cerrado' && (
                   <p className="text-amber-700">
-                    El lote está cerrado, pero todavía no
-                    cuenta con un permiso del Ministerio.
+                    El lote está cerrado, pero todavía no cuenta con un permiso del Ministerio.
                   </p>
                 )}
 
                 {batch.state === 'Autorizado' && (
                   <p className="text-green-700">
-                    El Ministerio devolvió un permiso simulado.
-                    El lote cumple la condición de autorización
-                    para programar su retiro.
+                    El Ministerio devolvió un permiso simulado. El lote cumple la condición de
+                    autorización para programar su retiro.
                   </p>
                 )}
 

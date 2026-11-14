@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { api, ApiError, json } from '../../lib/api'
 import { useSearchParams } from 'react-router-dom'
@@ -64,9 +63,7 @@ const DOCTORS = [
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'No se pudo completar la operación.'
+  return error instanceof Error ? error.message : 'No se pudo completar la operación.'
 }
 
 function query(params: Record<string, string>): string {
@@ -264,8 +261,7 @@ export default function ResultadoPantalla() {
       <header>
         <h1 className="text-2xl font-semibold">Resultado del estudio</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Escenarios 37 y 39 · M8-RF6 y M8-RF8.
-          Consultá resultados y solicitá un reanálisis.
+          Escenarios 37 y 39 · M8-RF6 y M8-RF8. Consultá resultados y solicitá un reanálisis.
         </p>
       </header>
 
@@ -289,10 +285,7 @@ export default function ResultadoPantalla() {
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800"
-        >
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
           {error}
         </p>
       )}
@@ -312,9 +305,7 @@ export default function ResultadoPantalla() {
         {loading && <p>Cargando...</p>}
 
         {!loading && results.length === 0 && !error && (
-          <p className="text-sm text-gray-600">
-            No hay resultados disponibles para este médico.
-          </p>
+          <p className="text-sm text-gray-600">No hay resultados disponibles para este médico.</p>
         )}
 
         <div className="space-y-2">
@@ -357,14 +348,11 @@ export default function ResultadoPantalla() {
             </p>
 
             <p className="text-sm">
-              <strong>Finalizado:</strong>{' '}
-              {new Date(selected.completed_at).toLocaleString('es-AR')}
+              <strong>Finalizado:</strong> {new Date(selected.completed_at).toLocaleString('es-AR')}
             </p>
 
             {selected.negative ? (
-              <p className="text-sm">
-                No se registraron variantes en el análisis simulado.
-              </p>
+              <p className="text-sm">No se registraron variantes en el análisis simulado.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -377,10 +365,7 @@ export default function ResultadoPantalla() {
                   </thead>
                   <tbody>
                     {(selected.variants ?? []).map((variant) => (
-                      <tr
-                        key={`${variant.gene}:${variant.variant}`}
-                        className="border-b"
-                      >
+                      <tr key={`${variant.gene}:${variant.variant}`} className="border-b">
                         <td className="p-3">{variant.gene}</td>
                         <td className="p-3">{variant.variant}</td>
                         <td className="p-3">{variant.classification}</td>
@@ -401,44 +386,34 @@ export default function ResultadoPantalla() {
           </div>
 
           <div className="space-y-4 rounded-xl border bg-white p-5">
-            <h2 className="text-lg font-semibold">
-              Solicitar reanálisis
-            </h2>
+            <h2 className="text-lg font-semibold">Solicitar reanálisis</h2>
 
             <p className="text-sm text-gray-600">
-              Seleccioná una nueva patología sospechada. Se reutilizarán
-              los datos crudos originales y se excluirán los genes
-              previamente analizados.
+              Seleccioná una nueva patología sospechada. Se reutilizarán los datos crudos originales
+              y se excluirán los genes previamente analizados.
             </p>
 
             {request ? (
               <div className="space-y-2 rounded-lg border p-4">
-                <p className="font-medium">
-                  Solicitud #{request.id} registrada
-                </p>
+                <p className="font-medium">Solicitud #{request.id} registrada</p>
                 <p className="text-sm">
                   <strong>Patología:</strong> {request.pathology}
                 </p>
                 <p className="text-sm">
-                  <strong>Genes pendientes:</strong>{' '}
-                  {request.pending_genes.join(', ')}
+                  <strong>Genes pendientes:</strong> {request.pending_genes.join(', ')}
                 </p>
                 <p className="text-sm">
-                  <strong>Fecha:</strong>{' '}
-                  {new Date(request.requested_at).toLocaleString('es-AR')}
+                  <strong>Fecha:</strong> {new Date(request.requested_at).toLocaleString('es-AR')}
                 </p>
                 <p className="text-sm">
-                  Pendiente de definición del flujo posterior.
-                  No se generó un cobro ni un nuevo resultado.
+                  Pendiente de definición del flujo posterior. No se generó un cobro ni un nuevo
+                  resultado.
                 </p>
               </div>
             ) : (
               <>
                 <div className="max-w-md">
-                  <label
-                    htmlFor="reanalysis-pathology"
-                    className="block text-sm font-medium"
-                  >
+                  <label htmlFor="reanalysis-pathology" className="block text-sm font-medium">
                     Nueva patología sospechada
                   </label>
 
@@ -495,8 +470,7 @@ export default function ResultadoPantalla() {
 
                     {!preview.pending_genes.length && (
                       <p className="text-sm text-amber-700">
-                        No hay genes nuevos. No se puede solicitar
-                        este reanálisis.
+                        No hay genes nuevos. No se puede solicitar este reanálisis.
                       </p>
                     )}
 
@@ -520,8 +494,8 @@ export default function ResultadoPantalla() {
             )}
 
             <p className="text-xs text-gray-500">
-              Simulación de desarrollo. Las asociaciones entre patologías
-              y genes son ficticias y no tienen validez clínica.
+              Simulación de desarrollo. Las asociaciones entre patologías y genes son ficticias y no
+              tienen validez clínica.
             </p>
           </div>
         </>

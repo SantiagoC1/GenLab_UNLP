@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../../lib/api'
 
@@ -32,9 +31,7 @@ export default function DatosCrudosPantalla() {
 
   const loadStudies = useCallback(async () => {
     try {
-      const result = await api<PendingStudy[]>(
-        '/bioinformatics/raw-data/pending',
-      )
+      const result = await api<PendingStudy[]>('/bioinformatics/raw-data/pending')
 
       setStudies(result)
       setError('')
@@ -49,13 +46,9 @@ export default function DatosCrudosPantalla() {
     void loadStudies()
   }, [loadStudies])
 
-  const selectedStudy = studies.find(
-    (study) => study.id === Number(selectedStudyId),
-  )
+  const selectedStudy = studies.find((study) => study.id === Number(selectedStudyId))
 
-  function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
     setSelectedFile(file)
     setError('')
@@ -108,9 +101,7 @@ export default function DatosCrudosPantalla() {
       setSelectedStudyId('')
       setSelectedFile(null)
 
-      const fileInput = document.getElementById(
-        'raw-data-file',
-      ) as HTMLInputElement | null
+      const fileInput = document.getElementById('raw-data-file') as HTMLInputElement | null
 
       if (fileInput) {
         fileInput.value = ''
@@ -141,13 +132,10 @@ export default function DatosCrudosPantalla() {
     <section className="space-y-6 p-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">
-            Cargar datos crudos de un estudio
-          </h1>
+          <h1 className="text-2xl font-semibold">Cargar datos crudos de un estudio</h1>
 
           <p className="mt-2 text-sm text-gray-600">
-            Adjuntá los datos recibidos desde Corea a un
-            estudio que se encuentre en viaje a Corea.
+            Adjuntá los datos recibidos desde Corea a un estudio que se encuentre en viaje a Corea.
           </p>
         </div>
 
@@ -186,21 +174,15 @@ export default function DatosCrudosPantalla() {
         <p role="status">Cargando estudios...</p>
       ) : studies.length === 0 ? (
         <div className="rounded-xl border bg-white p-5">
-          <p className="font-medium">
-            No hay estudios pendientes de carga.
-          </p>
+          <p className="font-medium">No hay estudios pendientes de carga.</p>
           <p className="mt-2 text-sm text-gray-600">
-            Los estudios aparecerán aquí cuando FedEx
-            haya confirmado el retiro de sus lotes.
+            Los estudios aparecerán aquí cuando FedEx haya confirmado el retiro de sus lotes.
           </p>
         </div>
       ) : (
         <div className="max-w-2xl space-y-5 rounded-xl border bg-white p-6">
           <div>
-            <label
-              htmlFor="raw-data-study"
-              className="block text-sm font-medium"
-            >
+            <label htmlFor="raw-data-study" className="block text-sm font-medium">
               Estudio
             </label>
 
@@ -242,26 +224,19 @@ export default function DatosCrudosPantalla() {
                   <strong>Estudio:</strong> #{selectedStudy.id}
                 </p>
                 <p>
-                  <strong>Lote de origen:</strong> #
-                  {selectedStudy.batch_id}
+                  <strong>Lote de origen:</strong> #{selectedStudy.batch_id}
                 </p>
                 <p>
-                  <strong>Estado actual:</strong>{' '}
-                  En viaje a Corea
+                  <strong>Estado actual:</strong> En viaje a Corea
                 </p>
 
                 {selectedStudy.pompe_urgent && (
-                  <p className="font-semibold text-red-700">
-                    Prioridad Pompe urgente
-                  </p>
+                  <p className="font-semibold text-red-700">Prioridad Pompe urgente</p>
                 )}
               </div>
 
               <div>
-                <label
-                  htmlFor="raw-data-file"
-                  className="block text-sm font-medium"
-                >
+                <label htmlFor="raw-data-file" className="block text-sm font-medium">
                   Archivo de datos crudos
                 </label>
 
@@ -274,32 +249,24 @@ export default function DatosCrudosPantalla() {
                 />
 
                 <p className="mt-2 text-xs text-gray-500">
-                  Seleccioná el archivo recibido desde Corea
-                  correspondiente a este estudio.
+                  Seleccioná el archivo recibido desde Corea correspondiente a este estudio.
                 </p>
               </div>
 
               {selectedFile && (
                 <div className="rounded-lg border p-3 text-sm">
                   <p>
-                    <strong>Archivo:</strong>{' '}
-                    {selectedFile.name}
+                    <strong>Archivo:</strong> {selectedFile.name}
                   </p>
                   <p>
-                    <strong>Tamaño:</strong>{' '}
-                    {selectedFile.size.toLocaleString('es-AR')}{' '}
-                    bytes
+                    <strong>Tamaño:</strong> {selectedFile.size.toLocaleString('es-AR')} bytes
                   </p>
                 </div>
               )}
 
               <button
                 type="button"
-                disabled={
-                  !selectedFile ||
-                  selectedFile.size === 0 ||
-                  isUploading
-                }
+                disabled={!selectedFile || selectedFile.size === 0 || isUploading}
                 onClick={openConfirmation}
                 className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -318,23 +285,17 @@ export default function DatosCrudosPantalla() {
             aria-labelledby="raw-data-dialog-title"
             className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
           >
-            <h2
-              id="raw-data-dialog-title"
-              className="text-xl font-semibold"
-            >
+            <h2 id="raw-data-dialog-title" className="text-xl font-semibold">
               Confirmar carga de datos crudos
             </h2>
 
             <p className="mt-4 text-sm text-gray-600">
-              ¿Confirmás que el archivo{' '}
-              <strong>{selectedFile.name}</strong>{' '}
-              corresponde al estudio{' '}
+              ¿Confirmás que el archivo <strong>{selectedFile.name}</strong> corresponde al estudio{' '}
               <strong>#{selectedStudy.id}</strong>?
             </p>
 
             <p className="mt-3 text-sm text-gray-600">
-              Al confirmar, el estudio pasará a
-              «En el área de bioinformática».
+              Al confirmar, el estudio pasará a «En el área de bioinformática».
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -353,9 +314,7 @@ export default function DatosCrudosPantalla() {
                 onClick={() => void handleUpload()}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
               >
-                {isUploading
-                  ? 'Cargando...'
-                  : 'Confirmar carga'}
+                {isUploading ? 'Cargando...' : 'Confirmar carga'}
               </button>
             </div>
           </div>

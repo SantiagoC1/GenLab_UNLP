@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import FedexDateTimePicker from './FedexDateTimePicker'
@@ -23,8 +22,7 @@ type Shipment = {
   tracking_url: string
 }
 
-const API_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString('es-AR', {
@@ -32,7 +30,6 @@ function formatDateTime(value: string): string {
     timeStyle: 'short',
   })
 }
-
 
 export default function RetiroFedexPantalla() {
   const [batches, setBatches] = useState<Batch[]>([])
@@ -64,34 +61,32 @@ export default function RetiroFedexPantalla() {
   }, [loadBatches])
 
   useEffect(() => {
-  let active = true
+    let active = true
 
-  async function loadHolidays() {
-    try {
-      const result = await api<string[]>('/logistics/fedex/holidays')
+    async function loadHolidays() {
+      try {
+        const result = await api<string[]>('/logistics/fedex/holidays')
 
-      if (active) {
-        setHolidays(result)
-        setHolidaysLoaded(true)
-      }
-    } catch {
-      if (active) {
-        setHolidaysLoaded(false)
-        setError('No se pudo consultar el calendario de días no laborables.')
+        if (active) {
+          setHolidays(result)
+          setHolidaysLoaded(true)
+        }
+      } catch {
+        if (active) {
+          setHolidaysLoaded(false)
+          setError('No se pudo consultar el calendario de días no laborables.')
+        }
       }
     }
-  }
 
-  void loadHolidays()
+    void loadHolidays()
 
-  return () => {
-    active = false
-  }
-}, [])
+    return () => {
+      active = false
+    }
+  }, [])
 
-  const selectedBatch = batches.find(
-    (batch) => batch.id === Number(selectedBatchId),
-  )
+  const selectedBatch = batches.find((batch) => batch.id === Number(selectedBatchId))
 
   async function handleSchedule() {
     if (!selectedBatch?.can_schedule_pickup || isSubmitting) {
@@ -122,16 +117,13 @@ export default function RetiroFedexPantalla() {
     setSuccess('')
 
     try {
-      await api<Shipment>(
-        `/logistics/batches/${selectedBatch.id}/schedule-pickup`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scheduled_at: selectedDate.toISOString(),
-          }),
-        },
-      )
+      await api<Shipment>(`/logistics/batches/${selectedBatch.id}/schedule-pickup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduled_at: selectedDate.toISOString(),
+        }),
+      })
 
       setIsModalOpen(false)
       setSuccess('El retiro se programó correctamente.')
@@ -150,12 +142,9 @@ export default function RetiroFedexPantalla() {
     <section className="space-y-6 p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">
-            Programar retiro con FedEx
-          </h1>
+          <h1 className="text-2xl font-semibold">Programar retiro con FedEx</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Programá el retiro de lotes autorizados
-            por el Ministerio de Salud.
+            Programá el retiro de lotes autorizados por el Ministerio de Salud.
           </p>
         </div>
 
@@ -172,9 +161,7 @@ export default function RetiroFedexPantalla() {
         </button>
       </header>
 
-      {isLoading && (
-        <p role="status">Cargando lotes...</p>
-      )}
+      {isLoading && <p role="status">Cargando lotes...</p>}
 
       {error && (
         <p role="alert" className="text-sm text-red-700">
@@ -188,17 +175,12 @@ export default function RetiroFedexPantalla() {
         </p>
       )}
 
-      {!isLoading && batches.length === 0 && (
-        <p>No hay lotes disponibles.</p>
-      )}
+      {!isLoading && batches.length === 0 && <p>No hay lotes disponibles.</p>}
 
       {!isLoading && batches.length > 0 && (
         <div className="space-y-4">
           <div className="max-w-xl rounded-xl border bg-white p-5">
-            <label
-              htmlFor="fedex-batch"
-              className="block text-sm font-medium"
-            >
+            <label htmlFor="fedex-batch" className="block text-sm font-medium">
               Seleccionar lote
             </label>
 
@@ -223,13 +205,9 @@ export default function RetiroFedexPantalla() {
 
             {selectedBatch && (
               <div className="mt-5 space-y-3">
-                <p className="text-sm">
-                  Estudios: {selectedBatch.study_count}
-                </p>
+                <p className="text-sm">Estudios: {selectedBatch.study_count}</p>
 
-                <p className="text-sm">
-                  Estado: {selectedBatch.state}
-                </p>
+                <p className="text-sm">Estado: {selectedBatch.state}</p>
 
                 {selectedBatch.is_urgent && (
                   <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
@@ -239,10 +217,7 @@ export default function RetiroFedexPantalla() {
 
                 {selectedBatch.can_schedule_pickup ? (
                   <>
-                    <label
-                      htmlFor="fedex-date"
-                      className="block text-sm font-medium"
-                    >
+                    <label htmlFor="fedex-date" className="block text-sm font-medium">
                       Fecha y hora del retiro
                     </label>
 
@@ -254,8 +229,7 @@ export default function RetiroFedexPantalla() {
                     />
 
                     <p className="text-xs text-gray-500">
-                      Solo días hábiles, de 9:00 a 18:00.
-                      Los feriados también están excluidos.
+                      Solo días hábiles, de 9:00 a 18:00. Los feriados también están excluidos.
                     </p>
 
                     <button
@@ -269,16 +243,11 @@ export default function RetiroFedexPantalla() {
                   </>
                 ) : selectedBatch.state === 'RetiroProgramado' ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-blue-700">
-                      El retiro ya está programado.
-                    </p>
+                    <p className="text-sm text-blue-700">El retiro ya está programado.</p>
 
                     {selectedBatch.scheduled_pickup_at && (
                       <p className="text-sm">
-                        Fecha programada:{' '}
-                        {formatDateTime(
-                          selectedBatch.scheduled_pickup_at,
-                        )}
+                        Fecha programada: {formatDateTime(selectedBatch.scheduled_pickup_at)}
                       </p>
                     )}
 
@@ -301,16 +270,14 @@ export default function RetiroFedexPantalla() {
 
                     {selectedBatch.collected_at && (
                       <p className="text-sm">
-                        Retirado el:{' '}
-                        {formatDateTime(selectedBatch.collected_at)}
+                        Retirado el: {formatDateTime(selectedBatch.collected_at)}
                       </p>
                     )}
                   </div>
                 ) : (
                   <p className="text-sm text-amber-700">
-                    Este lote no está habilitado para programar
-                    su retiro. Debe estar autorizado y contar
-                    con el permiso del Ministerio.
+                    Este lote no está habilitado para programar su retiro. Debe estar autorizado y
+                    contar con el permiso del Ministerio.
                   </p>
                 )}
               </div>
@@ -323,10 +290,7 @@ export default function RetiroFedexPantalla() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              !isSubmitting
-            ) {
+            if (event.target === event.currentTarget && !isSubmitting) {
               setIsModalOpen(false)
             }
           }}
@@ -342,17 +306,13 @@ export default function RetiroFedexPantalla() {
               }
             }}
           >
-            <h2
-              id="fedex-dialog-title"
-              className="text-xl font-semibold"
-            >
+            <h2 id="fedex-dialog-title" className="text-xl font-semibold">
               Confirmar programación
             </h2>
 
             <p className="mt-3 text-sm text-gray-600">
-              ¿Confirmás la programación del retiro
-              del lote #{selectedBatch.id} para la fecha
-              y hora seleccionadas?
+              ¿Confirmás la programación del retiro del lote #{selectedBatch.id} para la fecha y
+              hora seleccionadas?
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -371,9 +331,7 @@ export default function RetiroFedexPantalla() {
                 onClick={handleSchedule}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
               >
-                {isSubmitting
-                  ? 'Programando...'
-                  : 'Confirmar retiro'}
+                {isSubmitting ? 'Programando...' : 'Confirmar retiro'}
               </button>
             </div>
           </div>

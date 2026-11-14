@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, json } from '../../lib/api'
 
@@ -51,9 +50,7 @@ const ANALYSTS = [
 ]
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof ApiError
-    ? error.message
-    : 'No se pudo completar la operación.'
+  return error instanceof ApiError ? error.message : 'No se pudo completar la operación.'
 }
 
 export default function AnalisisPantalla() {
@@ -96,9 +93,7 @@ export default function AnalisisPantalla() {
     )
       .then((result) => {
         if (!cancelled) {
-          setAssignments(
-            result.filter((item) => item.state === 'EnAnalisisPorUnBioinformatico'),
-          )
+          setAssignments(result.filter((item) => item.state === 'EnAnalisisPorUnBioinformatico'))
         }
       })
       .catch((caught) => {
@@ -125,12 +120,8 @@ export default function AnalisisPantalla() {
     try {
       const query = `analyst_id=${encodeURIComponent(analystId)}`
       const [geneResult, analysisResult] = await Promise.all([
-        api<GeneResponse>(
-          `/bioinformatics/studies/${id}/analysis/genes?${query}`,
-        ),
-        api<Analysis>(
-          `/bioinformatics/studies/${id}/analysis?${query}`,
-        ),
+        api<GeneResponse>(`/bioinformatics/studies/${id}/analysis/genes?${query}`),
+        api<Analysis>(`/bioinformatics/studies/${id}/analysis?${query}`),
       ])
 
       setGenes(geneResult.genes)
@@ -172,17 +163,14 @@ export default function AnalisisPantalla() {
     setMessage('')
 
     try {
-      const result = await api<Variant>(
-        `/bioinformatics/studies/${studyId}/analysis/variants`,
-        {
-          method: 'POST',
-          ...json({
-            analyst_id: analystId,
-            gene,
-            variant: selectedVariant,
-          }),
-        },
-      )
+      const result = await api<Variant>(`/bioinformatics/studies/${studyId}/analysis/variants`, {
+        method: 'POST',
+        ...json({
+          analyst_id: analystId,
+          gene,
+          variant: selectedVariant,
+        }),
+      })
 
       setRegistered((current) => [...current, result])
       setSelectedVariant('')
@@ -215,10 +203,7 @@ export default function AnalisisPantalla() {
       )
 
       setRegistered((current) =>
-        current.filter(
-          (value) =>
-            value.gene !== item.gene || value.variant !== item.variant,
-        ),
+        current.filter((value) => value.gene !== item.gene || value.variant !== item.variant),
       )
       setMessage('Variante quitada correctamente.')
     } catch (caught) {
@@ -236,13 +221,10 @@ export default function AnalisisPantalla() {
     setMessage('')
 
     try {
-      const result = await api<Completion>(
-        `/bioinformatics/studies/${studyId}/analysis/complete`,
-        {
-          method: 'POST',
-          ...json({ analyst_id: analystId }),
-        },
-      )
+      const result = await api<Completion>(`/bioinformatics/studies/${studyId}/analysis/complete`, {
+        method: 'POST',
+        ...json({ analyst_id: analystId }),
+      })
 
       setCompletion(result)
       setShowConfirmation(false)
@@ -281,27 +263,19 @@ export default function AnalisisPantalla() {
       link.remove()
       URL.revokeObjectURL(url)
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'No se pudo descargar el resultado.',
-      )
+      setError(caught instanceof Error ? caught.message : 'No se pudo descargar el resultado.')
     }
   }
 
-  const selectedOption = options.find(
-    (item) => item.variant === selectedVariant,
-  )
+  const selectedOption = options.find((item) => item.variant === selectedVariant)
 
   return (
     <section className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">
-          Registrar variantes y finalizar el análisis
-        </h1>
+        <h1 className="text-2xl font-semibold">Registrar variantes y finalizar el análisis</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Registrá los hallazgos del análisis realizado fuera de GenLab.
-          Los genes y variantes mostrados son datos simulados.
+          Registrá los hallazgos del análisis realizado fuera de GenLab. Los genes y variantes
+          mostrados son datos simulados.
         </p>
       </header>
 
@@ -331,7 +305,10 @@ export default function AnalisisPantalla() {
       )}
 
       {message && (
-        <p role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
+        <p
+          role="status"
+          className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800"
+        >
           {message}
         </p>
       )}
@@ -342,9 +319,7 @@ export default function AnalisisPantalla() {
         {loading && <p className="text-sm">Cargando...</p>}
 
         {!loading && assignments.length === 0 && (
-          <p className="text-sm text-gray-600">
-            No tenés estudios pendientes de análisis.
-          </p>
+          <p className="text-sm text-gray-600">No tenés estudios pendientes de análisis.</p>
         )}
 
         <div className="flex flex-wrap gap-2">
@@ -355,9 +330,7 @@ export default function AnalisisPantalla() {
               disabled={busy || loading}
               onClick={() => void openStudy(item.study_id)}
               className={`rounded-lg border px-4 py-2 text-sm ${
-                studyId === item.study_id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'bg-white'
+                studyId === item.study_id ? 'border-blue-600 bg-blue-50' : 'bg-white'
               }`}
             >
               Estudio #{item.study_id}
@@ -368,9 +341,7 @@ export default function AnalisisPantalla() {
 
       {studyId !== null && !completion && (
         <div className="space-y-5 rounded-xl border bg-white p-5">
-          <h2 className="text-lg font-semibold">
-            Análisis del estudio #{studyId}
-          </h2>
+          <h2 className="text-lg font-semibold">Análisis del estudio #{studyId}</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -416,8 +387,7 @@ export default function AnalisisPantalla() {
 
           {selectedOption && (
             <p className="text-sm">
-              <strong>Clasificación de Apigen:</strong>{' '}
-              {selectedOption.classification}
+              <strong>Clasificación de Apigen:</strong> {selectedOption.classification}
               <span className="ml-2 text-gray-500">(no editable)</span>
             </p>
           )}
@@ -436,8 +406,7 @@ export default function AnalisisPantalla() {
 
             {registered.length === 0 ? (
               <p className="text-sm text-gray-600">
-                No se registraron variantes. Podés finalizar el análisis
-                sin hallazgos.
+                No se registraron variantes. Podés finalizar el análisis sin hallazgos.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -487,17 +456,14 @@ export default function AnalisisPantalla() {
 
       {completion && studyId !== null && (
         <div className="space-y-3 rounded-xl border bg-white p-5">
-          <h2 className="text-lg font-semibold">
-            Resultado disponible — Estudio #{studyId}
-          </h2>
+          <h2 className="text-lg font-semibold">Resultado disponible — Estudio #{studyId}</h2>
           <p>
             {completion.negative
               ? 'Sin variantes registradas (resultado negativo simulado).'
               : `${completion.variant_count} variante(s) registrada(s).`}
           </p>
           <p className="text-sm text-gray-600">
-            Se registraron {completion.notification_count} avisos por
-            correo simulados.
+            Se registraron {completion.notification_count} avisos por correo simulados.
           </p>
           <button
             type="button"
@@ -521,12 +487,12 @@ export default function AnalisisPantalla() {
               Confirmar finalización
             </h2>
             <p className="mt-3 text-sm">
-              ¿Querés finalizar el estudio #{studyId} con{' '}
-              {registered.length} variante(s) registrada(s)?
+              ¿Querés finalizar el estudio #{studyId} con {registered.length} variante(s)
+              registrada(s)?
             </p>
             <p className="mt-3 text-sm text-gray-600">
-              Después de confirmar no podrás modificar este análisis.
-              Se generará un resultado PDF simulado.
+              Después de confirmar no podrás modificar este análisis. Se generará un resultado PDF
+              simulado.
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button

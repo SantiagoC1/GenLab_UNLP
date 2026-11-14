@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../../lib/api'
 import { useSearchParams } from 'react-router-dom'
@@ -41,9 +40,7 @@ export default function ResultadoPantalla() {
       .catch((caught) => {
         if (!cancelled) {
           setError(
-            caught instanceof ApiError
-              ? caught.message
-              : 'No se pudieron cargar los resultados.',
+            caught instanceof ApiError ? caught.message : 'No se pudieron cargar los resultados.',
           )
         }
       })
@@ -78,23 +75,16 @@ export default function ResultadoPantalla() {
       link.remove()
       URL.revokeObjectURL(url)
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : 'No se pudo descargar el PDF.',
-      )
+      setError(caught instanceof Error ? caught.message : 'No se pudo descargar el PDF.')
     }
   }
 
   return (
     <section className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">
-          Descargar el resultado del estudio
-        </h1>
+        <h1 className="text-2xl font-semibold">Descargar el resultado del estudio</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Escenario 38 · M8-RF7. Descargá los resultados disponibles
-          desde la plataforma.
+          Descargá los resultados disponibles desde la plataforma.
         </p>
       </header>
 
@@ -123,16 +113,12 @@ export default function ResultadoPantalla() {
       )}
 
       <div className="rounded-xl border bg-white p-5">
-        <h2 className="mb-4 text-lg font-semibold">
-          Mis resultados disponibles
-        </h2>
+        <h2 className="mb-4 text-lg font-semibold">Mis resultados disponibles</h2>
 
         {loading && <p>Cargando...</p>}
 
         {!loading && results.length === 0 && (
-          <p className="text-sm text-gray-600">
-            Todavía no hay resultados disponibles.
-          </p>
+          <p className="text-sm text-gray-600">Todavía no hay resultados disponibles.</p>
         )}
 
         <div className="space-y-3">
@@ -140,18 +126,12 @@ export default function ResultadoPantalla() {
             <div
               key={result.study_id}
               className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 ${
-                result.study_id === requestedStudyId
-                  ? 'border-teal-600 bg-teal-50'
-                  : ''
+                result.study_id === requestedStudyId ? 'border-teal-600 bg-teal-50' : ''
               }`}
             >
               <div>
-                <p className="font-medium">
-                  Estudio #{result.study_id}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Resultado disponible
-                </p>
+                <p className="font-medium">Estudio #{result.study_id}</p>
+                <p className="text-sm text-gray-600">Resultado disponible</p>
               </div>
 
               <button
@@ -166,11 +146,6 @@ export default function ResultadoPantalla() {
           ))}
         </div>
       </div>
-
-      <p className="text-xs text-gray-500">
-        Los resultados son ficticios y no tienen validez clínica.
-        El PDF se descarga desde la plataforma; no se envía adjunto por correo.
-      </p>
     </section>
   )
 }

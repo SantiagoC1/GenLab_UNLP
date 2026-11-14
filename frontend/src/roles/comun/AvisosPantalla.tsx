@@ -1,13 +1,7 @@
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
-import {
-  isMockRole,
-  MOCK_ACTORS,
-  useMockActor,
-  type MockRole,
-} from '../../lib/mockIdentity'
+import { isMockRole, MOCK_ACTORS, useMockActor, type MockRole } from '../../lib/mockIdentity'
 import { useRol } from '../rol-context'
 
 type Notice = {
@@ -42,18 +36,12 @@ function MockNotices({ role }: { role: MockRole }) {
           actor_id: actorId,
         })
 
-        const data = await api<Notice[]>(
-          `/notifications?${params.toString()}`,
-        )
+        const data = await api<Notice[]>(`/notifications?${params.toString()}`)
 
         if (active) setNotices(data)
       } catch (caught) {
         if (active) {
-          setError(
-            caught instanceof Error
-              ? caught.message
-              : 'No se pudieron cargar los avisos.',
-          )
+          setError(caught instanceof Error ? caught.message : 'No se pudieron cargar los avisos.')
         }
       } finally {
         if (active) setLoading(false)
@@ -82,10 +70,7 @@ function MockNotices({ role }: { role: MockRole }) {
   return (
     <>
       <div className="max-w-md rounded-xl border bg-white p-4">
-        <label
-          htmlFor="notification-actor"
-          className="block text-sm font-medium"
-        >
+        <label htmlFor="notification-actor" className="block text-sm font-medium">
           Usuario de prueba
         </label>
 
@@ -108,10 +93,7 @@ function MockNotices({ role }: { role: MockRole }) {
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800"
-        >
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
           {error}
         </p>
       )}
@@ -127,23 +109,16 @@ function MockNotices({ role }: { role: MockRole }) {
         {loading && <p>Cargando avisos...</p>}
 
         {!loading && !error && notices.length === 0 && (
-          <p className="text-sm text-slate-600">
-            No tenés avisos pendientes.
-          </p>
+          <p className="text-sm text-slate-600">No tenés avisos pendientes.</p>
         )}
 
         <div className="space-y-3">
           {notices.map((notice) => (
-            <article
-              key={notice.id}
-              className="rounded-lg border border-slate-200 p-4"
-            >
+            <article key={notice.id} className="rounded-lg border border-slate-200 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{notice.title}</h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {notice.message}
-                  </p>
+                  <p className="mt-1 text-sm text-slate-600">{notice.message}</p>
                   <p className="mt-2 text-xs text-slate-500">
                     {new Date(notice.created_at).toLocaleString('es-AR')}
                   </p>
@@ -188,8 +163,8 @@ export default function AvisosPantalla() {
       )}
 
       <p className="text-xs text-slate-500">
-        Avisos ficticios para desarrollo. La lectura y eliminación de avisos
-        siguen pendientes de definición.
+        Avisos ficticios para desarrollo. La lectura y eliminación de avisos siguen pendientes de
+        definición.
       </p>
     </section>
   )
