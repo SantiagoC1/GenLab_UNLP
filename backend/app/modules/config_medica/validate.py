@@ -8,6 +8,7 @@ from app.models import pathology as pathology_model
 
 MAX_NAME_LENGTH = 100
 MAX_FIELD_LENGTH = 200
+MIN_SECONDARY = 2
 MAX_SECONDARY = 30
 
 
