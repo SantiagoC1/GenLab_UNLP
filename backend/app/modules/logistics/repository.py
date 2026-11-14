@@ -1,4 +1,3 @@
-
 """Read-only database operations for daily routes."""
 
 from app.database import supabase_admin
@@ -6,9 +5,7 @@ from app.database import supabase_admin
 
 def get_daily_route(carrier_id: str, route_date: str) -> dict | None:
     if supabase_admin is None:
-        raise RuntimeError(
-            "SUPABASE_SERVICE_ROLE_KEY is required to query daily routes"
-        )
+        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is required to query daily routes")
 
     response = (
         supabase_admin.table("daily_routes")
@@ -24,9 +21,7 @@ def get_daily_route(carrier_id: str, route_date: str) -> dict | None:
 
 def get_route_stops(route_id: int) -> list[dict]:
     if supabase_admin is None:
-        raise RuntimeError(
-            "SUPABASE_SERVICE_ROLE_KEY is required to query route stops"
-        )
+        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is required to query route stops")
 
     response = (
         supabase_admin.table("route_stops")

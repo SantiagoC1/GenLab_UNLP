@@ -1,4 +1,3 @@
-
 """Development-only FedEx pickup simulator.
 
 No real shipments are created.
@@ -10,7 +9,6 @@ from threading import Lock
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-
 
 TIMEZONE = ZoneInfo("America/Argentina/Buenos_Aires")
 _lock = Lock()
@@ -27,9 +25,7 @@ def _get_holidays() -> set[date]:
             try:
                 holidays.add(date.fromisoformat(value))
             except ValueError:
-                raise RuntimeError(
-                    "FEDEX_TEST_HOLIDAYS must contain YYYY-MM-DD dates."
-                )
+                raise RuntimeError("FEDEX_TEST_HOLIDAYS must contain YYYY-MM-DD dates.") from None
 
     return holidays
 
@@ -76,17 +72,12 @@ def schedule_pickup(
                 "Este lote ya tiene un retiro programado.",
             )
 
-
         shipment = {
             "batch_id": batch_id,
-            "scheduled_pickup_at": scheduled_at.astimezone(
-                TIMEZONE
-            ),
+            "scheduled_pickup_at": scheduled_at.astimezone(TIMEZONE),
             "collected_at": None,
             "status": "Programado",
-            "tracking_url": (
-                f"/logistics/fedex/tracking/{batch_id}"
-            ),
+            "tracking_url": (f"/logistics/fedex/tracking/{batch_id}"),
         }
 
         _shipments[batch_id] = shipment
@@ -131,7 +122,4 @@ def simulate_collection(batch_id: int) -> dict:
 
 
 def get_configured_holidays() -> list[str]:
-    return sorted(
-        holiday.isoformat()
-        for holiday in _get_holidays()
-    )
+    return sorted(holiday.isoformat() for holiday in _get_holidays())

@@ -1,6 +1,6 @@
 from app.modules.acceso.validate import required_field_error
 
-MAX_MESSAGE_LENGTH = 1000 
+MAX_MESSAGE_LENGTH = 1000
 MAX_CONVERSATION_ID_LENGTH = 200
 
 

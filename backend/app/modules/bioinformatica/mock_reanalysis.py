@@ -1,17 +1,15 @@
-
 """Development-only reanalysis requests.
 
 All identities, pathologies and gene associations are fictional.
 Requests do not trigger payment, state changes or automatic analysis.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
 
 from app.modules.bioinformatica import mock_service
 from app.modules.logistics import mock_delivery
-
 
 # Fictional associations for workflow testing only.
 # These genes must not be interpreted as clinical recommendations.
@@ -45,11 +43,7 @@ def _validate_completed_study(study_id: int) -> dict:
 
     original = mock_service._analysis_records.get(study_id)
 
-    if (
-        original is None
-        or original.get("completed_at") is None
-        or original.get("pdf") is None
-    ):
+    if original is None or original.get("completed_at") is None or original.get("pdf") is None:
         raise HTTPException(
             409,
             "El estudio no tiene un análisis original finalizado.",
@@ -80,20 +74,14 @@ def _analyzed_genes(study_id: int) -> set[str]:
 
     # Preserve genes covered by earlier simulated requests if present.
     for request in _reanalysis_requests.values():
-        if (
-            request["study_id"] == study_id
-            and request["status"] == "Completed"
-        ):
+        if request["study_id"] == study_id and request["status"] == "Completed":
             genes.update(request["pending_genes"])
 
     return genes
 
 
 def list_pathologies() -> list[dict]:
-    return [
-        {"name": name, "simulated": True}
-        for name in sorted(MOCK_REANALYSIS_PATHOLOGIES)
-    ]
+    return [{"name": name, "simulated": True} for name in sorted(MOCK_REANALYSIS_PATHOLOGIES)]
 
 
 def preview_reanalysis(
@@ -167,7 +155,7 @@ def request_reanalysis(
             )
 
         original = mock_service._analysis_records[study_id]
-        requested_at = datetime.now(timezone.utc)
+        requested_at = datetime.now(UTC)
 
         request = {
             "id": _next_request_id,
@@ -175,9 +163,7 @@ def request_reanalysis(
             "doctor_id": doctor_id,
             "pathology": pathology,
             "candidate_genes": sorted(set(candidate_genes)),
-            "excluded_genes": sorted(
-                set(candidate_genes) & analyzed
-            ),
+            "excluded_genes": sorted(set(candidate_genes) & analyzed),
             "pending_genes": pending,
             "requested_at": requested_at,
             "status": "PendingDefinition",

@@ -1,4 +1,3 @@
-
 """Business logic for carrier daily routes."""
 
 from datetime import date
@@ -15,11 +14,9 @@ class DailyRouteRepository(Protocol):
         self,
         carrier_id: str,
         route_date: str,
-    ) -> dict | None:
-        ...
+    ) -> dict | None: ...
 
-    def get_route_stops(self, route_id: int) -> list[dict]:
-        ...
+    def get_route_stops(self, route_id: int) -> list[dict]: ...
 
 
 def get_daily_route(

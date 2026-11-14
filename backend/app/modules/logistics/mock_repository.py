@@ -1,13 +1,11 @@
-
 """Development-only daily route data.
 
 This module uses fictional data and in-memory pickup records.
 It must never be used as a production data source.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from threading import Lock
-
 
 MOCK_CARRIER_ID = "development-carrier"
 
@@ -82,9 +80,7 @@ def get_route_stops(route_id: int) -> list[dict]:
         return [
             {
                 **laboratory,
-                "picked_up_at": _pickup_records.get(
-                    (route_date, laboratory["lab_id"])
-                ),
+                "picked_up_at": _pickup_records.get((route_date, laboratory["lab_id"])),
             }
             for laboratory in laboratories
         ]
@@ -117,11 +113,7 @@ def register_pickup(
         )
 
         target_stop = next(
-            (
-                stop
-                for stop in stops
-                if stop["lab_id"] == laboratory_id
-            ),
+            (stop for stop in stops if stop["lab_id"] == laboratory_id),
             None,
         )
 
@@ -146,8 +138,7 @@ def register_pickup(
             (
                 stop
                 for stop in stops
-                if stop["position"] < target_stop["position"]
-                and stop["picked_up_at"] is None
+                if stop["position"] < target_stop["position"] and stop["picked_up_at"] is None
             ),
             None,
         )
@@ -155,13 +146,10 @@ def register_pickup(
         if previous_pending is not None:
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    "Previous route stops must be completed "
-                    "before this pickup."
-                ),
+                detail=("Previous route stops must be completed before this pickup."),
             )
 
-        picked_up_at = datetime.now(timezone.utc)
+        picked_up_at = datetime.now(UTC)
         _pickup_records[pickup_key] = picked_up_at
 
         return picked_up_at
@@ -196,9 +184,7 @@ def get_route_stops_unlocked(
     return [
         {
             **stop,
-            "picked_up_at": _pickup_records.get(
-                (route_date.isoformat(), stop["lab_id"])
-            ),
+            "picked_up_at": _pickup_records.get((route_date.isoformat(), stop["lab_id"])),
         }
         for stop in stops
     ]

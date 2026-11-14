@@ -37,7 +37,7 @@ class ChatbotSimulator(ChatbotIntegration):
 
 class ChatbotReal(ChatbotIntegration):
     """
-    Cliente de la Edge Function `chat` 
+    Cliente de la Edge Function `chat`
     """
 
     def __init__(self, client: httpx.Client | None = None):

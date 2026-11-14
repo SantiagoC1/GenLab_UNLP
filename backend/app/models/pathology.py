@@ -1,4 +1,3 @@
-
 import unicodedata
 
 from postgrest.exceptions import APIError

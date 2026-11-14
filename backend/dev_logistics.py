@@ -1,4 +1,3 @@
-
 """Isolated development application for the logistics module.
 
 This application uses fictional data and bypasses real authentication.
@@ -7,25 +6,16 @@ Never deploy it as the production application.
 
 from datetime import date, datetime
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
-from app.modules.logistics import mock_delivery, mock_repository
+from app.modules.bioinformatica import mock_reanalysis, mock_service
+from app.modules.logistics import mock_delivery, mock_fedex, mock_repository
 from app.modules.logistics.schemas import DailyRouteResponse
 from app.modules.logistics.service import get_daily_route
-
-from fastapi.responses import Response
-
-from datetime import timezone
-from app.modules.logistics import mock_fedex
-
-from fastapi import HTTPException, Request
-
-from app.modules.bioinformatica import mock_service
-
-from app.modules.bioinformatica import mock_service
-
+from app.modules.notifications import mock_service as notification_service
 
 app = FastAPI(
     title="GenLab Logistics Development API",
@@ -78,6 +68,7 @@ class BatchResponse(BaseModel):
     scheduled_pickup_at: datetime | None = None
     collected_at: datetime | None = None
     fedex_url: str | None = None
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
@@ -166,11 +157,7 @@ def download_batch_csv(batch_id: int) -> Response:
     return Response(
         content=content,
         media_type="text/csv; charset=utf-8",
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="lote-{batch_id}-pacientes.csv"'
-            )
-        },
+        headers={"Content-Disposition": (f'attachment; filename="lote-{batch_id}-pacientes.csv"')},
     )
 
 
@@ -185,9 +172,7 @@ def download_batch_permit(batch_id: int) -> Response:
         content=content,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="lote-{batch_id}-permiso-simulado.pdf"'
-            )
+            "Content-Disposition": (f'attachment; filename="lote-{batch_id}-permiso-simulado.pdf"')
         },
     )
 
@@ -302,7 +287,10 @@ async def upload_raw_data(
     study_id: int,
     request: Request,
 ) -> dict:
-    if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/octet-stream":
+    if (
+        request.headers.get("content-type", "").split(";")[0].strip().lower()
+        != "application/octet-stream"
+    ):
         raise HTTPException(
             status_code=415,
             detail="El archivo debe enviarse como datos binarios.",
@@ -325,7 +313,6 @@ async def upload_raw_data(
 )
 def list_bioinformatics_notifications() -> list[dict]:
     return mock_delivery.get_bioinformatics_notifications()
-
 
 
 class AvailableStudyResponse(BaseModel):
@@ -395,8 +382,6 @@ def list_my_bioinformatics_studies(
     analyst_id: str = Query(...),
 ) -> list[dict]:
     return mock_service.list_assigned_studies(analyst_id)
-
-
 
 
 class AnalysisGenesResponse(BaseModel):
@@ -539,12 +524,9 @@ def download_analysis_result(
         content=content,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="resultado-estudio-{study_id}.pdf"'
-            )
+            "Content-Disposition": (f'attachment; filename="resultado-estudio-{study_id}.pdf"')
         },
     )
-
 
 
 class ResultSummaryResponse(BaseModel):
@@ -599,15 +581,9 @@ def download_bioinformatics_result(
         content=content,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": (
-                f'attachment; filename="resultado-estudio-{study_id}.pdf"'
-            )
+            "Content-Disposition": (f'attachment; filename="resultado-estudio-{study_id}.pdf"')
         },
     )
-
-
-
-from app.modules.bioinformatica import mock_reanalysis
 
 
 class ReanalysisPathologyResponse(BaseModel):
@@ -700,10 +676,6 @@ def view_study_reanalysis(
         study_id,
         doctor_id,
     )
-
-
-
-from app.modules.notifications import mock_service as notification_service
 
 
 class NoticeResponse(BaseModel):

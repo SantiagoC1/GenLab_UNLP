@@ -1,18 +1,14 @@
-
 """Development-only logistics delivery and batch simulator.
 
 All studies and patients are fictional. Data resets on restart.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from threading import Lock
 
 from fastapi import HTTPException
 
-from app.modules.logistics import mock_ministry, mock_repository
-
-from app.modules.logistics import mock_fedex
-
+from app.modules.logistics import mock_fedex, mock_ministry, mock_repository
 
 _delivery_lock = Lock()
 _deliveries: dict[tuple[str, str], dict] = {}
@@ -103,9 +99,7 @@ def _authorize_closed_batch(batch: dict) -> None:
 
     except Exception:
         batch["state"] = "Cerrado"
-        batch["authorization_error"] = (
-            "No se pudo completar la solicitud al Ministerio."
-        )
+        batch["authorization_error"] = "No se pudo completar la solicitud al Ministerio."
 
 
 def _close_batch(
@@ -130,10 +124,7 @@ def get_delivery_status(
     route = _get_route(carrier_id, route_date)
     stops = _get_route_stops(route["id"])
 
-    pending_stops = [
-        stop for stop in stops
-        if stop["picked_up_at"] is None
-    ]
+    pending_stops = [stop for stop in stops if stop["picked_up_at"] is None]
 
     delivery_key = (carrier_id, route_date.isoformat())
 
@@ -145,17 +136,9 @@ def get_delivery_status(
             "date": route_date,
             "total_stops": len(stops),
             "completed_stops": len(stops) - len(pending_stops),
-            "can_deliver": (
-                len(stops) > 0
-                and not pending_stops
-                and delivery is None
-            ),
-            "delivered_at": (
-                delivery["delivered_at"] if delivery else None
-            ),
-            "study_count": (
-                delivery["study_count"] if delivery else None
-            ),
+            "can_deliver": (len(stops) > 0 and not pending_stops and delivery is None),
+            "delivered_at": (delivery["delivered_at"] if delivery else None),
+            "study_count": (delivery["study_count"] if delivery else None),
         }
 
 
@@ -191,12 +174,10 @@ def register_delivery(
             )
 
         study_ids = [
-            study_id
-            for stop in stops
-            for study_id in _MOCK_STUDIES.get(stop["lab_id"], [])
+            study_id for stop in stops for study_id in _MOCK_STUDIES.get(stop["lab_id"], [])
         ]
 
-        delivered_at = datetime.now(timezone.utc)
+        delivered_at = datetime.now(UTC)
         assigned_batch_ids: list[int] = []
 
         for study_id in study_ids:
@@ -298,10 +279,7 @@ def schedule_batch_pickup(
         if batch is None:
             raise HTTPException(404, "No se encontró el lote.")
 
-        if (
-            batch["state"] != "Autorizado"
-            or batch["permit_content"] is None
-        ):
+        if batch["state"] != "Autorizado" or batch["permit_content"] is None:
             raise HTTPException(
                 409,
                 "El lote necesita autorización del Ministerio.",
@@ -313,9 +291,7 @@ def schedule_batch_pickup(
         )
 
         batch["state"] = "RetiroProgramado"
-        batch["scheduled_pickup_at"] = shipment[
-            "scheduled_pickup_at"
-        ]
+        batch["scheduled_pickup_at"] = shipment["scheduled_pickup_at"]
         batch["fedex_url"] = shipment["tracking_url"]
 
         return shipment
@@ -351,6 +327,7 @@ def register_fedex_collection(batch_id: int) -> dict:
 
         return shipment
 
+
 def get_batch_studies(batch_id: int) -> list[dict]:
     """Return fictional studies and their current states."""
     with _delivery_lock:
@@ -376,7 +353,6 @@ def get_batch_studies(batch_id: int) -> list[dict]:
         ]
 
 
-
 def get_studies_awaiting_raw_data() -> list[dict]:
     """List fictional studies whose raw data can be uploaded."""
     with _delivery_lock:
@@ -400,10 +376,7 @@ def upload_study_raw_data(
 ) -> dict:
     """Attach raw data to one fictional study and notify analysts."""
     with _delivery_lock:
-        study_exists = any(
-            study_id in batch["study_ids"]
-            for batch in _batches
-        )
+        study_exists = any(study_id in batch["study_ids"] for batch in _batches)
 
         if not study_exists:
             raise HTTPException(
@@ -414,10 +387,7 @@ def upload_study_raw_data(
         if _study_states.get(study_id) != "EnViajeACorea":
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    "Solo se pueden cargar datos crudos de estudios "
-                    "en viaje a Corea."
-                ),
+                detail=("Solo se pueden cargar datos crudos de estudios en viaje a Corea."),
             )
 
         if not content:
@@ -432,7 +402,7 @@ def upload_study_raw_data(
                 detail="El archivo debe tener un nombre.",
             )
 
-        uploaded_at = datetime.now(timezone.utc)
+        uploaded_at = datetime.now(UTC)
 
         # Development-only storage. Never use this for real patient data.
         _raw_study_files[study_id] = {
@@ -466,7 +436,4 @@ def upload_study_raw_data(
 def get_bioinformatics_notifications() -> list[dict]:
     """Expose simulated notification events for development tests."""
     with _delivery_lock:
-        return [
-            dict(notification)
-            for notification in _bioinformatics_notifications
-        ]
+        return [dict(notification) for notification in _bioinformatics_notifications]

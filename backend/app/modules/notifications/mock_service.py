@@ -1,17 +1,15 @@
-
 """Development-only notification inbox.
 
 Uses fictional identities and existing simulated events.
 Does not send emails or modify study states.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import HTTPException
 
 from app.modules.bioinformatica import mock_service as bioinformatics
 from app.modules.logistics import mock_delivery
-
 
 MOCK_ACTORS = {
     "medico_tratante": bioinformatics.MOCK_DOCTORS,
@@ -83,19 +81,12 @@ def list_notices(role: str, actor_id: str) -> list[dict]:
                 if owners is None:
                     continue
 
-                owner_id = (
-                    owners[0]
-                    if role == "medico_tratante"
-                    else owners[1]
-                )
+                owner_id = owners[0] if role == "medico_tratante" else owners[1]
 
                 if owner_id != actor_id:
                     continue
 
-                if (
-                    mock_delivery._study_states.get(study_id)
-                    != "ResultadoDisponible"
-                ):
+                if mock_delivery._study_states.get(study_id) != "ResultadoDisponible":
                     continue
 
                 notices.append(
@@ -104,8 +95,7 @@ def list_notices(role: str, actor_id: str) -> list[dict]:
                         study_id=study_id,
                         title="Resultado disponible",
                         message=(
-                            f"El resultado del estudio #{study_id} "
-                            "está disponible para consultar."
+                            f"El resultado del estudio #{study_id} está disponible para consultar."
                         ),
                         created_at=event["created_at"],
                         destination=RESULT_DESTINATIONS[role],
@@ -113,10 +103,7 @@ def list_notices(role: str, actor_id: str) -> list[dict]:
                 )
 
             elif role == "bioinformatico":
-                if (
-                    mock_delivery._study_states.get(study_id)
-                    != "EnElAreaDeBioinformatica"
-                ):
+                if mock_delivery._study_states.get(study_id) != "EnElAreaDeBioinformatica":
                     continue
 
                 notices.append(
@@ -124,10 +111,7 @@ def list_notices(role: str, actor_id: str) -> list[dict]:
                         notice_id=f"raw-data-{index}",
                         study_id=study_id,
                         title="Datos crudos disponibles",
-                        message=(
-                            f"Se cargaron los datos crudos del "
-                            f"estudio #{study_id}."
-                        ),
+                        message=(f"Se cargaron los datos crudos del estudio #{study_id}."),
                         created_at=event["created_at"],
                         destination=ANALYST_DESTINATION,
                     )
@@ -145,11 +129,7 @@ def get_notice_summary(role: str, actor_id: str) -> dict:
 
     return {
         "total": len(notices),
-        "pending_count": sum(
-            1 for notice in notices if notice["pending"]
-        ),
-        "has_pending": any(
-            notice["pending"] for notice in notices
-        ),
+        "pending_count": sum(1 for notice in notices if notice["pending"]),
+        "has_pending": any(notice["pending"] for notice in notices),
         "simulated": True,
     }

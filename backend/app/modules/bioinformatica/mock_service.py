@@ -1,20 +1,16 @@
-
 """Development-only bioinformatics workflow.
 
 All studies and users are fictional. Data resets on server restart.
 Never use this module with real patient information.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from io import BytesIO
 
 from fastapi import HTTPException
 
 from app.integrations.apigen import ApigenSimulador
 from app.modules.logistics import mock_delivery
-
-from io import BytesIO
-from threading import Lock
-
 
 MOCK_BIOINFORMATICIANS = {
     "analyst-1": "Bioinformático de prueba 1",
@@ -74,9 +70,7 @@ def _study_details(study_id: int, batch_id: int) -> dict:
         "id": study_id,
         "batch_id": batch_id,
         "state": mock_delivery._study_states[study_id],
-        "pompe_urgent": (
-            study_id in mock_delivery._MOCK_URGENT_STUDIES
-        ),
+        "pompe_urgent": (study_id in mock_delivery._MOCK_URGENT_STUDIES),
         "arrived_at": _get_arrival_time(study_id),
         "pathology": MOCK_STUDY_PATHOLOGIES.get(
             study_id,
@@ -92,15 +86,10 @@ def list_available_studies() -> list[dict]:
 
         for batch in mock_delivery._batches:
             for study_id in batch["study_ids"]:
-                if (
-                    mock_delivery._study_states.get(study_id)
-                    != "EnElAreaDeBioinformatica"
-                ):
+                if mock_delivery._study_states.get(study_id) != "EnElAreaDeBioinformatica":
                     continue
 
-                studies.append(
-                    _study_details(study_id, batch["id"])
-                )
+                studies.append(_study_details(study_id, batch["id"]))
 
         return sorted(
             studies,
@@ -121,10 +110,7 @@ def get_study_genes(study_id: int) -> dict:
                 detail="No se encontró el estudio.",
             )
 
-        if (
-            mock_delivery._study_states.get(study_id)
-            != "EnElAreaDeBioinformatica"
-        ):
+        if mock_delivery._study_states.get(study_id) != "EnElAreaDeBioinformatica":
             raise HTTPException(
                 status_code=409,
                 detail="El estudio ya no está disponible.",
@@ -163,16 +149,10 @@ def take_study(study_id: int, analyst_id: str) -> dict:
                 detail="No se encontró el estudio.",
             )
 
-        if (
-            mock_delivery._study_states.get(study_id)
-            != "EnElAreaDeBioinformatica"
-        ):
+        if mock_delivery._study_states.get(study_id) != "EnElAreaDeBioinformatica":
             raise HTTPException(
                 status_code=409,
-                detail=(
-                    "El estudio ya no está disponible. "
-                    "Actualizá la lista."
-                ),
+                detail=("El estudio ya no está disponible. Actualizá la lista."),
             )
 
         if study_id in _assignments:
@@ -181,7 +161,7 @@ def take_study(study_id: int, analyst_id: str) -> dict:
                 detail="El estudio ya fue asignado.",
             )
 
-        assigned_at = datetime.now(timezone.utc)
+        assigned_at = datetime.now(UTC)
 
         assignment = {
             "study_id": study_id,
@@ -193,9 +173,7 @@ def take_study(study_id: int, analyst_id: str) -> dict:
         }
 
         _assignments[study_id] = assignment
-        mock_delivery._study_states[
-            study_id
-        ] = "EnAnalisisPorUnBioinformatico"
+        mock_delivery._study_states[study_id] = "EnAnalisisPorUnBioinformatico"
 
         return dict(assignment)
 
@@ -225,7 +203,6 @@ def list_assigned_studies(analyst_id: str) -> list[dict]:
         )
 
 
-
 def _validate_analysis_access(study_id: int, analyst_id: str) -> dict:
     """Call only while holding the delivery lock."""
     if analyst_id not in MOCK_BIOINFORMATICIANS:
@@ -248,9 +225,7 @@ def _validate_analysis_access(study_id: int, analyst_id: str) -> dict:
 
 
 def _available_genes(study_id: int) -> list[str]:
-    pathology = MOCK_STUDY_PATHOLOGIES.get(
-        study_id, "Patología simulada"
-    )
+    pathology = MOCK_STUDY_PATHOLOGIES.get(study_id, "Patología simulada")
     return ApigenSimulador().genes_por_patologia(pathology)
 
 
@@ -267,18 +242,20 @@ def _variant_catalogue(gene: str) -> list[dict]:
         for item in original
     ]
 
-    variants.extend([
-        {
-            "gene": gene,
-            "variant": f"{gene}:SIM-PAT",
-            "classification": "Patogénica",
-        },
-        {
-            "gene": gene,
-            "variant": f"{gene}:SIM-BEN",
-            "classification": "Benigna",
-        },
-    ])
+    variants.extend(
+        [
+            {
+                "gene": gene,
+                "variant": f"{gene}:SIM-PAT",
+                "classification": "Patogénica",
+            },
+            {
+                "gene": gene,
+                "variant": f"{gene}:SIM-BEN",
+                "classification": "Benigna",
+            },
+        ]
+    )
     return variants
 
 
@@ -326,10 +303,7 @@ def get_analysis(study_id: int, analyst_id: str) -> dict:
 
         return {
             "study_id": study_id,
-            "variants": [
-                dict(item)
-                for item in record["variants"]
-            ] if record else [],
+            "variants": [dict(item) for item in record["variants"]] if record else [],
         }
 
 
@@ -349,10 +323,7 @@ def register_variant(
             )
 
         selected = next(
-            (
-                item for item in _variant_catalogue(gene)
-                if item["variant"] == variant
-            ),
+            (item for item in _variant_catalogue(gene) if item["variant"] == variant),
             None,
         )
 
@@ -373,10 +344,7 @@ def register_variant(
             {"variants": [], "completed_at": None, "pdf": None},
         )
 
-        if any(
-            item["gene"] == gene and item["variant"] == variant
-            for item in record["variants"]
-        ):
+        if any(item["gene"] == gene and item["variant"] == variant for item in record["variants"]):
             raise HTTPException(
                 409,
                 "La variante ya está registrada.",
@@ -401,7 +369,8 @@ def remove_variant(
 
         match = next(
             (
-                item for item in record["variants"]
+                item
+                for item in record["variants"]
                 if item["gene"] == gene and item["variant"] == variant
             ),
             None,
@@ -415,11 +384,7 @@ def remove_variant(
 
 
 def _pdf_escape(value: str) -> str:
-    return (
-        value.replace("\\", "\\\\")
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-    )
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
 def _create_mock_pdf(study_id: int, variants: list[dict]) -> bytes:
@@ -440,9 +405,7 @@ def _create_mock_pdf(study_id: int, variants: list[dict]) -> bytes:
                 "Benigna": "Benigna",
                 "VUS": "VUS",
             }[item["classification"]]
-            lines.append(
-                f"{item['gene']} | {item['variant']} | {classification}"
-            )
+            lines.append(f"{item['gene']} | {item['variant']} | {classification}")
 
     commands = ["BT", "/F1 11 Tf", "50 790 Td", "15 TL"]
     for index, line in enumerate(lines):
@@ -463,11 +426,7 @@ def _create_mock_pdf(study_id: int, variants: list[dict]) -> bytes:
             b"/Contents 5 0 R >>"
         ),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        (
-            f"<< /Length {len(stream)} >>\nstream\n".encode("ascii")
-            + stream
-            + b"\nendstream"
-        ),
+        (f"<< /Length {len(stream)} >>\nstream\n".encode("ascii") + stream + b"\nendstream"),
     ]
 
     output = BytesIO()
@@ -489,8 +448,7 @@ def _create_mock_pdf(study_id: int, variants: list[dict]) -> bytes:
 
     output.write(
         (
-            f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\n"
-            f"startxref\n{xref_offset}\n%%EOF\n"
+            f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n"
         ).encode("ascii")
     )
 
@@ -507,7 +465,7 @@ def complete_analysis(study_id: int, analyst_id: str) -> dict:
         )
 
         variants = [dict(item) for item in record["variants"]]
-        completed_at = datetime.now(timezone.utc)
+        completed_at = datetime.now(UTC)
         pdf = _create_mock_pdf(study_id, variants)
 
         record["completed_at"] = completed_at
@@ -556,7 +514,6 @@ def get_result_pdf(study_id: int, analyst_id: str) -> bytes:
             raise HTTPException(404, "El resultado todavía no está disponible.")
 
         return record["pdf"]
-
 
 
 # Fictional identities and study ownership for development only.
@@ -644,13 +601,15 @@ def list_results(role: str, actor_id: str) -> list[dict]:
             if record is None or record["pdf"] is None:
                 continue
 
-            results.append({
-                "study_id": study_id,
-                "state": "ResultadoDisponible",
-                "variant_count": len(record["variants"]),
-                "negative": len(record["variants"]) == 0,
-                "completed_at": record["completed_at"],
-            })
+            results.append(
+                {
+                    "study_id": study_id,
+                    "state": "ResultadoDisponible",
+                    "variant_count": len(record["variants"]),
+                    "negative": len(record["variants"]) == 0,
+                    "completed_at": record["completed_at"],
+                }
+            )
 
         return sorted(
             results,
@@ -694,9 +653,7 @@ def get_result(
         }
 
         if role == "medico_tratante":
-            result["variants"] = [
-                dict(item) for item in record["variants"]
-            ]
+            result["variants"] = [dict(item) for item in record["variants"]]
 
         return result
 
