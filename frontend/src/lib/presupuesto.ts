@@ -8,6 +8,15 @@ export interface Cobertura {
   porcentaje: number
   estado: 'Pendiente' | 'Autorizado' | 'Rechazado'
   motivo_rechazo: string | null
+  demanda_enviada?: boolean
+  demanda_nombre?: string | null
+}
+
+export interface CuponAplicado {
+  codigo: string
+  descuento: number
+  importe_original_usd: number
+  importe_con_descuento_usd: number
 }
 
 export interface EstudioDelPaciente {
@@ -16,6 +25,7 @@ export interface EstudioDelPaciente {
   cantidad_genes: number
   importe_usd: number | null
   cobertura: Cobertura | null
+  cupon_aplicado?: CuponAplicado | null
 }
 
 export const MIS_ESTUDIOS_KEY = ['presupuesto', 'mis-estudios']

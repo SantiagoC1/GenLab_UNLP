@@ -1,4 +1,50 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
+
+from app.core.enums import Rol
+from app.core.security import get_current_user, require_role
+from app.integrations.avisos import AvisosIntegracion, obtener_avisos
+from app.integrations.cupones import CuponesIntegracion, obtener_cupones
+from app.modules.cupones.repositorio import (
+    RepositorioCupones,
+    RepositorioMedicos,
+    RepositorioPacientes,
+    obtener_repositorio,
+    obtener_repositorio_medicos,
+    obtener_repositorio_pacientes,
+)
+from app.modules.cupones.schemas import (
+    AsignacionAPacienteSalida,
+    AsignacionSalida,
+    AsignarAMedicoEntrada,
+    AsignarAPacienteEntrada,
+    CuponSalida,
+    GenerarCuponesEntrada,
+    MedicoSalida,
+    MisCuponesMedicoSalida,
+    PacienteSalida,
+)
+from app.modules.cupones.servicio import CuponesServicio
+
+# Generar y asignar a médicos: gerente médico. Asignar a pacientes: médico tratante.
+exigir_gerente = require_role(Rol.GERENTE_MEDICO)
+exigir_medico = require_role(Rol.MEDICO_TRATANTE)
+exigir_paciente = require_role(Rol.PACIENTE)
+
+
+def obtener_servicio(
+    repositorio: Annotated[RepositorioCupones, Depends(obtener_repositorio)],
+    cupones: Annotated[CuponesIntegracion, Depends(obtener_cupones)],
+    avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
+    medicos: Annotated[RepositorioMedicos, Depends(obtener_repositorio_medicos)],
+    pacientes: Annotated[RepositorioPacientes, Depends(obtener_repositorio_pacientes)],
+) -> CuponesServicio:
+    return CuponesServicio(repositorio, cupones, avisos, medicos, pacientes)
+
+
+Servicio = Annotated[CuponesServicio, Depends(obtener_servicio)]
 
 # M5. Cupones de descuento
 router = APIRouter(prefix="/cupones", tags=["cupones"])
@@ -8,3 +54,75 @@ router = APIRouter(prefix="/cupones", tags=["cupones"])
 def ping() -> dict[str, str]:
     """Prueba de humo del router. Se borra cuando el paquete tenga endpoints reales."""
     return {"modulo": "cupones"}
+
+
+@router.post("/generar", status_code=201, dependencies=[Depends(exigir_gerente)])
+def generar_cupones(datos: GenerarCuponesEntrada, servicio: Servicio) -> list[CuponSalida]:
+    """Pide los cupones al módulo de cupones y los devuelve Vigentes, con su PDF y su QR."""
+    return servicio.generar(datos.descuento, datos.cantidad)
+
+
+@router.get("", dependencies=[Depends(exigir_gerente)])
+def listar_cupones(servicio: Servicio) -> list[CuponSalida]:
+    return servicio.listar()
+
+
+@router.get("/medicos", dependencies=[Depends(exigir_gerente)])
+def buscar_medicos(
+    q: Annotated[str, Query(min_length=1, max_length=80)], servicio: Servicio
+) -> list[MedicoSalida]:
+    """Médicos tratantes buscados por nombre o matrícula."""
+    return servicio.buscar_medicos(q)
+
+
+@router.post("/asignar-a-medico", dependencies=[Depends(exigir_gerente)])
+def asignar_a_medico(datos: AsignarAMedicoEntrada, servicio: Servicio) -> AsignacionSalida:
+    """Asigna cupones Vigentes al médico tratante y le avisa."""
+    return servicio.asignar_a_medico(datos.contacto_medico, datos.codigos)
+
+
+@router.get("/mis-cupones")
+def ver_mis_cupones_de_medico(
+    usuario: Annotated[dict, Depends(exigir_medico)], servicio: Servicio
+) -> MisCuponesMedicoSalida:
+    """Los cupones disponibles del médico, para dárselos a sus pacientes."""
+    return servicio.cupones_del_medico(usuario["email"])
+
+
+@router.get("/mis-pacientes")
+def ver_mis_pacientes(
+    usuario: Annotated[dict, Depends(exigir_medico)], servicio: Servicio
+) -> list[PacienteSalida]:
+    return servicio.pacientes_del_medico(usuario["email"])
+
+
+@router.post("/asignar-a-paciente")
+def asignar_a_paciente(
+    datos: AsignarAPacienteEntrada,
+    usuario: Annotated[dict, Depends(exigir_medico)],
+    servicio: Servicio,
+) -> AsignacionAPacienteSalida:
+    """Lo descuenta de los disponibles del médico y lo publica en la vista del paciente."""
+    return servicio.asignar_a_paciente(usuario["email"], datos.contacto_paciente, datos.codigo)
+
+
+@router.get("/asignados")
+def ver_cupones_asignados(
+    usuario: Annotated[dict, Depends(exigir_paciente)], servicio: Servicio
+) -> list[CuponSalida]:
+    """Los cupones que el médico le asignó al paciente."""
+    return servicio.cupones_del_paciente(usuario["email"])
+
+
+@router.get("/{codigo}/pdf")
+def descargar_pdf(
+    codigo: str,
+    usuario: Annotated[dict, Depends(get_current_user)],
+    servicio: Servicio,
+) -> Response:
+    """El PDF lo baja el gerente médico, el médico que lo tiene o el paciente que lo recibió."""
+    return Response(
+        servicio.pdf(codigo, usuario),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="cupon-{codigo}.pdf"'},
+    )
