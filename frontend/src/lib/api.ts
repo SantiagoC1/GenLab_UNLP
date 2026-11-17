@@ -1,4 +1,4 @@
-import { clearSession, readSession } from './session'
+import { clearSession, devHeaders, readSession } from './session'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -27,6 +27,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
+      ...devHeaders(),
       ...init?.headers,
     },
   })
@@ -46,4 +47,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 /** Cuerpo JSON para api(): api('/ruta', { method: 'POST', ...json({ a: 1 }) }) */
 export function json(body: unknown): { body: string } {
   return { body: JSON.stringify(body) }
+}
+
+/** El mensaje para mostrarle al usuario: el que mandó el backend, o que no hay conexión. */
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'No pudimos conectarnos. Revisá tu conexión.'
 }

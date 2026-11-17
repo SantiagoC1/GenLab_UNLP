@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.enums import EstadoEstudio, Rol
+from app.core.enums import CdssStrategy, EstadoEstudio, Rol
 
 SCHEMA = (Path(__file__).resolve().parents[2] / "supabase" / "schema.sql").read_text(
     encoding="utf-8"
@@ -40,6 +40,14 @@ def test_user_roles_match_the_enum():
 )
 def test_study_states_match_the_enum(table, column):
     assert _allowed_values(table, column) == {estado.value for estado in EstadoEstudio}
+
+
+def test_cdss_strategies_match_the_enum():
+    match = re.search(
+        r"constraint cdss_strategy_valid check \(.*?value in \((.*?)\)\n?\s*\)", SCHEMA, re.S
+    )
+    assert match, "app_settings no tiene el CHECK cdss_strategy_valid"
+    assert set(re.findall(r"'([^']+)'", match.group(1))) == {s.value for s in CdssStrategy}
 
 
 def test_pompe_urgent_is_a_mark_and_not_a_state():

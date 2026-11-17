@@ -14,6 +14,7 @@ def isolated_state(monkeypatch):
     """Cada test arranca sin clave de modelo, sin claves de consumidores y con memoria limpia."""
     settings = get_settings()
     monkeypatch.setattr(settings, "gemini_api_key", "")
+    monkeypatch.setattr(settings, "gemini_model", "")
     monkeypatch.setattr(settings, "groq_api_key", "")
     monkeypatch.setattr(settings, "nvidia_api_key", "")
     monkeypatch.setattr(settings, "openrouter_api_key", "")

@@ -21,6 +21,14 @@ class EstadoEstudio(StrEnum):
     RESULTADO_DISPONIBLE = "ResultadoDisponible"
 
 
+class CdssStrategy(StrEnum):
+    """Estrategias del CDSS (M2-RF5). Son los valores permitidos por `app_settings`."""
+
+    MATCHING_SYMPTOMS = "sintomas_coincidentes"
+    MATCHING_CARDINAL_SYMPTOMS = "sintomas_cardinales_coincidentes"
+    SMALLEST_DIFFERENCE = "menor_diferencia"
+
+
 class Rol(StrEnum):
     ADMINISTRADOR_GENERAL = "administrador_general"
     GERENTE_MEDICO = "gerente_medico"

@@ -41,4 +41,53 @@ describe('api', () => {
     await expect(api('/something')).rejects.toThrow('Credenciales inválidas.')
     expect(readSession()).not.toBeNull()
   })
+
+  describe('DEV auth bypass', () => {
+    afterEach(() => {
+      localStorage.clear()
+      vi.unstubAllEnvs()
+    })
+
+    it('sends the role chosen in the DEV selector when there is no session', async () => {
+      localStorage.setItem('genlab.rol-dev', 'gerente_medico')
+      const mock = mockApi({ 'GET /something': { body: {} } })
+      await api('/something')
+      expect(mock.mock.calls[0][1]?.headers).toMatchObject({ 'X-Dev-Role': 'gerente_medico' })
+      expect(mock.mock.calls[0][1]?.headers).not.toHaveProperty('X-Dev-User')
+    })
+
+    it('uses the same default role as the selector and ignores an unknown one', async () => {
+      localStorage.setItem('genlab.rol-dev', 'superusuario')
+      const mock = mockApi({ 'GET /something': { body: {} } })
+      await api('/something')
+      expect(mock.mock.calls[0][1]?.headers).toMatchObject({ 'X-Dev-Role': 'paciente' })
+    })
+
+    it('also sends X-Dev-User when one was chosen', async () => {
+      localStorage.setItem('genlab.rol-dev', 'paciente')
+      localStorage.setItem('genlab.user-dev', 'martin.gomez@example.com')
+      const mock = mockApi({ 'GET /something': { body: {} } })
+      await api('/something')
+      expect(mock.mock.calls[0][1]?.headers).toMatchObject({
+        'X-Dev-Role': 'paciente',
+        'X-Dev-User': 'martin.gomez@example.com',
+      })
+    })
+
+    it('sends nothing when there is a real session', async () => {
+      localStorage.setItem('genlab.rol-dev', 'gerente_medico')
+      saveSession({ token: 'abc', rol: 'paciente', mustChangePassword: false })
+      const mock = mockApi({ 'GET /something': { body: {} } })
+      await api('/something')
+      expect(mock.mock.calls[0][1]?.headers).not.toHaveProperty('X-Dev-Role')
+    })
+
+    it('sends nothing in a production build', async () => {
+      vi.stubEnv('DEV', false)
+      localStorage.setItem('genlab.rol-dev', 'gerente_medico')
+      const mock = mockApi({ 'GET /something': { body: {} } })
+      await api('/something')
+      expect(mock.mock.calls[0][1]?.headers).not.toHaveProperty('X-Dev-Role')
+    })
+  })
 })

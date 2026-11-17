@@ -96,7 +96,12 @@ def _units(body: str) -> list[str]:
         if lines and all(line.startswith("- ") for line in lines):
             units.extend(line[2:] for line in lines)
         elif lines:
-            units.append("\n".join(lines))
+            text = "\n".join(lines)
+            if units and units[-1].endswith(":"):
+                # Una introducción ("…estas etapas:") va con la lista que presenta, no sola
+                units[-1] = f"{units[-1]}\n\n{text}"
+            else:
+                units.append(text)
     return units
 
 

@@ -30,3 +30,5 @@ Thumbs.db
 # Datos locales
 *.sqlite3
 pgdata/
+
+supabase/.temp/

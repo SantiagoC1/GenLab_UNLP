@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { SESSION_EXPIRED_EVENT } from '../lib/api'
-import { clearSession, readSession, saveSession, type Session } from '../lib/session'
+import { DEV_ROLE_KEY, clearSession, readSession, saveSession, type Session } from '../lib/session'
 import { RolContext } from './rol-context'
 import { ROLES, type Rol } from './roles'
 
-const CLAVE = 'genlab.rol-dev'
+const CLAVE = DEV_ROLE_KEY
 
 function rolInicial(): Rol {
   const guardado = localStorage.getItem(CLAVE)

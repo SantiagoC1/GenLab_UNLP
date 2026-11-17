@@ -6,7 +6,7 @@ MODULOS = [
     "presupuesto_pago",
     "cupones",
     "turnos",
-    "logistica",
+    "logistics",
     "bioinformatica",
     "avisos",
 ]

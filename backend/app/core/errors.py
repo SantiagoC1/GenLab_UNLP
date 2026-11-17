@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 
 class BusinessRuleError(Exception):
-    """Una regla del dominio impide la operación (se responde 409 por defecto)."""
+    """Una regla del dominio impide la operación (409 por defecto)."""
 
     status_code = 409
     # Opcional: le permite al frontend distinguir casos sin leer el mensaje.
@@ -20,7 +20,10 @@ class BusinessRuleError(Exception):
 
 
 class InvalidIntegration(BusinessRuleError):
-    """Un módulo externo no responde (M10-RF3). No se pierde el trabajo ya cargado."""
+    """Un módulo externo no responde (M10-RF3).
+
+    No se pierde el trabajo ya cargado.
+    """
 
     status_code = 503
 
@@ -30,13 +33,16 @@ class InvalidIntegration(BusinessRuleError):
 
 
 class Unauthenticated(BusinessRuleError):
-    """No se pudo identificar al usuario (credenciales o código incorrectos)."""
+    """No se pudo identificar al usuario (credenciales o código)."""
 
     status_code = 401
 
 
 class InvalidSession(Unauthenticated):
-    """Token ausente, inválido o vencido. El frontend termina la sesión cuando recibe esto."""
+    """Token ausente, inválido o vencido.
+
+    El frontend termina la sesión cuando recibe esto.
+    """
 
     code = "invalid_session"
 
@@ -48,33 +54,32 @@ class Forbidden(BusinessRuleError):
 
 
 class MustChangePassword(Forbidden):
-    """M1-RF7: hasta que se cambie la contraseña inicial, no se puede usar nada más."""
+    """Hasta cambiar la contraseña inicial no se puede usar nada más."""
 
     code = "must_change_password"
 
 
 class TooManyRequests(BusinessRuleError):
-    """
-    Se pidió lo mismo demasiadas veces seguidas (por ejemplo, otro código por mail).
+    """Se pidió lo mismo demasiadas veces seguidas (otro código por mail).
 
-    REUTILIZABLE: cualquier módulo que limite la frecuencia de una acción.
+    REUTILIZABLE: cualquier módulo que limite la frecuencia de una
+    acción.
     """
 
     status_code = 429
 
 
 class AccountBlocked(BusinessRuleError):
-    """
-    La cuenta está bloqueada por demasiados intentos fallidos de ingreso.
-    """
+    """La cuenta está bloqueada por demasiados intentos fallidos de ingreso."""
 
     status_code = 423
 
 
 def register_handlers(app: FastAPI) -> None:
-    """Registra los manejadores de errores de negocio y de validación en la app.
+    """Registra los manejadores de errores de negocio y de validación.
 
-    Todas las respuestas de error usan la clave `detalle` (el frontend la lee así).
+    Todas las respuestas de error usan la clave `detalle` (el frontend
+    la lee así).
     """
 
     @app.exception_handler(BusinessRuleError)

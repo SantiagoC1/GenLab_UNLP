@@ -31,7 +31,7 @@ const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Los mensajes son lo que lee la persona, así que van en español (vocabulario del LEL).
 
-/** Valida lo que tienen en común el registro (escenario 1) y el alta del administrador (escenario 2). */
+/** Valida lo que tienen en común el registro y el alta del administrador. */
 export function validatePerson(v: PersonData): Errors {
   const errors: Errors = {}
   if (!v.rol) errors.rol = 'Elegí un rol.'
