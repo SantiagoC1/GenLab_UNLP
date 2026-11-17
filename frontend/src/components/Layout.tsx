@@ -22,8 +22,12 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 function NoticeMenuLink({ role }: { role: MockRole }) {
   const [actorId] = useMockActor(role)
-  const [pendingCount, setPendingCount] = useState<number | null>(null)
+  // The count is stored with the key it was fetched for, so it disappears when role, actor or route change
+  // without resetting state synchronously inside the effect.
+  const [pending, setPending] = useState<{ key: string; count: number } | null>(null)
   const location = useLocation()
+  const key = `${role}:${actorId}:${location.pathname}`
+  const pendingCount = pending?.key === key ? pending.count : null
 
   useEffect(() => {
     let active = true
@@ -37,13 +41,12 @@ function NoticeMenuLink({ role }: { role: MockRole }) {
 
         const data = await api<NoticeSummary>(`/notifications/summary?${params.toString()}`)
 
-        if (active) setPendingCount(data.pending_count)
+        if (active) setPending({ key, count: data.pending_count })
       } catch {
-        if (active) setPendingCount(null)
+        if (active) setPending(null)
       }
     }
 
-    setPendingCount(null)
     void refresh()
 
     const interval = window.setInterval(() => void refresh(), 15000)
@@ -52,7 +55,7 @@ function NoticeMenuLink({ role }: { role: MockRole }) {
       active = false
       window.clearInterval(interval)
     }
-  }, [role, actorId, location.pathname])
+  }, [role, actorId, key])
 
   return (
     <NavLink to="/avisos" className={linkClass}>
