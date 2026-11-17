@@ -1,9 +1,3 @@
-"""Acceso a las tablas `patients`, `patient_pathologies` y `patient_symptoms`.
-
-Usa el cliente admin (service role), que no pasa por RLS. El cliente no tiene transacciones: si un
-paso falla, se deshacen a mano los anteriores (igual que en el repositorio de config médica).
-"""
-
 from postgrest.exceptions import APIError
 
 from app.database import supabase_admin
@@ -16,15 +10,18 @@ class DniTaken(Exception):
 
 
 def _table(name: str):
-    """Devuelve la tabla del cliente admin. Existe para no repetir `supabase_admin.table`."""
+    """Devuelve la tabla del cliente admin.
+
+    Existe para no repetir `supabase_admin.table`.
+    """
     return supabase_admin.table(name)
 
 
 def find_by_dni(dni: str) -> dict | None:
-    """Devuelve el paciente con ese DNI, o None si no existe (escenario 9, M3-RF7).
+    """Devuelve el paciente con ese DNI, o None.
 
-    Pide solo las columnas que la búsqueda necesita: así el resumen clínico y la cuenta de acceso
-    no salen de la base ni aunque alguien cambie la respuesta de la API.
+    Pide solo las columnas mínimas para que el resumen clínico no salga
+    de la base.
     """
     rows = (
         _table("patients")
@@ -37,12 +34,27 @@ def find_by_dni(dni: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def find_by_id(patient_id: str) -> dict | None:
+    """Devuelve el paciente con ese id, o None.
+
+    Mismas columnas mínimas que `find_by_dni`.
+    """
+    rows = (
+        _table("patients")
+        .select("id, dni, first_name, last_name, birth_date")
+        .eq("id", patient_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    return rows[0] if rows else None
+
+
 def create(row: dict, pathology_ids: list[int], symptoms: list[dict]) -> dict:
     """Guarda el paciente con sus diagnósticos presuntivos y sus síntomas.
 
-    Orden: primero los síntomas en el catálogo `symptoms` (si el código ya está, se conserva su
-    término), después el paciente y por último los vínculos. Si fallan los vínculos se borra el
-    paciente, y sus vínculos caen con él porque las tablas hijas tienen `on delete cascade`.
+    Si fallan los vínculos borra el paciente; los vínculos caen en
+    cascada.
     """
     if symptoms:
         _table("symptoms").upsert(symptoms, on_conflict="code", ignore_duplicates=True).execute()
@@ -73,5 +85,38 @@ def create(row: dict, pathology_ids: list[int], symptoms: list[dict]) -> dict:
 
 
 def delete(patient_id: str) -> None:
-    """Borra el paciente. Sus diagnósticos y síntomas se borran en cascada."""
+    """Borra el paciente.
+
+    Sus diagnósticos y síntomas se borran en cascada.
+    """
     _table("patients").delete().eq("id", patient_id).execute()
+
+
+def create_study(row: dict, pathology_ids: list[int], genes: list[dict]) -> dict:
+    """Guarda el estudio con sus patologías, genes e historial.
+
+    Si falla un paso, borra el estudio; lo demás cae en cascada.
+    """
+    study = _table("studies").insert(row).execute().data[0]
+    try:
+        pathology_rows = [
+            {"study_id": study["id"], "pathology_id": pathology_id}
+            for pathology_id in pathology_ids
+        ]
+        _table("study_pathologies").insert(pathology_rows).execute()
+        gene_rows = [
+            {"study_id": study["id"], "gene": gene["gene"], "origin": gene["origin"]}
+            for gene in genes
+        ]
+        _table("study_genes").insert(gene_rows).execute()
+        history = {
+            "study_id": study["id"],
+            "from_state": None,
+            "to_state": study["state"],
+            "changed_by": row["requested_by"],
+        }
+        _table("study_state_history").insert(history).execute()
+    except Exception:
+        _table("studies").delete().eq("id", study["id"]).execute()
+        raise
+    return study
