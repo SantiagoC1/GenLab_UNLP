@@ -16,13 +16,13 @@ export function SelectorDeRol() {
   }
 
   return (
-    <label className="flex items-center gap-2 text-xs text-amber-900">
-      <span className="rounded bg-amber-200 px-1.5 py-0.5 font-medium">DEV</span>
+    <label className="block rounded-control border border-warning-line bg-warning-soft p-2 text-xs text-warning">
+      <span className="mb-1 block font-semibold">DEV · rol</span>
       <select
         aria-label="Rol de desarrollo"
         value={rol}
         onChange={(e) => cambiar(e.target.value as Rol)}
-        className="rounded border border-amber-300 bg-white px-2 py-1 text-sm text-slate-900"
+        className="block min-h-11 w-full min-w-0 rounded-control border border-warning-line bg-surface px-2 py-1 text-base text-ink"
       >
         {ROLES.map((r) => (
           <option key={r} value={r}>
