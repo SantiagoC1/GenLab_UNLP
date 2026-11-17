@@ -14,6 +14,7 @@ import type { Rol } from './roles/roles'
 interface SimulatedResponse {
   status?: number
   body: unknown
+  headers?: Record<string, string>
 }
 
 /**
@@ -39,7 +40,7 @@ export function mockApi(
     const route = typeof simulated === 'function' ? simulated(url) : simulated
     return new Response(JSON.stringify(route.body), {
       status: route.status ?? 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...route.headers },
     })
   })
   vi.stubGlobal('fetch', mock)

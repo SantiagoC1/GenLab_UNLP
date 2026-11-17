@@ -37,11 +37,12 @@ function renderLayout() {
 afterEach(() => vi.unstubAllGlobals())
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   mockApi({})
 })
 
 async function openChat(user: User) {
-  await user.click(await screen.findByRole('button', { name: 'Abrir chat' }))
+  await user.click(await screen.findByRole('button', { name: 'Consultar al chatbot' }))
 }
 
 async function typeAndSend(user: User, text: string) {
@@ -53,14 +54,14 @@ describe('Chatbot del paciente', () => {
   it('muestra el botón en las pantallas del paciente', async () => {
     startTestSession('paciente')
     renderLayout()
-    expect(await screen.findByRole('button', { name: 'Abrir chat' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Consultar al chatbot' })).toBeInTheDocument()
   })
 
   it('no lo muestra en las pantallas de otros roles', async () => {
     startTestSession('administrador_general')
     renderLayout()
     await screen.findByRole('navigation', { name: 'Principal' })
-    expect(screen.queryByRole('button', { name: 'Abrir chat' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Consultar al chatbot' })).not.toBeInTheDocument()
   })
 
   it('envía la consulta y muestra la respuesta, con el aviso de que no da diagnósticos', async () => {
@@ -135,8 +136,91 @@ describe('Chatbot del paciente', () => {
     const user = userEvent.setup()
 
     await openChat(user)
-    expect(screen.getByRole('region', { name: 'Chatbot' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Chatbot' })).toBeInTheDocument()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('region', { name: 'Chatbot' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Chatbot' })).not.toBeInTheDocument()
+  })
+
+  it('401: explica que es un problema de conexión sin detalles técnicos', async () => {
+    startTestSession('paciente')
+    mockApi({ [MESSAGES]: { status: 401, body: { detalle: 'apikey inválida' } } })
+    renderLayout()
+    const user = userEvent.setup()
+
+    await openChat(user)
+    await typeAndSend(user, 'Hola')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('No pudimos conectarnos con el asistente')
+    expect(alert).not.toHaveTextContent('apikey')
+  })
+
+  it('422: pide una pregunta de hasta 1000 caracteres', async () => {
+    startTestSession('paciente')
+    mockApi({ [MESSAGES]: { status: 422, body: { detalle: 'mensaje inválido' } } })
+    renderLayout()
+    const user = userEvent.setup()
+
+    await openChat(user)
+    await typeAndSend(user, 'Hola')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('hasta 1000 caracteres')
+  })
+
+  it('429: indica cuántos segundos esperar y bloquea el envío', async () => {
+    startTestSession('paciente')
+    mockApi({
+      [MESSAGES]: { status: 429, body: { detalle: 'Límite' }, headers: { 'Retry-After': '30' } },
+    })
+    renderLayout()
+    const user = userEvent.setup()
+
+    await openChat(user)
+    await typeAndSend(user, 'Hola')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('en 30 segundos')
+    await user.type(screen.getByLabelText('Tu consulta'), 'otra')
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+  })
+
+  it('sin red: ofrece reintentar y reenvía el último mensaje', async () => {
+    startTestSession('paciente')
+    // Only the first chatbot request fails: the layout makes other requests of its own first.
+    let failed = false
+    const mock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('/chatbot/messages') && !failed) {
+        failed = true
+        throw new TypeError('Failed to fetch')
+      }
+      return new Response(JSON.stringify(BODY), { status: 200 })
+    })
+    vi.stubGlobal('fetch', mock)
+    renderLayout()
+    const user = userEvent.setup()
+
+    await openChat(user)
+    await typeAndSend(user, 'Hola')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Algo salió mal')
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }))
+
+    expect(await screen.findByText(ANSWER)).toBeInTheDocument()
+    expect(screen.getAllByText('Hola')).toHaveLength(1)
+  })
+
+  it('no deja enviar un mensaje de más de 1000 caracteres ni uno vacío', async () => {
+    startTestSession('paciente')
+    mockApi({})
+    renderLayout()
+    const user = userEvent.setup()
+
+    await openChat(user)
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Tu consulta'), '   ')
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+    await user.clear(screen.getByLabelText('Tu consulta'))
+    await user.click(screen.getByLabelText('Tu consulta'))
+    await user.paste('a'.repeat(1001))
+    expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+    expect(screen.getByText(/demasiado largo/)).toBeInTheDocument()
   })
 })
