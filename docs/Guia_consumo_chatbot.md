@@ -1,34 +1,42 @@
 # Guía para consumir el chatbot de GenLab
 
-Para los grupos que quieren usar el chatbot en su aplicación (módulo adicional 8). El detalle de cada campo y error está en el [contrato de la API](Contrato_API_Chatbot.md).
+Para los grupos que quieren usar el chatbot en su aplicación (módulo adicional 8). El detalle de cada campo y error está en el [contrato de la API](Contrato_API_Chatbot.md), y los casos listos para probar están en [`chatbot.http`](chatbot.http).
 
-## 1. Pedir una clave
+El chatbot es una Edge Function de Supabase. Se consume por HTTP, igual que los demás módulos compartidos de la materia.
 
-Cada grupo usa su propia clave en el encabezado `X-API-Key`. Pedísela al grupo que mantiene el chatbot, indicando el nombre de tu grupo. Te dan una clave y la URL del servicio.
+## 1. Pedir las credenciales
 
-- La clave es secreta: no la subas al repositorio ni la pongas en código que corra en el navegador.
-- Si la perdés o se filtra, pedí una nueva.
-- En desarrollo local, el servicio puede estar sin claves configuradas. En ese caso no hace falta el encabezado.
+Necesitás tres cosas. Las dos primeras te las da el grupo que mantiene el chatbot, indicando el nombre de tu grupo:
+
+| Dato | Qué es | Dónde va |
+|---|---|---|
+| URL | `https://<ref>.supabase.co/functions/v1/chat` | Variable de entorno de tu servidor (`CHATBOT_URL`) |
+| Clave publishable | La del proyecto de Supabase del chatbot. Es la clave compartible. | Header `apikey` (`CHATBOT_APIKEY`) |
+| Token del grupo | Propio de tu grupo. Te identifica y se puede revocar sin afectar a los demás. | Header `x-chatbot-token` (`CHATBOT_TOKEN`) |
+
+- El token es secreto: no lo subas al repositorio ni lo pongas en código que corra en el navegador.
+- Se muestra una sola vez al emitirlo. Si lo perdés o se filtra, pedí uno nuevo: el anterior deja de servir.
 
 ## 2. Hacer una consulta
 
-`POST {URL}/chat` con un JSON que tiene el `mensaje` y, si seguís una conversación, el `conversacion_id` que te devolvió el servicio.
+`POST {URL}` con un JSON que tiene el `mensaje` y, si seguís una conversación, el `conversacion_id` que te devolvió el servicio.
 
 ### Con curl
 
 En macOS, Linux o Git Bash:
 
 ```bash
-curl -X POST http://localhost:8001/chat \
+curl -X POST "$CHATBOT_URL" \
+  -H "apikey: $CHATBOT_APIKEY" \
+  -H "x-chatbot-token: $CHATBOT_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: tu-clave" \
   -d '{"mensaje": "¿Qué es un exoma clínico?", "conversacion_id": null}'
 ```
 
 En PowerShell (usá `curl.exe`, porque `curl` es otro comando):
 
 ```powershell
-curl.exe -X POST http://localhost:8001/chat -H "Content-Type: application/json" -H "X-API-Key: tu-clave" -d '{\"mensaje\": \"¿Qué es un exoma clínico?\", \"conversacion_id\": null}'
+curl.exe -X POST $env:CHATBOT_URL -H "apikey: $env:CHATBOT_APIKEY" -H "x-chatbot-token: $env:CHATBOT_TOKEN" -H "Content-Type: application/json" -d '{\"mensaje\": \"¿Qué es un exoma clínico?\", \"conversacion_id\": null}'
 ```
 
 Respuesta:
@@ -43,15 +51,24 @@ Respuesta:
 
 ### Con fetch (desde tu servidor)
 
-```js
-const CHATBOT_URL = process.env.CHATBOT_URL;
-const CHATBOT_API_KEY = process.env.CHATBOT_API_KEY;
+Un solo archivo conoce el módulo, así si el proveedor cambia algo se arregla en un lugar, y siempre con timeout para que tu app no se cuelgue si el proyecto está pausado:
 
-async function askChatbot(message, conversationId = null) {
-  const response = await fetch(`${CHATBOT_URL}/chat`, {
+```js
+// src/api/chatbot.js: único archivo que conoce el chatbot
+const CHATBOT_URL = process.env.CHATBOT_URL;
+const CHATBOT_APIKEY = process.env.CHATBOT_APIKEY;
+const CHATBOT_TOKEN = process.env.CHATBOT_TOKEN;
+
+export async function askChatbot(message, conversationId = null) {
+  const response = await fetch(CHATBOT_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-API-Key": CHATBOT_API_KEY },
+    headers: {
+      "Content-Type": "application/json",
+      apikey: CHATBOT_APIKEY,
+      "x-chatbot-token": CHATBOT_TOKEN,
+    },
     body: JSON.stringify({ mensaje: message, conversacion_id: conversationId }),
+    signal: AbortSignal.timeout(20000),
   });
 
   if (response.status === 429) {
@@ -69,6 +86,8 @@ async function askChatbot(message, conversationId = null) {
 }
 ```
 
+Para trabajar sin depender del chatbot, hacé una versión falsa de `askChatbot` (un mock local) que devuelva `{ respuesta, conversacion_id, tipo }`.
+
 ## 3. Mantener la conversación
 
 Guardá el `conversacion_id` de la primera respuesta y mandalo en los mensajes siguientes. Así el servicio entiende preguntas como "¿y cómo se hereda?". La conversación se olvida a los 30 minutos sin mensajes, y es solo tuya: otro consumidor no puede verla aunque use el mismo identificador.
@@ -78,30 +97,29 @@ Guardá el `conversacion_id` de la primera respuesta y mandalo en los mensajes s
 | Resultado | Qué hacer |
 |---|---|
 | `200` y cualquier `tipo` | Mostrar `respuesta` tal cual. Los tipos `fuera_de_alcance`, `derivar_medico` y `sin_informacion` también son respuestas válidas para el paciente. |
-| `429` | Esperar los segundos del encabezado `Retry-After` y reintentar una sola vez. Si sigue, mostrar un mensaje de "probá de nuevo en unos segundos". |
+| `429` | Esperar los segundos del header `Retry-After` y reintentar una sola vez. Si sigue, mostrar un mensaje de "probá de nuevo en unos segundos". |
 | `503` | El chatbot está apagado. Mostrar el mensaje de `detail` tal cual (por ejemplo, "El chatbot no está disponible por el momento") y no reintentar en bucle. |
-| `401` | La clave es incorrecta o falta. Es un error de configuración tuya: avisá al equipo, no al paciente. |
+| `401` | La `apikey` o el token son incorrectos o faltan. Es un error de configuración tuya: avisá al equipo, no al paciente. |
 | `422` | El mensaje es inválido (vacío, solo espacios o de más de 1000 caracteres). Validalo en tu pantalla antes de enviarlo. |
+| `500` | Falla del servicio. Mostrar un mensaje genérico y reintentar más tarde. |
 
 Un `tipo: "derivar_medico"` significa que la consulta pedía un diagnóstico, interpretar un resultado propio o un tratamiento. El chatbot sugiere hablar con el médico tratante. **No ofrezcas contacto con el laboratorio como alternativa**: por indicación del PO, el chatbot no deriva a una persona.
 
 ## 5. Recomendaciones
 
-- **Llamá siempre desde un servidor**, no desde el navegador. Si lo llamás desde el navegador, la clave queda a la vista de cualquiera.
-- **No mandes datos personales.** Ni nombre, ni DNI, ni mail, ni teléfono, ni resultados de un paciente. El servicio tapa mails y números largos, pero **no nombres**, y los proveedores de IA gratuitos pueden usar lo que reciben. Avisá en tu pantalla que no escriban datos personales.
+- **Llamá siempre desde un servidor**, no desde el navegador. La clave publishable se puede compartir, pero el token del grupo no: si lo llamás desde el navegador, queda a la vista de cualquiera. Lo habitual es que tu frontend le hable a tu backend y que tu backend llame al chatbot.
+- **No mandes datos personales.** Ni nombre, ni DNI, ni mail, ni teléfono, ni resultados de un paciente. El servicio tapa mails y números largos, pero **no nombres**, y los proveedores de IA gratuitos pueden usar lo que reciben.
 - **Limitá el largo** del mensaje a 1000 caracteres en tu formulario.
-- **Respetá el límite**: 20 consultas por minuto por consumidor. No hagas consultas automáticas en bucle ni de prueba de carga contra el servicio compartido.
+- **Respetá el límite**: 20 consultas por minuto por consumidor. No hagas consultas automáticas en bucle.
 - **Mostrá que es un asistente automático** y que no reemplaza a un médico.
-- Podés llamar a `GET /health` para saber si está disponible. No consume cuota de los modelos.
+- **Usá siempre un timeout.** Podés llamar a `GET {URL}` para saber si está disponible; no pide credenciales ni consume cuota de los modelos.
 
 ## 6. Limitaciones conocidas
 
 - El chatbot usa **modelos de IA gratuitos**, que pueden agotar su cuota o caerse. Cuando pasa, el servicio responde con reglas y con el texto de su base de conocimiento: las respuestas son más literales, pero siguen respetando el alcance.
 - Responde **solo** sobre estudios genéticos y patologías lisosomales. Lo demás da `fuera_de_alcance`.
 - La base de conocimiento es corta y está en estado `borrador`, pendiente de validación de la cátedra. Preguntas sobre plazos, precios o trámites van a dar `sin_informacion`.
-- Las conversaciones y los límites viven en la memoria de **una sola instancia**: se pierden si el servicio se reinicia.
-- Si el servicio se despliega sin claves configuradas, no pide `X-API-Key`. Eso es solo para desarrollo.
 
 ## 7. Dudas
 
-Escribile al grupo que mantiene el chatbot. La documentación interactiva de la API está en `{URL}/docs`.
+Escribile al grupo que mantiene el chatbot. El contrato completo está en [Contrato_API_Chatbot.md](Contrato_API_Chatbot.md).

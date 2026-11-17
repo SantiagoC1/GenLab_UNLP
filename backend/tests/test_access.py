@@ -23,13 +23,18 @@ from app.core.security import (
     create_token,
     decode_token,
 )
-from app.models import user as user_model_module
-from app.modules.acceso import service, validate
+from app.modules.acceso import repository, service, validate
 from app.modules.acceso.catalogs import ADMIN_CREATABLE_ROLES, SELF_SIGNUP_ROLES
 
 
+def use_fake(monkeypatch, fake, *names: str) -> None:
+    """Reemplaza funciones del repositorio de acceso por las del objeto `fake`."""
+    for name in names:
+        monkeypatch.setattr(repository, name, getattr(fake, name))
+
+
 class FakeUserModel:
-    """Reemplaza a app.models.user con un usuario en memoria."""
+    """Reemplaza las funciones de usuarios del repositorio con un usuario en memoria."""
 
     def __init__(self, user: dict):
         self.user = user
@@ -66,7 +71,7 @@ def fake_user(monkeypatch) -> dict:
         "blocked": False,
         "failed_attempts": 0,
     }
-    monkeypatch.setattr(service, "user_model", FakeUserModel(user))
+    use_fake(monkeypatch, FakeUserModel(user), "find_by_email", "find_by_id", "update")
     monkeypatch.setattr(service, "new_auth_client", FailingAuthClient)
     return user
 
@@ -232,7 +237,7 @@ def blocked_user(monkeypatch) -> dict:
         "blocked": True,
         "failed_attempts": 5,
     }
-    monkeypatch.setattr(service, "user_model", FakeUserModel(user))
+    use_fake(monkeypatch, FakeUserModel(user), "find_by_email", "find_by_id", "update")
     return user
 
 
@@ -350,7 +355,7 @@ def test_other_mail_failures_are_an_unavailable_integration(fake_user, monkeypat
 
 
 class RecordingUserModel:
-    """Reemplaza a `app.models.user` en el alta: guarda lo que se le pide crear."""
+    """Reemplaza `create` y `delete` del repositorio en el alta: guarda lo que se le pide crear."""
 
     def __init__(self, create_error: Exception | None = None):
         self.create_error = create_error
@@ -378,7 +383,7 @@ PERSON = {
 def test_create_account_normalizes_data_and_flags_the_initial_password(monkeypatch):
     admin, users = FakeAdminAuth(), RecordingUserModel()
     monkeypatch.setattr(service, "supabase_admin", admin)
-    monkeypatch.setattr(service, "user_model", users)
+    use_fake(monkeypatch, users, "create", "delete")
 
     service.create_account({**PERSON, "role": "paciente"}, "temporal-1", True)
 
@@ -391,7 +396,7 @@ def test_create_account_normalizes_data_and_flags_the_initial_password(monkeypat
 def test_create_account_only_keeps_the_fields_of_the_role(monkeypatch):
     users = RecordingUserModel()
     monkeypatch.setattr(service, "supabase_admin", FakeAdminAuth())
-    monkeypatch.setattr(service, "user_model", users)
+    use_fake(monkeypatch, users, "create", "delete")
     extra = {"province": "Córdoba", "license_number": "99", "specialties": [1]}
 
     service.create_account({**PERSON, **extra, "role": "bioinformatico"}, "x", False)
@@ -441,7 +446,7 @@ def test_second_carrier_for_a_province_is_a_422_and_undoes_the_auth_user(monkeyp
     )
     admin = FakeAdminAuth()
     monkeypatch.setattr(service, "supabase_admin", admin)
-    monkeypatch.setattr(service, "user_model", RecordingUserModel(create_error=duplicate))
+    use_fake(monkeypatch, RecordingUserModel(create_error=duplicate), "create", "delete")
 
     with pytest.raises(BusinessRuleError) as raised:
         data = {**PERSON, "role": "transportista", "province": "Córdoba"}
@@ -455,7 +460,7 @@ def test_second_carrier_for_a_province_is_a_422_and_undoes_the_auth_user(monkeyp
 def test_admin_signup_is_undone_if_the_mail_does_not_go_out(monkeypatch):
     admin, users = FakeAdminAuth(), RecordingUserModel()
     monkeypatch.setattr(service, "supabase_admin", admin)
-    monkeypatch.setattr(service, "user_model", users)
+    use_fake(monkeypatch, users, "create", "delete")
     monkeypatch.setattr(
         service, "obtener_avisos", lambda: SimpleNamespace(enviar_aviso=lambda *args: False)
     )
@@ -518,7 +523,7 @@ def stored_admin(monkeypatch) -> dict:
         "blocked": False,
         "must_change_password": False,
     }
-    monkeypatch.setattr(user_model_module, "find_by_id", lambda uid: admin if uid == "a1" else None)
+    monkeypatch.setattr(repository, "find_by_id", lambda uid: admin if uid == "a1" else None)
     monkeypatch.setattr(service, "list_users", lambda: [])
     return admin
 
@@ -555,15 +560,15 @@ def test_session_of_a_blocked_user_is_rejected(client, stored_admin):
 
 
 class FakeTrustedDevices:
-    """Reemplaza a `app.models.trusted_device` con un conjunto en memoria."""
+    """Reemplaza las funciones de dispositivos del repositorio con un conjunto en memoria."""
 
     def __init__(self):
         self.devices: set[tuple[str, str]] = set()
 
-    def exists(self, user_id: str, device_hash: str) -> bool:
+    def device_exists(self, user_id: str, device_hash: str) -> bool:
         return (user_id, device_hash) in self.devices
 
-    def add(self, user_id: str, device_hash: str) -> None:
+    def add_device(self, user_id: str, device_hash: str) -> None:
         self.devices.add((user_id, device_hash))
 
 
@@ -577,7 +582,7 @@ class CodeAuthClient(OtpAuthClient):
 @pytest.fixture
 def devices(monkeypatch) -> FakeTrustedDevices:
     fake = FakeTrustedDevices()
-    monkeypatch.setattr(service, "trusted_device_model", fake)
+    use_fake(monkeypatch, fake, "device_exists", "add_device")
     return fake
 
 
@@ -599,7 +604,7 @@ def test_new_device_gets_a_code_and_a_verification_token(accepting_user, devices
 
 
 def test_trusted_device_enters_without_a_code(accepting_user, devices, monkeypatch):
-    devices.add("u1", service._hash_device("device-1"))
+    devices.add_device("u1", service._hash_device("device-1"))
     CodeAuthClient.error = Exception("no se debería mandar ningún código")
     accepting_user["failed_attempts"] = 2
 
@@ -611,7 +616,7 @@ def test_trusted_device_enters_without_a_code(accepting_user, devices, monkeypat
 
 
 def test_trust_is_per_device(accepting_user, devices):
-    devices.add("u1", service._hash_device("device-1"))
+    devices.add_device("u1", service._hash_device("device-1"))
     result = service.login_user(accepting_user["email"], "clave", "device-2")
     assert result["state"] == "code_sent"
 
@@ -631,7 +636,7 @@ def test_right_code_opens_the_session_and_trusts_the_device(accepting_user, devi
 
     assert decode_token(token, SESSION)["sub"] == "u1"
     assert user["id"] == "u1"
-    assert devices.exists("u1", service._hash_device("device-1"))
+    assert devices.device_exists("u1", service._hash_device("device-1"))
 
 
 def test_code_without_the_password_step_is_not_enough(accepting_user, devices):

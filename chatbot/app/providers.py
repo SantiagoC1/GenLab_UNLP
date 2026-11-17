@@ -102,6 +102,16 @@ def _retry_after(response: httpx.Response) -> int | None:
     return None
 
 
+def _thinking_config(model: str):
+    """Gemini 2.x apaga el razonamiento con `thinking_budget`; Gemini 3 en adelante lo rechaza
+    (HTTP 400) y usa `thinking_level`."""
+    from google.genai import types
+
+    if model.startswith("gemini-2"):
+        return types.ThinkingConfig(thinking_budget=0)
+    return types.ThinkingConfig(thinking_level="LOW")
+
+
 class GeminiProvider:
     """Gemini con salida estructurada (`response_schema`)."""
 
@@ -142,8 +152,8 @@ class GeminiProvider:
                     max_output_tokens=MAX_OUTPUT_TOKENS,
                     # Algo de variedad para que las respuestas no salgan calcadas
                     temperature=TEMPERATURE,
-                    # Sin "pensar": para esta tarea no hace falta
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    # Lo mínimo de "pensar": para esta tarea no hace falta
+                    thinking_config=_thinking_config(settings.gemini_model),
                 ),
             )
         except errors.APIError as exc:

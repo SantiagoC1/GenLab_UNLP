@@ -8,10 +8,11 @@ from app.dev_demo import seed_demo
 from app.modules.acceso.router import router as router_acceso
 from app.modules.avisos.router import router as router_avisos
 from app.modules.bioinformatica.router import router as router_bioinformatica
+from app.modules.chatbot.router import router as router_chatbot
 from app.modules.config_medica.router import router as router_config_medica
 from app.modules.consulta_medica.router import router as router_consulta_medica
 from app.modules.cupones.router import router as router_cupones
-from app.modules.logistica.router import router as router_logistica
+from app.modules.logistics.router import router as router_logistica
 from app.modules.presupuesto_pago.router import router as router_presupuesto_pago
 from app.modules.turnos.router import router as router_turnos
 
@@ -42,6 +43,7 @@ def create_app():
     app.include_router(router_logistica)
     app.include_router(router_bioinformatica)
     app.include_router(router_avisos)
+    app.include_router(router_chatbot)
     return app
 
 

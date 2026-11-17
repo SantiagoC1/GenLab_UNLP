@@ -13,7 +13,7 @@ import {
 } from '../../lib/validation'
 import { ETIQUETA_ROL, type Rol } from '../roles'
 
-// M1-RF4: cualquier rol menos el paciente (lo da de alta el médico tratante, escenario 9).
+/** Roles que puede dar de alta el administrador: todos menos el paciente, que lo da de alta el médico. */
 const CREATABLE_ROLES: readonly Rol[] = [
   'medico_tratante',
   'administrativo_laboratorio',
@@ -64,7 +64,6 @@ export default function AltaUsuarioPantalla() {
   return (
     <section>
       <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Dar de alta a un usuario</h1>
-      <p className="mt-1 text-sm text-slate-500">Escenario 2 · M1-RF4 a RF6</p>
 
       <div className="mt-6 space-y-4">
         {notice && <Alert kind="success">{notice}</Alert>}

@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     max_failed_attempts: int = 5
     code_expire_minutes: int = 10
     cors_origins: str = "http://localhost:5173"
-    chatbot_url: str = "http://localhost:8001"
+    # Edge Function `chat` de Supabase. La apikey (publishable) y el token del grupo son secretos
+    # del servidor: nunca van al frontend.
+    chatbot_url: str = ""
+    chatbot_apikey: str = ""
+    chatbot_token: str = ""
     # Solo desarrollo: acepta X-Dev-Role en lugar del login. Nunca activarlo fuera de la máquina
     # de quien desarrolla (ver app/core/dev_auth.py).
     dev_auth: bool = False
@@ -30,6 +34,7 @@ class Settings(BaseSettings):
     integracion_optimizacion_recorrido: ModoIntegracion = "simulador"
     integracion_fedex: ModoIntegracion = "simulador"
     integracion_ministerio_salud: ModoIntegracion = "simulador"
+    chatbot_integration: ModoIntegracion = "simulador"
 
     @property
     def cors_origins_lista(self):

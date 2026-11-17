@@ -21,9 +21,10 @@ supabase_admin: Client | None = (
 
 
 def new_auth_client() -> Client:
-    """Devuelve un cliente nuevo (anon key) para verificar contraseñas y códigos.
+    """Devuelve un cliente nuevo (anon key) para verificar claves y códigos.
 
-    Iniciar sesión guarda el token en el cliente: si fuera el `supabase` compartido,
-    las consultas siguientes de todos los usuarios saldrían con ese token.
+    Iniciar sesión guarda el token en el cliente: si fuera el `supabase`
+    compartido, las consultas siguientes de todos los usuarios saldrían
+    con ese token.
     """
     return create_client(SUPABASE_URL, SUPABASE_KEY)
