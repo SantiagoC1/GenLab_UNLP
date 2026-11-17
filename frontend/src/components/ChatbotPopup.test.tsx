@@ -1,14 +1,38 @@
-import { screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { mockApi, renderApp, sentTo, startTestSession } from '../test-utils'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { RolProvider } from '../roles/RolProvider'
+import { mockApi, sentTo, startTestSession } from '../test-utils'
+import { Layout } from './Layout'
 
-const PATH = '/paciente/turnos'
 const MESSAGES = 'POST /chatbot/messages'
 
 const ANSWER = 'Un exoma lee las partes que codifican proteínas.'
 const BODY = { answer: ANSWER, conversation_id: 'c-1', kind: 'respuesta' }
 
 type User = ReturnType<typeof userEvent.setup>
+
+/**
+ * Draws the real Layout (which decides whether the chatbot shows) around a stub screen, so these
+ * tests do not depend on any real screen: those change and make their own requests.
+ */
+function renderLayout() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/test']}>
+        <RolProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="*" element={<h1>Pantalla de prueba</h1>} />
+            </Route>
+          </Routes>
+        </RolProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
 
 afterEach(() => vi.unstubAllGlobals())
 beforeEach(() => {
@@ -28,13 +52,13 @@ async function typeAndSend(user: User, text: string) {
 describe('Chatbot del paciente', () => {
   it('muestra el botón en las pantallas del paciente', async () => {
     startTestSession('paciente')
-    renderApp(PATH)
+    renderLayout()
     expect(await screen.findByRole('button', { name: 'Abrir chat' })).toBeInTheDocument()
   })
 
   it('no lo muestra en las pantallas de otros roles', async () => {
     startTestSession('administrador_general')
-    renderApp('/administrador_general/alta-usuario')
+    renderLayout()
     await screen.findByRole('navigation', { name: 'Principal' })
     expect(screen.queryByRole('button', { name: 'Abrir chat' })).not.toBeInTheDocument()
   })
@@ -42,7 +66,7 @@ describe('Chatbot del paciente', () => {
   it('envía la consulta y muestra la respuesta, con el aviso de que no da diagnósticos', async () => {
     startTestSession('paciente')
     const mock = mockApi({ [MESSAGES]: { body: BODY } })
-    renderApp(PATH)
+    renderLayout()
     const user = userEvent.setup()
 
     await openChat(user)
@@ -59,7 +83,7 @@ describe('Chatbot del paciente', () => {
   it('reenvía el identificador de la conversación en el segundo mensaje', async () => {
     startTestSession('paciente')
     const mock = mockApi({ [MESSAGES]: { body: BODY } })
-    renderApp(PATH)
+    renderLayout()
     const user = userEvent.setup()
 
     await openChat(user)
@@ -82,7 +106,7 @@ describe('Chatbot del paciente', () => {
         body: { detalle: "El módulo externo 'chatbot' no está disponible." },
       },
     })
-    renderApp(PATH)
+    renderLayout()
     const user = userEvent.setup()
 
     await openChat(user)
@@ -96,7 +120,7 @@ describe('Chatbot del paciente', () => {
     mockApi({
       [MESSAGES]: { status: 429, body: { detalle: 'Hay muchas consultas en este momento.' } },
     })
-    renderApp(PATH)
+    renderLayout()
     const user = userEvent.setup()
 
     await openChat(user)
@@ -107,7 +131,7 @@ describe('Chatbot del paciente', () => {
 
   it('se cierra con Escape', async () => {
     startTestSession('paciente')
-    renderApp(PATH)
+    renderLayout()
     const user = userEvent.setup()
 
     await openChat(user)
