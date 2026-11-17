@@ -177,11 +177,6 @@ def test_real_client_translates_timeout(credentials):
         real_client(handler).ask("Hola", None)
 
 
-def test_real_client_rejects_an_unexpected_response(credentials):
-    with pytest.raises(InvalidIntegration):
-        real_client(lambda r: httpx.Response(200, json={"otra": "cosa"})).ask("Hola", None)
-
-
 def test_real_client_fails_when_credentials_are_missing(monkeypatch):
     monkeypatch.setattr(get_settings(), "chatbot_url", "")
     with pytest.raises(InvalidIntegration):

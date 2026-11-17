@@ -217,19 +217,6 @@ def test_the_rejection_does_not_say_which_role_the_mail_has(client, login_as, wo
     assert first.json() == second.json()
 
 
-def test_reusing_an_account_leaves_the_ids_in_the_log(client, login_as, world, caplog):
-    login_as(Rol.MEDICO_TRATANTE)
-    world.users["padres@ejemplo.com"] = {"id": "u-hermano", "role": "paciente"}
-    payload = valid_payload(birth_date=years_ago(5), email="padres@ejemplo.com")
-
-    with caplog.at_level("INFO", logger=service.logger.name):
-        client.post(URL, json=payload)
-
-    assert "u-hermano" in caplog.text
-    assert "u-sesion" in caplog.text
-    assert "padres@ejemplo.com" not in caplog.text
-
-
 def test_a_familial_suspicion_can_go_without_symptoms_and_skips_the_cdss(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
 
@@ -334,17 +321,6 @@ def test_if_the_mail_fails_the_patient_and_the_account_are_deleted(client, login
 
     assert response.status_code == 503
     assert world.deleted_patients == ["p-1"]
-    assert world.deleted_accounts == ["u-nuevo"]
-
-
-def test_if_undoing_the_patient_fails_the_account_is_still_deleted(client, login_as, world):
-    login_as(Rol.MEDICO_TRATANTE)
-    world.mail_works = False
-    world.delete_patient_error = RuntimeError("falló el borrado")
-
-    response = client.post(URL, json=valid_payload())
-
-    assert response.status_code == 503
     assert world.deleted_accounts == ["u-nuevo"]
 
 

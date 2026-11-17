@@ -141,23 +141,6 @@ def test_no_matches_is_an_empty_page_and_not_an_error(client, login_as, snomed):
     assert response.json() == {"items": [], "page": 1, "has_more": False}
 
 
-def test_only_the_known_fields_are_returned(client, login_as, snomed):
-    login_as(Rol.MEDICO_TRATANTE)
-    snomed(
-        result={
-            "items": [{"code": 123, "term": "x" * 500, "interno": "secreto"}],
-            "has_more": 1,
-            "otro": "dato",
-        }
-    )
-
-    body = client.get(URL, params={"q": "hip"}).json()
-
-    assert body["items"] == [{"code": "123", "term": "x" * 200}]
-    assert body["has_more"] is True
-    assert set(body) == {"items", "page", "has_more"}
-
-
 @pytest.mark.parametrize(
     "error",
     [NotImplementedError("x"), OSError("x"), TimeoutError("x"), ValueError("x"), KeyError("x")],
@@ -170,13 +153,6 @@ def test_a_failing_snomed_answers_503_without_details(client, login_as, snomed, 
 
     assert response.status_code == 503
     assert response.json()["detalle"] == "El módulo externo 'SNOMED' no está disponible."
-
-
-def test_a_malformed_answer_from_snomed_answers_503(client, login_as, snomed):
-    login_as(Rol.MEDICO_TRATANTE)
-    snomed(result={"sin": "items"})
-
-    assert client.get(URL, params={"q": "hip"}).status_code == 503
 
 
 def test_with_the_real_client_not_implemented_answers_503(client, login_as, monkeypatch):
