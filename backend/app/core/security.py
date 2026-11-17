@@ -21,7 +21,10 @@ CHALLENGE = "challenge"
 
 
 def _secret() -> str:
-    """Devuelve la clave con la que se firman los tokens. Sin una clave válida no se firma nada."""
+    """Devuelve la clave con la que se firman los tokens.
+
+    Sin una clave válida no se firma nada.
+    """
     secret = get_settings().secret_key
     if len(secret) < MIN_SECRET_LENGTH:
         raise RuntimeError(
@@ -33,7 +36,8 @@ def _secret() -> str:
 def create_token(user_id: str, kind: str, expires_minutes: int, **claims) -> str:
     """Firma un token del tipo indicado para ese usuario.
 
-    REUTILIZABLE: cualquier módulo que necesite un token de corta vida atado a un usuario.
+    Cualquier módulo que necesite un token de corta vida
+    atado a un usuario.
     """
     now = datetime.now(UTC)
     payload = {
@@ -47,9 +51,10 @@ def create_token(user_id: str, kind: str, expires_minutes: int, **claims) -> str
 
 
 def decode_token(token: str, kind: str) -> dict:
-    """Devuelve el contenido del token si es válido, del tipo pedido y no venció.
+    """Devuelve el contenido del token si es válido, del tipo y vigente.
 
-    Lanza `jwt.InvalidTokenError` (o una subclase) en cualquier otro caso.
+    Lanza `jwt.InvalidTokenError` (o una subclase) en cualquier otro
+    caso.
     """
     claims = jwt.decode(
         token,
@@ -63,16 +68,20 @@ def decode_token(token: str, kind: str) -> dict:
 
 
 def create_session_token(user_id: str) -> str:
-    """Token de sesión: lo que el frontend manda en cada pedido (vence según SESSION_EXPIRE_MINUTES)."""
+    """Token de sesión que el frontend manda en cada pedido.
+
+    Vence según SESSION_EXPIRE_MINUTES.
+    """
     return create_token(user_id, SESSION, get_settings().session_expire_minutes)
 
 
 def get_session_user(
     request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)
 ):
-    """Devuelve el usuario de la sesión, aunque todavía tenga que cambiar la contraseña inicial.
+    """Devuelve el usuario de la sesión, aunque deba cambiar la contraseña.
 
-    Solo lo usa el endpoint de cambio de contraseña. Para todo lo demás, `get_current_user`.
+    Solo lo usa el endpoint de cambio de contraseña. Para todo lo demás,
+    `get_current_user`.
     """
 
     # Solo con DEV_AUTH=true (desarrollo): la sesión sale de los encabezados X-Dev-*.
@@ -96,7 +105,10 @@ def get_session_user(
 
 
 def get_current_user(user: dict = Depends(get_session_user)):
-    """Devuelve el usuario de la sesión. Si tiene la contraseña inicial, no lo deja seguir."""
+    """Devuelve el usuario de la sesión.
+
+    Si tiene la contraseña inicial, no lo deja seguir.
+    """
 
     if user["must_change_password"]:
         raise MustChangePassword("Tenés que cambiar la contraseña antes de continuar.")
@@ -104,8 +116,7 @@ def get_current_user(user: dict = Depends(get_session_user)):
 
 
 def require_role(*roles: Rol):
-    """
-    Devuelve una dependencia que solo deja pasar a los usuarios con alguno de esos roles.
+    """Devuelve una dependencia que solo deja pasar a esos roles.
 
     Uso: usuario = Depends(require_role(Rol.MEDICO_TRATANTE))
     """

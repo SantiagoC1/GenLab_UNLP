@@ -1,10 +1,3 @@
-"""Acceso a las tablas `users`, `user_specialties`, `specialties` y `trusted_devices`.
-
-Usa el cliente admin (service role), que no pasa por RLS. Las contraseñas no están acá: las
-maneja Supabase Auth. De los dispositivos de confianza se guarda solo el hash del identificador
-del navegador, nunca el identificador (M1-RF8).
-"""
-
 from app.database import supabase_admin
 
 
@@ -19,7 +12,7 @@ def find_by_id(user_id: str):
 
 
 def find_by_email(email: str):
-    """Devuelve el usuario con ese mail (sin distinguir mayúsculas), o None si no existe."""
+    """Devuelve el usuario con ese mail (sin distinguir mayúsculas), o None."""
     response = _users().select("*").eq("email", email.strip().lower()).limit(1).execute()
     return response.data[0] if response.data else None
 
@@ -44,10 +37,12 @@ def carrier_exists_in(province: str):
 
 
 def create(data: dict):
-    """Guarda el usuario y sus especialidades. `data["id"]` es el id de Supabase Auth.
+    """Guarda el usuario y sus especialidades.
 
-    Si falla, el que llama borra el usuario de Auth, y eso borra también estas filas
-    (la tabla `users` tiene `on delete cascade`).
+    `data["id"]` es el id de Supabase Auth.
+
+    Si falla, el que llama borra el usuario de Auth, y eso borra también
+    estas filas
     """
     row = {key: value for key, value in data.items() if key != "specialty_ids"}
     user = _users().insert(row).execute().data[0]
@@ -62,7 +57,10 @@ def create(data: dict):
 
 
 def update(user_id: str, fields: dict):
-    """Actualiza los campos indicados. Devuelve el usuario actualizado."""
+    """Actualiza los campos indicados.
+
+    Devuelve el usuario actualizado.
+    """
     response = _users().update(fields).eq("id", user_id).execute()
     return response.data[0] if response.data else None
 
@@ -96,7 +94,7 @@ def device_exists(user_id: str, device_hash: str) -> bool:
 
 
 def add_device(user_id: str, device_hash: str) -> None:
-    """Marca el dispositivo como de confianza. Si ya lo era, no hace nada."""
+    """Marca el dispositivo como de confianza."""
     _devices().upsert(
         {"user_id": user_id, "device_hash": device_hash}, on_conflict="user_id,device_hash"
     ).execute()

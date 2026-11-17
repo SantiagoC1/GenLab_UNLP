@@ -26,7 +26,7 @@ UNIQUE_VIOLATION = "23505"  # código de Postgres para una clave única repetida
 
 
 def _public_data(user: dict):
-    """Devuelve los datos del usuario que se muestran en la API (sin intentos fallidos, etc.)."""
+    """Datos del usuario que muestra la API, sin los intentos fallidos."""
     fields = ("id", "first_name", "last_name", "email", "phone", "role", "province")
     return {
         **{field: user[field] for field in fields},
@@ -36,17 +36,17 @@ def _public_data(user: dict):
 
 
 def get_catalogs():
-    """Devuelve las especialidades y las provincias, para los formularios de alta."""
+    """Devuelve las especialidades y las provincias de los formularios."""
     return {"specialties": repository.list_specialties(), "provinces": list(PROVINCES)}
 
 
 def list_users():
-    """Devuelve los datos de todos los usuarios, para el listado del administrador."""
+    """Devuelve todos los usuarios, para el listado del administrador."""
     return [_public_data(user) for user in repository.list_users()]
 
 
 def _is_unique_violation(error: Exception, column: str) -> bool:
-    """Indica si el error de la base es una clave única repetida sobre esa columna."""
+    """Indica si el error es una clave única repetida en esa columna."""
     if not isinstance(error, PostgrestAPIError):
         return False
     info = error.json()
@@ -56,12 +56,14 @@ def _is_unique_violation(error: Exception, column: str) -> bool:
 def create_account(data: dict, password: str, must_change_password: bool):
     """Crea el usuario en Supabase Auth y guarda sus datos en la tabla `users`.
 
-    Si falla al guardar los datos, borra el usuario de Auth para no dejarlo a medias.
-    Solo guarda la provincia, la matrícula y las especialidades de los roles que las usan.
+    Si falla al guardar los datos, borra el usuario de Auth para no
+    dejarlo a medias. Solo guarda la provincia, la matrícula y las
+    especialidades de los roles que las usan.
 
-    REUTILIZABLE: M3 (alta de paciente) crea la cuenta del paciente con esta función, con
-    `must_change_password=True` y una contraseña temporal. `data` tiene que traer `role`,
-    `email`, `first_name`, `last_name` y `phone`, ya validados.
+    Alta de paciente crea la cuenta del paciente con
+    esta función, con `must_change_password=True` y una contraseña
+    temporal. `data` tiene que traer `role`, `email`, `first_name`,
+    `last_name` y `phone`, ya validados.
     """
     email = data["email"].strip().lower()
     try:
@@ -71,8 +73,6 @@ def create_account(data: dict, password: str, must_change_password: bool):
     except AuthApiError as error:
         if error.code == "email_exists":
             raise BusinessRuleError("Ya existe un usuario con ese mail.", 422) from None
-        # Un dato que Auth rechaza (mail inválido, contraseña débil) es un error de quien lo
-        # envía; una falla del servidor de Auth (5xx) no lo es y se propaga.
         if error.status < 500:
             raise BusinessRuleError(
                 "No se pudo crear la cuenta. Revisá el mail y la contraseña.", 422
@@ -108,20 +108,23 @@ def create_account(data: dict, password: str, must_change_password: bool):
 
 
 def register_user(data: dict):
-    """Autoalta (M1-RF1 a RF3). Devuelve el token de la sesión y el usuario creado.
+    """Autoalta de un usuario.
 
-    Queda con la sesión iniciada, en la vista de su rol. Pendiente P11: si el alta de
-    administrativos y bioinformáticos necesita una aprobación.
+    Devuelve el token de la sesión y el usuario creado.
+
+    Queda con la sesión iniciada, en la vista de su rol. Pendiente P11:
+    si el alta de administrativos y bioinformáticos necesita una
+    aprobación.
     """
     user = create_account(data, data["password"], must_change_password=False)
     return create_session_token(user["id"]), user
 
 
 def create_user_as_admin(data: dict, admin_user: dict):
-    """Alta por el administrador general (M1-RF4 a RF6).
+    """Alta por el administrador general.
 
-    Crea el usuario con una contraseña temporal y le envía las credenciales por mail.
-    Si el mail no sale, el alta se deshace.
+    Crea el usuario con una contraseña temporal y le envía las
+    credenciales por mail. Si el mail no sale, el alta se deshace.
     """
     password = secrets.token_urlsafe(9)
     user = create_account(data, password, must_change_password=True)
@@ -144,7 +147,10 @@ def create_user_as_admin(data: dict, admin_user: dict):
 
 
 def _get_active_user(email: str):
-    """Devuelve el usuario con ese mail. Falla si no existe o si la cuenta está bloqueada."""
+    """Devuelve el usuario con ese mail.
+
+    Falla si no existe o si la cuenta está bloqueada.
+    """
     user = repository.find_by_email(email)
     # Mismo mensaje que con una contraseña incorrecta, para no revelar qué mails existen
     if user is None:
@@ -157,7 +163,8 @@ def _get_active_user(email: str):
 def _fail(user: dict, message: str) -> NoReturn:
     """Suma un intento fallido (M1-RF9) y lanza el error.
 
-    Al llegar al límite la cuenta se bloquea, y el error es el de cuenta bloqueada.
+    Al llegar al límite la cuenta se bloquea, y el error es el de cuenta
+    bloqueada.
     """
     failed_attempts = user["failed_attempts"] + 1
     blocked = failed_attempts >= get_settings().max_failed_attempts
@@ -168,21 +175,23 @@ def _fail(user: dict, message: str) -> NoReturn:
 
 
 def _hash_device(device_id: str | None) -> str | None:
-    """Hash del identificador del navegador: en la base nunca se guarda el original."""
+    """Hash del identificador del navegador; el original no se guarda."""
     if not device_id:
         return None
     return hashlib.sha256(device_id.encode()).hexdigest()
 
 
 def login_user(email: str, password: str, device_id: str | None = None):
-    """Paso 1 del ingreso: valida la contraseña (M1-RF8 a RF10).
+    """Paso 1 del ingreso: valida la contraseña.
 
-    Si el dispositivo ya es de confianza, abre la sesión. Si es nuevo, envía el código de
-    verificación por mail y devuelve un token de verificación, que el paso 2 exige.
-    El código lo genera y lo envía Supabase (vence a los 10 minutos, M1-RF10).
-    Pedir un código nuevo es volver a llamar a esta función.
+    Si el dispositivo ya es de confianza, abre la sesión. Si es nuevo,
+    envía el código de verificación por mail y devuelve un token de
+    verificación, que el paso 2 exige. El código lo genera y lo envía
+    Supabase (vence a los 10 minutos, M1-RF10). Pedir un código nuevo es
+    volver a llamar a esta función.
 
-    Devuelve `{"state": "authenticated", "token", "user"}` o `{"state": "code_sent", "challenge"}`.
+    Devuelve `{"state": "authenticated", "token", "user"}` o `{"state":
+    "code_sent", "challenge"}`.
     """
     user = _get_active_user(email)
     try:
@@ -213,10 +222,13 @@ def login_user(email: str, password: str, device_id: str | None = None):
 
 
 def verify_login_code(email: str, code: str, challenge: str, device_id: str | None = None):
-    """Paso 2 del ingreso: valida el código. Devuelve el token de la sesión y el usuario.
+    """Paso 2 del ingreso: valida el código.
 
-    Exige el token de verificación del paso 1: sin haber ingresado la contraseña, el código
-    solo no alcanza. Si el código es correcto, el dispositivo queda como de confianza.
+    Devuelve el token de la sesión y el usuario.
+
+    Exige el token de verificación del paso 1: sin haber ingresado la
+    contraseña, el código solo no alcanza. Si el código es correcto, el
+    dispositivo queda como de confianza.
     """
     user = _get_active_user(email)
     device_hash = _hash_device(device_id)
@@ -239,7 +251,10 @@ def verify_login_code(email: str, code: str, challenge: str, device_id: str | No
 
 
 def change_password(user: dict, current_password: str, new_password: str):
-    """Cambia la contraseña del usuario (M1-RF7). Sirve para la inicial y para cambiarla después."""
+    """Cambia la contraseña del usuario (M1-RF7).
+
+    Sirve para la inicial y para cambiarla después.
+    """
     try:
         new_auth_client().auth.sign_in_with_password(
             {"email": user["email"], "password": current_password}
@@ -254,7 +269,7 @@ def change_password(user: dict, current_password: str, new_password: str):
 
 
 def unblock_user(user_id: str):
-    """Desbloquea una cuenta y reinicia sus intentos fallidos (M1-RF9, pendiente P12).
+    """Desbloquea una cuenta y reinicia sus intentos fallidos (P12).
 
     Solo lo llama el administrador general (el router lo restringe).
     """

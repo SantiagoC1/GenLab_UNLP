@@ -27,7 +27,10 @@ CATALOG_READERS = require_role(Rol.GERENTE_MEDICO, Rol.MEDICO_TRATANTE)
 
 @router.get("/ping")
 def ping() -> dict[str, str]:
-    """Prueba de humo del router. Se borra cuando todos los módulos tengan endpoints reales."""
+    """Prueba de humo del router.
+
+    Se borra cuando todos los módulos tengan endpoints reales.
+    """
     return {"modulo": "config_medica"}
 
 
@@ -38,7 +41,7 @@ def list_pathologies(_user: dict = Depends(CATALOG_READERS)):
 
 @router.post("/pathologies", response_model=PathologyOut, status_code=201)
 def create_pathology(data: PathologyData, _user: dict = Depends(MANAGER_ONLY)):
-    """Escenario 5: alta de una patología lisosomal."""
+    """Alta de una patología lisosomal."""
     data = data.model_dump()
     raise_if_invalid(validate_pathology(data))
     return service.create_pathology(data)
@@ -61,7 +64,7 @@ def set_cdss_strategy(data: CdssStrategyData, user: dict = Depends(MANAGER_ONLY)
 def replace_symptoms(
     pathology_id: int, data: PathologySymptomsData, _user: dict = Depends(MANAGER_ONLY)
 ):
-    """Escenario 6: modifica el cardinal y los secundarios de una patología."""
+    """Modifica el cardinal y los secundarios de una patología."""
     data = data.model_dump()
     raise_if_invalid(validate_symptoms(data))
     return service.replace_symptoms(pathology_id, data)

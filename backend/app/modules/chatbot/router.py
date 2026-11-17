@@ -21,7 +21,7 @@ def send_message(
     chatbot: Annotated[ChatbotIntegration, Depends(get_chatbot)],
     patient: Annotated[dict, Depends(PATIENT_ONLY)],
 ):
-    """Escenario 40: reenvía la consulta del paciente al chatbot y devuelve su respuesta."""
+    """Reenvía la consulta del paciente al chatbot y devuelve su respuesta."""
     data = data.model_dump()
     raise_if_invalid(validate_message(data))
     return service.ask_chatbot(chatbot, data)

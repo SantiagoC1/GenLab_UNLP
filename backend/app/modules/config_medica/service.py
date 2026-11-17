@@ -16,7 +16,7 @@ def list_pathologies() -> list[dict]:
 
 
 def create_pathology(data: dict) -> dict:
-    """Escenario 5: da de alta la patología con su cardinal y sus secundarios."""
+    """Da de alta la patología con su cardinal y sus secundarios."""
     try:
         return repository.create(
             repository.normalize_name(data["name"]),
@@ -29,7 +29,10 @@ def create_pathology(data: dict) -> dict:
 
 
 def replace_symptoms(pathology_id: int, data: dict) -> dict:
-    """Escenario 6: reemplaza los síntomas. Los pacientes ya registrados no cambian (P13)."""
+    """Reemplaza los síntomas de la patología.
+
+    Los pacientes ya registrados no cambian (P13).
+    """
     if repository.find_by_id(pathology_id) is None:
         raise BusinessRuleError("La patología no existe.", 404)
     return repository.replace_symptoms(
@@ -40,7 +43,7 @@ def replace_symptoms(pathology_id: int, data: dict) -> dict:
 
 
 def get_cdss_strategy() -> str:
-    """REUTILIZABLE: el alta de paciente (M3) le pasa esta estrategia al CDSS."""
+    """El alta de paciente se la pasa al CDSS."""
     return repository.get_setting(CDSS_STRATEGY_KEY) or DEFAULT_CDSS_STRATEGY.value
 
 

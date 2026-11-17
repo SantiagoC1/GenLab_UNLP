@@ -5,7 +5,7 @@ MAX_CONVERSATION_ID_LENGTH = 200
 
 
 def validate_message(data: dict):
-    """Valida el mensaje del paciente y, si viene, el identificador de la conversación."""
+    """Valida el mensaje y, si viene, el id de la conversación."""
     errors = []
     message = data.get("message")
     if message is None or not message.strip():

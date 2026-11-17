@@ -9,9 +9,6 @@ _TODO = (
     "TODO: el contrato real de Snomed todavía no está cerrado (decisión 1 de la especificación)."
 )
 
-# SUPUESTO (docs/Supuestos_y_pendientes.md, S2): el tamaño de página y la forma de la respuesta
-# no están definidos por el otro grupo. `SnomedReal` tiene que traducir lo que mande el módulo
-# (total, enlace a la siguiente página, etc.) a este formato.
 PAGE_SIZE = 10
 
 # SIMULADOR: no son códigos de SNOMED reales. El prefijo `SIM-` evita que se confundan con datos
@@ -39,16 +36,22 @@ def _normalize(text: str) -> str:
 
 
 class SnomedIntegracion(ABC):
-    """Interfaz que usa el resto del sistema. El contrato real puede cambiar sin tocar a los demás."""
+    """Interfaz que usa el resto del sistema.
+
+    El contrato real puede cambiar sin tocar a los demás.
+    """
 
     @abstractmethod
     def buscar_terminos(self, texto: str, pagina: int = 1) -> dict:
-        """Devuelve: {"items": [{"code", "term"}], "has_more": bool}, con términos que coinciden
-        (3 letras o más, con paginación)."""
+        """Devuelve los términos que coinciden, con paginación.
+
+        Forma: {'items': [{'code', 'term'}], 'has_more': bool}. Se busca
+        desde 3 letras.
+        """
 
 
 class SnomedSimulador(SnomedIntegracion):
-    """Devuelve datos de ejemplo para desarrollar y demostrar sin depender de otro grupo."""
+    """Datos de ejemplo para desarrollar sin depender de otro grupo."""
 
     def buscar_terminos(self, texto: str, pagina: int = 1) -> dict:
         needle = _normalize(texto)
@@ -61,12 +64,7 @@ class SnomedSimulador(SnomedIntegracion):
 
 
 class SnomedReal(SnomedIntegracion):
-    """Cliente del módulo real.
-
-    Requisitos para quien lo implemente: usar un timeout corto, pasar el texto con `params=` (no
-    armar la URL con f-strings), tomar la URL de la configuración, devolver solo `code` y `term`
-    y traducir sus errores a `OSError` o `TimeoutError`.
-    """
+    """Cliente del módulo real."""
 
     def buscar_terminos(self, texto: str, pagina: int = 1) -> dict:
         raise NotImplementedError(_TODO)

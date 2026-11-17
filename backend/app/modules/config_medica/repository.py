@@ -1,9 +1,3 @@
-"""Acceso a las tablas `pathologies`, `pathology_symptoms`, `symptoms` y `app_settings`.
-
-Usa el cliente admin (service role), que no pasa por RLS. El cliente no tiene transacciones:
-si un paso falla, se deshacen a mano los anteriores.
-"""
-
 import unicodedata
 from datetime import UTC, datetime
 
@@ -17,7 +11,7 @@ _SELECT = "id, name, pathology_symptoms(is_cardinal, symptoms(code, term))"
 
 
 class NameTaken(Exception):
-    """Ya existe una patología con ese nombre (índice único sin distinguir mayúsculas)."""
+    """Ya hay una patología con ese nombre (índice único)."""
 
 
 def _table(name: str):
@@ -35,7 +29,7 @@ def _to_pathology(row: dict) -> dict:
 
 
 def list_all() -> list[dict]:
-    """Devuelve las patologías con su síntoma cardinal y sus secundarios, ordenadas por nombre."""
+    """Devuelve las patologías con sus síntomas, ordenadas por nombre."""
     rows = _table("pathologies").select(_SELECT).order("name").execute().data
     return [_to_pathology(row) for row in rows]
 
@@ -47,13 +41,19 @@ def find_by_id(pathology_id: int) -> dict | None:
 
 
 def normalize_name(name: str) -> str:
-    """El nombre como se guarda: en forma NFC y con los espacios juntos (`"Fabry  X"` = `"Fabry X"`)."""
+    """El nombre como se guarda: NFC y con los espacios juntos.
+
+    Por ejemplo, 'Fabry X' y 'Fabry X' quedan iguales.
+    """
     return " ".join(unicodedata.normalize("NFC", name).split())
 
 
 def name_key(name: str) -> str:
-    """Clave para comparar nombres: ignora mayúsculas, espacios y las formas equivalentes de Unicode
-    (por ejemplo `ß` y `ss`, o una letra con tilde escrita en una o en dos piezas)."""
+    """Clave para comparar nombres sin distinguir mayúsculas.
+
+    Ignora los espacios de más y las formas equivalentes de Unicode, por
+    ejemplo una letra con tilde escrita en una o en dos piezas.
+    """
     folded = unicodedata.normalize("NFKC", normalize_name(name)).casefold()
     return unicodedata.normalize("NFKC", folded)
 
@@ -61,8 +61,10 @@ def name_key(name: str) -> str:
 def name_exists(name: str) -> bool:
     """Indica si ya hay una patología con ese nombre (M2-RF3).
 
-    Es más estricta que el índice único de la base (`lower(name)`): todo lo que el índice rechaza,
-    esta función también, así que el índice solo queda como respaldo ante una carrera."""
+    Es más estricta que el índice único de la base (`lower(name)`): todo
+    lo que el índice rechaza, esta función también, así que el índice
+    solo queda como respaldo ante una carrera.
+    """
     rows = _table("pathologies").select("name").execute().data
     wanted = name_key(name)
     return any(name_key(row["name"]) == wanted for row in rows)
@@ -86,7 +88,10 @@ def _save_symptoms(cardinal: dict, secondary: list[dict]) -> None:
 
 
 def create(name: str, cardinal: dict, secondary: list[dict]) -> dict:
-    """Guarda la patología y sus síntomas. Si falla algo, borra la patología a medio crear."""
+    """Guarda la patología y sus síntomas.
+
+    Si falla algo, borra la patología a medio crear.
+    """
     _save_symptoms(cardinal, secondary)
     try:
         pathology_id = _table("pathologies").insert({"name": name}).execute().data[0]["id"]
@@ -104,7 +109,10 @@ def create(name: str, cardinal: dict, secondary: list[dict]) -> dict:
 
 
 def replace_symptoms(pathology_id: int, cardinal: dict, secondary: list[dict]) -> dict:
-    """Reemplaza el cardinal y los secundarios. Si falla, intenta devolver los anteriores."""
+    """Reemplaza el cardinal y los secundarios.
+
+    Si falla, intenta devolver los anteriores.
+    """
     previous = (
         _table("pathology_symptoms")
         .select("pathology_id, symptom_code, is_cardinal")

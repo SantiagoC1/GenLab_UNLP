@@ -28,7 +28,7 @@ from app.modules.acceso.catalogs import ADMIN_CREATABLE_ROLES, SELF_SIGNUP_ROLES
 
 
 def use_fake(monkeypatch, fake, *names: str) -> None:
-    """Reemplaza esas funciones del repositorio de acceso por las del objeto `fake`."""
+    """Reemplaza funciones del repositorio de acceso por las del objeto `fake`."""
     for name in names:
         monkeypatch.setattr(repository, name, getattr(fake, name))
 

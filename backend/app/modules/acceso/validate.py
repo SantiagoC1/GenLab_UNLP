@@ -1,6 +1,3 @@
-"""Validaciones de los datos de M1. Cada función devuelve una lista de errores:
-si la lista está vacía, los datos son válidos."""
-
 import re
 
 from app.modules.acceso import repository
@@ -42,7 +39,7 @@ def validate_login(data: dict) -> list[str]:
 
 
 def validate_code(data: dict) -> list[str]:
-    """Valida que el segundo paso del ingreso traiga el mail, el código y el token del paso 1."""
+    """Valida el segundo paso del ingreso: mail, código y token del paso 1."""
     errors = []
     if not data.get("email") or not data.get("code"):
         errors.append("Completá el mail y el código.")
@@ -54,13 +51,12 @@ def validate_code(data: dict) -> list[str]:
 def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) -> list[str]:
     """Valida el alta de un usuario (autoalta o alta del administrador).
 
-    Args:
-        data: los datos recibidos (role, first_name, last_name, phone, email, password,
-            license_number, specialties, province).
-        allowed_roles: los roles que se pueden dar de alta por este camino.
-        with_password: True si la contraseña la define la persona (autoalta).
-    Returns:
-        La lista de mensajes de error. Vacía si los datos son válidos.
+    Args: data: los datos recibidos (role, first_name, last_name, phone,
+    email, password, license_number, specialties, province).
+    allowed_roles: los roles que se pueden dar de alta por este camino.
+    with_password: True si la contraseña la define la persona
+    (autoalta). Returns: La lista de mensajes de error. Vacía si los
+    datos son válidos.
     """
     errors = []
 
@@ -104,7 +100,7 @@ def validate_user_data(data: dict, allowed_roles: tuple, with_password: bool) ->
 
 
 def _validate_specialties(specialty_ids: list | None) -> list[str]:
-    """Valida que haya al menos una especialidad y que todas estén en el catálogo."""
+    """Pide al menos una especialidad y que todas estén en el catálogo."""
     if not specialty_ids:
         return ["El médico tratante debe indicar al menos una especialidad."]
     catalog_ids = {specialty["id"] for specialty in repository.list_specialties()}
@@ -114,8 +110,11 @@ def _validate_specialties(specialty_ids: list | None) -> list[str]:
 
 
 def validate_password_change(data: dict) -> list[str]:
-    """Valida el cambio de contraseña: que estén los tres datos, que la nueva sea larga
-    y que coincida con la confirmación (escenario 3)."""
+    """Valida el cambio de contraseña.
+
+    Pide los tres datos, que la nueva sea larga y que coincida con la
+    confirmación.
+    """
     errors = []
     for field in ("current_password", "new_password", "confirmation"):
         if not data.get(field):

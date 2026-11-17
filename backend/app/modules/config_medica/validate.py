@@ -1,6 +1,3 @@
-"""Validaciones de los datos de M2. Cada función devuelve una lista de errores:
-si la lista está vacía, los datos son válidos."""
-
 import unicodedata
 
 from app.core.enums import CdssStrategy
@@ -17,23 +14,20 @@ def _has_control_characters(text: str) -> bool:
 
 
 def _code_key(code: str) -> str:
-    """Clave para comparar códigos: `"SIM-001"`, `" sim-001 "` y `"ＳＩＭ-001"` son el mismo."""
+    """Clave para comparar códigos de síntoma sin importar el formato.
+
+    'SIM-001' y ' sim-001 ' dan la misma clave.
+    """
     return unicodedata.normalize("NFKC", code).strip().casefold()
 
 
 def _is_valid_text(value) -> bool:
-    if not isinstance(value, str):
-        return False
-    text = value.strip()
+    text = (value or "").strip()
     return 0 < len(text) <= MAX_FIELD_LENGTH and not _has_control_characters(text)
 
 
 def _is_valid_symptom(symptom) -> bool:
-    return (
-        isinstance(symptom, dict)
-        and _is_valid_text(symptom.get("code"))
-        and _is_valid_text(symptom.get("term"))
-    )
+    return bool(symptom) and _is_valid_text(symptom["code"]) and _is_valid_text(symptom["term"])
 
 
 def validate_symptoms(data: dict) -> list[str]:
@@ -48,7 +42,7 @@ def validate_symptoms(data: dict) -> list[str]:
     elif not cardinal_ok:
         errors.append("El síntoma cardinal no es válido.")
 
-    if not isinstance(secondary, list) or len(secondary) < MIN_SECONDARY:
+    if len(secondary or []) < MIN_SECONDARY:
         errors.append(f"Cargá al menos {MIN_SECONDARY} síntomas secundarios.")
         return errors
     if len(secondary) > MAX_SECONDARY:
@@ -67,10 +61,10 @@ def validate_symptoms(data: dict) -> list[str]:
 
 
 def validate_pathology(data: dict) -> list[str]:
-    """Valida el alta de una patología: nombre, que no exista (M2-RF3) y sus síntomas."""
+    """Valida el alta de una patología: nombre, unicidad y síntomas."""
     errors = []
     name = data.get("name")
-    if not isinstance(name, str) or not name.strip():
+    if not (name and name.strip()):
         errors.append("Ingresá el nombre de la patología.")
     elif _has_control_characters(name):
         errors.append("El nombre no puede tener caracteres de control.")
