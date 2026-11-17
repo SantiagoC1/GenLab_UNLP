@@ -52,7 +52,7 @@ describe('Dar de alta a un usuario', () => {
     mockApi({ 'GET /acceso/users': { body: [ADMIN] }, 'GET /acceso/catalogs': CATALOGS })
     renderApp(PATH)
 
-    const row = (await screen.findByText('Gómez, Ana')).closest('tr')!
+    const row = (await screen.findByText('Gómez, Ana')).closest('[role="row"]') as HTMLElement
     expect(within(row).getByText('admin@example.com')).toBeInTheDocument()
     expect(within(row).getByText('Administrador general')).toBeInTheDocument()
     expect(within(row).getByText('Activo')).toBeInTheDocument()
@@ -165,7 +165,7 @@ describe('Dar de alta a un usuario', () => {
     })
     renderApp(PATH)
 
-    const row = (await screen.findByText('Díaz, Pedro')).closest('tr')!
+    const row = (await screen.findByText('Díaz, Pedro')).closest('[role="row"]') as HTMLElement
     expect(within(row).getByText('Bloqueado')).toBeInTheDocument()
     // solo las cuentas bloqueadas ofrecen la acción
     expect(screen.getAllByRole('button', { name: 'Desbloquear' })).toHaveLength(1)
