@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, json } from './api'
 import type { Symptom } from './symptoms'
 import type { Errors } from './validation'
@@ -80,12 +80,8 @@ export function isValidDni(dni: string): boolean {
 }
 
 /**
- * Valida el formulario antes de enviarlo. El backend repite estas reglas (y es el que manda): acá
- * se hacen para avisar rápido y campo por campo. Los mensajes de formato son los mismos que los
- * del backend; los de campo vacío son más cortos ("Completá el nombre.").
- *
- * En una sospecha familiar los síntomas pueden faltar (P1), por eso solo se exigen en la clínica.
- * Los topes de largo no se validan acá: los campos de la pantalla ya traen `maxLength`.
+ * Valida el formulario antes de enviarlo, para avisar campo por campo. El backend repite las
+ * reglas y es el que manda. En la sospecha familiar los síntomas pueden faltar (P1).
  */
 export function validatePatient(form: PatientForm, today: Date = new Date()): Errors {
   const errors: Errors = {}
@@ -134,6 +130,16 @@ export function toPayload(form: PatientForm) {
 export function findPatientByDni(dni: string) {
   const params = new URLSearchParams({ dni: dni.trim() })
   return api<Patient>(`/consulta_medica/patients?${params}`)
+}
+
+/** Busca al paciente en cuanto hay un DNI cargado (el alta de estudio llega con `?dni=`). */
+export function usePatientByDni(dni: string) {
+  return useQuery({
+    queryKey: ['patient', dni],
+    queryFn: () => findPatientByDni(dni),
+    enabled: dni !== '',
+    retry: false,
+  })
 }
 
 /** Hook de TanStack Query para buscar por DNI cuando el médico aprieta el botón (no al escribir). */

@@ -4,7 +4,7 @@ import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { SymptomSearch } from '../../components/SymptomSearch'
 import { FIELD_CLASS, TextField } from '../../components/TextField'
-import { ApiError } from '../../lib/api'
+import { ApiError, errorMessage } from '../../lib/api'
 import {
   EMPTY_PATIENT_FORM,
   isMinor,
@@ -24,17 +24,9 @@ import {
 import { usePathologies } from '../../lib/pathologies'
 import type { Errors } from '../../lib/validation'
 
-/** Mensaje para el médico: el del backend si lo hay, y si no, que no hay conexión. */
-function errorMessage(error: unknown): string {
-  return error instanceof ApiError ? error.message : 'No pudimos conectarnos. Revisá tu conexión.'
-}
-
 /**
- * Busca al paciente por DNI y, si no existe, lo da de alta (escenario 9).
- *
- * Accesibilidad: cada error se asocia a su campo con `aria-describedby` y se anuncia con
- * `role="alert"`. Al enviar con errores, el foco pasa a un resumen que dice cuántos campos hay que
- * corregir, así quien usa teclado o lector de pantalla no tiene que buscarlos.
+ * Busca al paciente por DNI y, si no existe, lo da de alta. Cada error se asocia a su campo con
+ * `aria-describedby`, y al enviar con errores el foco pasa a un resumen de cuántos hay.
  */
 export default function AltaPacientePantalla() {
   const [form, setForm] = useState<PatientForm>(EMPTY_PATIENT_FORM)

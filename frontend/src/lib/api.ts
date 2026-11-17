@@ -48,3 +48,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export function json(body: unknown): { body: string } {
   return { body: JSON.stringify(body) }
 }
+
+/** El mensaje para mostrarle al usuario: el que mandó el backend, o que no hay conexión. */
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'No pudimos conectarnos. Revisá tu conexión.'
+}
