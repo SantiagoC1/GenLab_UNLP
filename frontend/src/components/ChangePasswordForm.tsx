@@ -32,7 +32,6 @@ export function ChangePasswordForm() {
     if (!current) found.current = 'Completá la contraseña actual.'
     const newPasswordError = validateNewPassword(newPassword)
     if (newPasswordError) found.newPassword = newPasswordError
-    // Si no coinciden, no se guarda nada y se vuelven a pedir las dos (escenario 3).
     else if (newPassword !== confirmation) {
       found.confirmation = 'Las contraseñas no coinciden.'
       setNewPassword('')

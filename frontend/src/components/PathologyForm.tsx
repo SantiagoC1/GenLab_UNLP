@@ -13,7 +13,7 @@ import { SymptomSearch } from './SymptomSearch'
 import { TextField } from './TextField'
 
 interface Props {
-  /** Con una patología se editan sus síntomas (escenario 6); sin ella se da de alta (escenario 5). */
+  /** Con una patología se editan sus síntomas; sin ella se da de alta. */
   pathology?: Pathology
   onSaved: (pathology: Pathology) => void
   onCancel: () => void

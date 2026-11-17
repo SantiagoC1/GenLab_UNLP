@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { ChangePasswordForm } from '../../components/ChangePasswordForm'
 import { useRol } from '../rol-context'
 
-/** Escenario 3 · M1-RF7. Única pantalla para activar la cuenta y para cambiar la contraseña. */
+/** Única pantalla para activar la cuenta y para cambiar la contraseña. */
 export default function ChangePasswordScreen() {
   const { session } = useRol()
   if (!session && !import.meta.env.DEV) return <Navigate to="/ingresar" replace />

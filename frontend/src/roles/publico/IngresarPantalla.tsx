@@ -8,7 +8,7 @@ import { login, toSession, verifyCode, type SessionResponse } from '../../lib/ac
 import { initialScreen } from '../pantallas'
 import { useRol } from '../rol-context'
 
-/** Escenario 4 · M1-RF8 a RF10. Contraseña y, si el dispositivo es nuevo, un código. */
+/** Ingreso con contraseña y, si el dispositivo es nuevo, con un código. */
 export default function IngresarPantalla() {
   const { startSession } = useRol()
   const navigate = useNavigate()

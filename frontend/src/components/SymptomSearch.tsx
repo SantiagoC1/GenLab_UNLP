@@ -18,9 +18,9 @@ interface Props {
 }
 
 /**
- * Escenario 7: buscador de síntomas con SNOMED, sin texto libre. REUTILIZABLE: lo usan las
- * pantallas de patologías (M2) y de pacientes y familiares (M3). La selección vive en la
- * pantalla que lo usa, así un error del buscador no hace perder lo que ya se cargó.
+ * Buscador de síntomas con SNOMED, sin texto libre. REUTILIZABLE: lo usan las pantallas de
+ * patologías y de pacientes. La selección vive en la pantalla que lo usa, así un error del
+ * buscador no hace perder lo que ya se cargó.
  */
 export function SymptomSearch({
   selected,
