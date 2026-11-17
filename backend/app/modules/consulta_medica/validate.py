@@ -1,13 +1,5 @@
-"""Validaciones de los datos de M3. Cada función devuelve una lista de errores:
-si la lista está vacía, los datos son válidos.
-
-SUPUESTOS (docs/Supuestos_y_pendientes.md, S3 y S4): la especificación pide "tres letras o más"
-y "paginación" sin más detalle. Se cuentan caracteres tras recortar los espacios, y los topes
-protegen al módulo externo de pedidos desmedidos. Los topes del alta de paciente (nombre,
-teléfono, mail y resumen) son propios: la especificación no los fija.
-"""
-
 import re
+import uuid
 from datetime import date
 
 from app.modules.acceso.validate import EMAIL_PATTERN, FIELD_LABELS, required_field_error
@@ -43,15 +35,14 @@ REQUIRED_PATIENT_FIELDS = (
 
 
 def _has_control_characters(text: str) -> bool:
-    """Indica si el texto tiene caracteres de control (saltos de línea, tabulaciones, NUL...)."""
+    """Indica si el texto tiene caracteres de control."""
     return any(ord(char) < 32 or ord(char) == 127 for char in text)
 
 
 def validate_symptom_search(text: str | None, page: str | None) -> list[str]:
-    """Valida el texto a buscar y el número de página (que llega como texto de la URL).
+    """Valida el texto a buscar y la página, que llega como texto de la URL.
 
-    La página se acepta solo si son dígitos ASCII: `isascii` evita que `int()` convierta dígitos
-    de otros alfabetos.
+    `isascii` evita que `int()` acepte dígitos de otros alfabetos.
     """
     errors = []
 
@@ -72,21 +63,19 @@ def validate_symptom_search(text: str | None, page: str | None) -> list[str]:
 
 
 def validate_dni_search(dni: str | None) -> list[str]:
-    """Valida el DNI con el que se busca a un paciente (M3-RF7)."""
+    """Valida el DNI con el que se busca un paciente."""
     if not DNI_PATTERN.fullmatch((dni or "").strip()):
         return ["El DNI tiene que tener 7 u 8 dígitos."]
     return []
 
 
 def _is_filled(value) -> bool:
-    """Un campo de texto está completo si es un texto con algo más que espacios."""
-    return isinstance(value, str) and value.strip() != ""
+    """Un texto está completo si tiene algo más que espacios."""
+    return bool(value and value.strip())
 
 
 def _is_valid_symptom(symptom) -> bool:
-    """Un síntoma es válido si trae un código y un término de texto, no vacíos y no desmedidos."""
-    if not isinstance(symptom, dict):
-        return False
+    """Un síntoma es válido si trae código y término no vacíos ni largos."""
     for field in ("code", "term"):
         value = symptom.get(field)
         if not _is_filled(value) or len(value.strip()) > MAX_FIELD_LENGTH:
@@ -106,7 +95,7 @@ def _validate_birth_date(birth_date: str) -> list[str]:
 
 
 def _validate_pathology_ids(pathology_ids) -> list[str]:
-    """Hay que elegir al menos un diagnóstico presuntivo, sin repetir y del catálogo (M3-RF3)."""
+    """Pide al menos un diagnóstico presuntivo, sin repetir y del catálogo."""
     if not pathology_ids:
         return ["Elegí al menos un diagnóstico presuntivo."]
     if len(set(pathology_ids)) != len(pathology_ids):
@@ -118,7 +107,7 @@ def _validate_pathology_ids(pathology_ids) -> list[str]:
 
 
 def _validate_patient_symptoms(symptoms, suspicion_type) -> list[str]:
-    """En una sospecha clínica los síntomas son obligatorios; en una familiar pueden faltar (P1)."""
+    """Exige síntomas en la sospecha clínica; en la familiar no (P1)."""
     symptoms = symptoms or []
     if suspicion_type == "clinica" and not symptoms:
         return ["En una sospecha clínica cargá al menos un síntoma."]
@@ -131,10 +120,12 @@ def _validate_patient_symptoms(symptoms, suspicion_type) -> list[str]:
 
 
 def _validate_patient_text_sizes(data: dict) -> list[str]:
-    """Pone tope al largo de los textos del alta y rechaza caracteres de control en los de una línea.
+    """Limita el largo de los textos y rechaza caracteres de control.
 
-    Existe para que nadie guarde un resumen de megabytes ni un nombre con saltos de línea. El
-    resumen clínico puede tener varias líneas, así que solo se le limita el largo.
+    Los caracteres de control solo se rechazan en los campos de una
+    línea.
+
+    El resumen clínico puede tener varias líneas.
     """
     errors = []
     for field, max_length in ONE_LINE_FIELDS.items():
@@ -154,10 +145,10 @@ def _validate_patient_text_sizes(data: dict) -> list[str]:
 
 
 def validate_patient(data: dict) -> list[str]:
-    """Valida el alta de un paciente (escenario 9) y junta todos los errores.
+    """Valida el alta de un paciente y junta todos los errores.
 
-    Primero revisa los campos obligatorios. Después, solo de los que están completos, revisa su
-    formato: así un campo vacío no genera dos mensajes.
+    El formato solo se revisa en los campos completos, así un campo
+    vacío no da dos mensajes.
     """
     errors = []
     for field in REQUIRED_PATIENT_FIELDS:
@@ -179,3 +170,39 @@ def validate_patient(data: dict) -> list[str]:
     errors += _validate_pathology_ids(data.get("pathology_ids"))
     errors += _validate_patient_symptoms(data.get("symptoms"), suspicion_type)
     return errors
+
+
+def validate_study_genes_query(
+    pathology_ids: str | None, secondary_findings: str | None
+) -> list[str]:
+    """Valida las patologías y los hallazgos de la consulta de genes.
+
+    Las patologías llegan como '1,2' y los hallazgos como 'true' o
+    'false'.
+    """
+    errors = []
+    parts = (pathology_ids or "").split(",")
+    if not all(part.isascii() and part.isdigit() for part in parts):
+        errors.append("Elegí al menos una patología.")
+    else:
+        errors += _validate_pathology_ids([int(part) for part in parts])
+    if secondary_findings not in (None, "true", "false"):
+        errors.append("Los hallazgos secundarios tienen que ser true o false.")
+    return errors
+
+
+def validate_study(data: dict) -> list[str]:
+    """Valida el alta de un estudio: paciente (UUID) y patologías.
+
+    Los genes manuales no se validan.
+    """
+    errors = []
+    patient_id = data.get("patient_id")
+    if not _is_filled(patient_id):
+        errors.append("Elegí al paciente.")
+    else:
+        try:
+            uuid.UUID(patient_id.strip())
+        except ValueError:
+            errors.append("El paciente no es válido.")
+    return errors + _validate_pathology_ids(data.get("pathology_ids"))
