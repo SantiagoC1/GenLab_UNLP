@@ -75,6 +75,12 @@ class StudyGeneOut(BaseModel):
     origin: str
 
 
+class GeneSearchOut(BaseModel):
+    """Símbolos de genes que coinciden con lo que escribió el médico."""
+
+    genes: list[str]
+
+
 class StudyGenesOut(BaseModel):
     """Vista previa de los genes que se van a analizar."""
 

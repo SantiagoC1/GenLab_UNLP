@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from app.core.enums import Rol
@@ -15,7 +17,7 @@ RASH = {"code": "SIM-004", "term": "Erupción"}
 
 
 def valid_payload(**changes):
-    payload = {"name": "Fabry", "cardinal": PAIN, "secondary": [FEVER, TIREDNESS]}
+    payload = {"name": "Fabry", "code": "FABRY", "cardinal": PAIN, "secondary": [FEVER, TIREDNESS]}
     return {**payload, **changes}
 
 
@@ -38,11 +40,20 @@ class FakeCatalog:
         key = pathology_model.name_key(name)
         return any(pathology_model.name_key(p["name"]) == key for p in self.pathologies)
 
-    def create(self, name, cardinal, secondary):
+    def code_exists(self, code):
+        return any((p.get("code") or "").upper() == code.strip().upper() for p in self.pathologies)
+
+    def create(self, name, code, cardinal, secondary):
         if self.fail_with:
             raise self.fail_with
-        self.created.append((name, cardinal, secondary))
-        pathology = {"id": 99, "name": name, "cardinal": cardinal, "secondary": secondary}
+        self.created.append((name, code, cardinal, secondary))
+        pathology = {
+            "id": 99,
+            "name": name,
+            "code": code,
+            "cardinal": cardinal,
+            "secondary": secondary,
+        }
         self.pathologies.append(pathology)
         return pathology
 
@@ -59,17 +70,25 @@ def catalog(monkeypatch):
 
     def _install(pathologies=None):
         fake = FakeCatalog(pathologies)
-        for name in ("list_all", "find_by_id", "name_exists", "create", "replace_symptoms"):
+        for name in (
+            "list_all",
+            "find_by_id",
+            "name_exists",
+            "code_exists",
+            "create",
+            "replace_symptoms",
+        ):
             monkeypatch.setattr(f"app.modules.config_medica.repository.{name}", getattr(fake, name))
         return fake
 
     return _install
 
 
-def stored(pathology_id=1, name="Pompe"):
+def stored(pathology_id=1, name="Pompe", code="POMPE"):
     return {
         "id": pathology_id,
         "name": name,
+        "code": code,
         "cardinal": PAIN,
         "secondary": [FEVER, TIREDNESS],
     }
@@ -110,7 +129,7 @@ def test_the_manager_creates_a_pathology(client, login_as, catalog):
 
     assert response.status_code == 201
     assert response.json()["name"] == "Fabry"
-    assert fake.created == [("Fabry", PAIN, [FEVER, TIREDNESS])]
+    assert fake.created == [("Fabry", "FABRY", PAIN, [FEVER, TIREDNESS])]
 
 
 def test_creating_trims_the_name_and_the_symptoms(client, login_as, catalog):
@@ -123,7 +142,7 @@ def test_creating_trims_the_name_and_the_symptoms(client, login_as, catalog):
 
     assert client.post(LIST_URL, json=payload).status_code == 201
 
-    assert fake.created[0][:2] == ("Fabry", PAIN)
+    assert fake.created[0][:3] == ("Fabry", "FABRY", PAIN)
 
 
 @pytest.mark.parametrize("role", NOT_MANAGERS)
@@ -338,3 +357,81 @@ def test_the_id_must_be_a_number(client, login_as, catalog):
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("code", "message"),
+    [
+        (None, "código de la patología"),
+        ("   ", "código de la patología"),
+        ("FA BRY", "letras, números y guion bajo"),
+        ("FABRY-1", "letras, números y guion bajo"),
+        ("X" * 31, "letras, números y guion bajo"),
+    ],
+)
+def test_creating_rejects_an_invalid_code(client, login_as, catalog, code, message):
+    login_as(Rol.GERENTE_MEDICO)
+    fake = catalog()
+
+    response = client.post(LIST_URL, json=valid_payload(code=code))
+
+    assert response.status_code == 422
+    assert message in response.json()["detalle"]
+    assert fake.created == []
+
+
+@pytest.mark.parametrize("code", ["POMPE", "pompe", " Pompe "])
+def test_creating_does_not_duplicate_a_code(client, login_as, catalog, code):
+    login_as(Rol.GERENTE_MEDICO)
+    fake = catalog([stored(name="Enfermedad de Pompe", code="POMPE")])
+
+    response = client.post(LIST_URL, json=valid_payload(code=code))
+
+    assert response.status_code == 422
+    assert "Ya existe una patología con ese código" in response.json()["detalle"]
+    assert fake.created == []
+
+
+def test_the_code_is_saved_in_uppercase(client, login_as, catalog):
+    login_as(Rol.GERENTE_MEDICO)
+    fake = catalog()
+
+    assert client.post(LIST_URL, json=valid_payload(code=" fabry ")).status_code == 201
+
+    assert fake.created[0][1] == "FABRY"
+
+
+APIGEN_URL = "/config_medica/apigen-pathologies"
+
+
+def test_the_manager_lists_the_pathologies_of_apigen(client, login_as, monkeypatch):
+    login_as(Rol.GERENTE_MEDICO)
+    monkeypatch.setattr(
+        "app.modules.config_medica.service.obtener_apigen",
+        lambda: SimpleNamespace(
+            listar_patologias=lambda: [{"codigo": "POMPE", "nombre": "Enfermedad de Pompe"}]
+        ),
+    )
+
+    response = client.get(APIGEN_URL)
+
+    assert response.status_code == 200
+    assert response.json() == [{"code": "POMPE", "name": "Enfermedad de Pompe"}]
+
+
+def test_listing_the_pathologies_of_apigen_answers_503_if_it_fails(client, login_as, monkeypatch):
+    login_as(Rol.GERENTE_MEDICO)
+
+    def broken():
+        raise RuntimeError("caído")
+
+    monkeypatch.setattr("app.modules.config_medica.service.obtener_apigen", broken)
+
+    assert client.get(APIGEN_URL).status_code == 503
+
+
+@pytest.mark.parametrize("role", NOT_MANAGERS)
+def test_only_the_manager_lists_the_pathologies_of_apigen(client, login_as, role):
+    login_as(role)
+
+    assert client.get(APIGEN_URL).status_code == 403

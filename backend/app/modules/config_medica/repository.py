@@ -7,11 +7,11 @@ from app.database import supabase_admin
 
 UNIQUE_VIOLATION = "23505"
 
-_SELECT = "id, name, pathology_symptoms(is_cardinal, symptoms(code, term))"
+_SELECT = "id, name, code, pathology_symptoms(is_cardinal, symptoms(code, term))"
 
 
 class NameTaken(Exception):
-    """Ya hay una patología con ese nombre (índice único)."""
+    """Ya hay una patología con ese nombre o código (índice único)."""
 
 
 def _table(name: str):
@@ -25,7 +25,13 @@ def _to_pathology(row: dict) -> dict:
         (link["symptoms"] for link in links if not link["is_cardinal"]),
         key=lambda symptom: symptom["term"].casefold(),
     )
-    return {"id": row["id"], "name": row["name"], "cardinal": cardinal, "secondary": secondary}
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "code": row["code"],
+        "cardinal": cardinal,
+        "secondary": secondary,
+    }
 
 
 def list_all() -> list[dict]:
@@ -70,6 +76,15 @@ def name_exists(name: str) -> bool:
     return any(name_key(row["name"]) == wanted for row in rows)
 
 
+def code_exists(code: str) -> bool:
+    """Indica si ya hay una patología con ese código.
+
+    Los códigos se guardan en mayúsculas, así que se compara igual.
+    """
+    rows = _table("pathologies").select("code").eq("code", code.strip().upper()).execute().data
+    return len(rows) > 0
+
+
 def _links(pathology_id: int, cardinal: dict, secondary: list[dict]) -> list[dict]:
     rows = [{"pathology_id": pathology_id, "symptom_code": cardinal["code"], "is_cardinal": True}]
     rows += [
@@ -87,14 +102,15 @@ def _save_symptoms(cardinal: dict, secondary: list[dict]) -> None:
     _table("symptoms").upsert(rows, on_conflict="code", ignore_duplicates=True).execute()
 
 
-def create(name: str, cardinal: dict, secondary: list[dict]) -> dict:
+def create(name: str, code: str, cardinal: dict, secondary: list[dict]) -> dict:
     """Guarda la patología y sus síntomas.
 
     Si falla algo, borra la patología a medio crear.
     """
     _save_symptoms(cardinal, secondary)
     try:
-        pathology_id = _table("pathologies").insert({"name": name}).execute().data[0]["id"]
+        row = {"name": name, "code": code}
+        pathology_id = _table("pathologies").insert(row).execute().data[0]["id"]
     except APIError as error:
         if error.code == UNIQUE_VIOLATION:
             raise NameTaken from None

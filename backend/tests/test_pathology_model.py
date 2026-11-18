@@ -61,6 +61,7 @@ def client_with(monkeypatch):
 STORED_ROW = {
     "id": 7,
     "name": "Fabry",
+    "code": "FABRY",
     "pathology_symptoms": [
         {"is_cardinal": False, "symptoms": TIREDNESS},
         {"is_cardinal": True, "symptoms": PAIN},
@@ -74,7 +75,15 @@ def test_a_row_is_read_with_the_cardinal_apart_and_the_secondary_ordered(client_
 
     result = pathology_model.list_all()
 
-    assert result == [{"id": 7, "name": "Fabry", "cardinal": PAIN, "secondary": [TIREDNESS, FEVER]}]
+    assert result == [
+        {
+            "id": 7,
+            "name": "Fabry",
+            "code": "FABRY",
+            "cardinal": PAIN,
+            "secondary": [TIREDNESS, FEVER],
+        }
+    ]
 
 
 def test_name_exists_ignores_case_and_spaces(client_with):
@@ -113,7 +122,7 @@ def test_creating_saves_the_symptoms_then_the_pathology_then_the_links(client_wi
         }
     )
 
-    pathology_model.create("Fabry", PAIN, [FEVER, TIREDNESS])
+    pathology_model.create("Fabry", "FABRY", PAIN, [FEVER, TIREDNESS])
 
     assert fake.operations()[:3] == [
         ("symptoms", "upsert"),
@@ -127,7 +136,7 @@ def test_creating_with_a_taken_name_raises_name_taken(client_with):
     client_with(failures={("pathologies", "insert"): taken})
 
     with pytest.raises(pathology_model.NameTaken):
-        pathology_model.create("Fabry", PAIN, [FEVER, TIREDNESS])
+        pathology_model.create("Fabry", "FABRY", PAIN, [FEVER, TIREDNESS])
 
 
 def test_creating_deletes_the_half_made_pathology_when_the_links_fail(client_with):
@@ -137,7 +146,7 @@ def test_creating_deletes_the_half_made_pathology_when_the_links_fail(client_wit
     )
 
     with pytest.raises(RuntimeError):
-        pathology_model.create("Fabry", PAIN, [FEVER, TIREDNESS])
+        pathology_model.create("Fabry", "FABRY", PAIN, [FEVER, TIREDNESS])
 
     assert fake.operations()[-1] == ("pathologies", "delete")
 
@@ -176,3 +185,11 @@ def test_replacing_restores_the_previous_links_when_the_new_ones_fail(monkeypatc
         pathology_model.replace_symptoms(7, PAIN, [FEVER, TIREDNESS])
 
     assert inserts[1] == previous
+
+
+def test_code_exists_is_true_only_if_the_table_has_that_code(client_with):
+    client_with(responses={("pathologies", "select"): [{"code": "POMPE"}]})
+    assert pathology_model.code_exists(" pompe ") is True
+
+    client_with(responses={("pathologies", "select"): []})
+    assert pathology_model.code_exists("FABRY") is False

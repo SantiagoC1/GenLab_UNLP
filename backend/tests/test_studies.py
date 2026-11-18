@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,9 +11,9 @@ STUDIES_URL = "/consulta_medica/studies"
 NOT_DOCTORS = [rol for rol in Rol if rol != Rol.MEDICO_TRATANTE]
 
 PATIENT_ID = "123e4567-e89b-12d3-a456-426614174000"
-FABRY = {"id": 1, "name": "Fabry", "cardinal": None, "secondary": []}
-POMPE = {"id": 2, "name": "Pompe", "cardinal": None, "secondary": []}
-GENES_OF = {"Fabry": ["GLA"], "Pompe": ["GAA"]}
+FABRY = {"id": 1, "name": "Fabry", "code": "FABRY", "cardinal": None, "secondary": []}
+POMPE = {"id": 2, "name": "Pompe", "code": "POMPE", "cardinal": None, "secondary": []}
+GENES_OF = {"FABRY": ["GLA"], "POMPE": ["GAA"]}
 
 
 def adult_birth_date():
@@ -49,11 +50,11 @@ class World:
         self.created_studies.append((row, pathology_ids, genes))
         return {"id": 12, "state": "Creado", **row}
 
-    def genes_por_patologia(self, name, with_secondary=False):
-        self.apigen_calls.append((name, with_secondary))
+    def genes_por_patologia(self, code, with_secondary=False):
+        self.apigen_calls.append((code, with_secondary))
         if self.apigen_error:
             raise self.apigen_error
-        return self.genes_of[name] + (["ACMG-1"] if with_secondary else [])
+        return self.genes_of[code] + (["ACMG-1"] if with_secondary else [])
 
 
 @pytest.fixture
@@ -100,7 +101,7 @@ def test_the_preview_adds_the_secondary_findings_when_asked(client, login_as, wo
 
 def test_the_preview_joins_several_pathologies_without_repeating_genes(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
-    world.genes_of = {"Fabry": ["GLA", "GAA"], "Pompe": ["GAA"]}
+    world.genes_of = {"FABRY": ["GLA", "GAA"], "POMPE": ["GAA"]}
 
     response = client.get(GENES_URL, params={"pathology_ids": "1,2"})
 
@@ -161,7 +162,7 @@ def test_the_genes_are_asked_to_apigen_again_on_the_server(client, login_as, wor
     response = client.post(STUDIES_URL, json=payload)
 
     assert genes_of(response) == [("GLA", "patologia")]
-    assert world.apigen_calls == [("Fabry", False)]
+    assert world.apigen_calls == [("FABRY", False)]
 
 
 def test_manual_genes_are_added_in_uppercase_without_repeating(client, login_as, world):
@@ -282,23 +283,64 @@ def test_months_old_counts_whole_months(birth_date, today, months):
 
 
 @pytest.mark.parametrize(
-    ("pathology_name", "today", "urgent"),
+    ("pathology_code", "today", "urgent"),
     [
-        ("Pompe", date(2026, 11, 13), True),
+        ("POMPE", date(2026, 11, 13), True),
         ("pompe", date(2026, 11, 13), True),
-        ("Enfermedad de Pompe", date(2026, 11, 13), True),
-        ("Pompe", date(2026, 11, 14), False),
-        ("Fabry", date(2026, 11, 13), False),
+        ("POMPE", date(2026, 11, 14), False),
+        ("FABRY", date(2026, 11, 13), False),
     ],
 )
-def test_pompe_is_urgent_only_under_four_months(pathology_name, today, urgent):
+def test_pompe_is_urgent_only_under_four_months(pathology_code, today, urgent):
     birth_date = date(2026, 7, 14)
-    pathologies = [{"id": 1, "name": pathology_name}]
+    pathologies = [{"id": 1, "code": pathology_code}]
 
     assert service.is_pompe_urgent(birth_date, pathologies, today) is urgent
 
 
 def test_pompe_among_other_pathologies_is_urgent():
-    pathologies = [{"id": 1, "name": "Fabry"}, {"id": 2, "name": "Pompe"}]
+    pathologies = [{"id": 1, "code": "FABRY"}, {"id": 2, "code": "POMPE"}]
 
     assert service.is_pompe_urgent(date(2026, 7, 14), pathologies, date(2026, 11, 13)) is True
+
+
+def test_the_gene_search_suggests_genes_from_apigen(client, login_as, monkeypatch):
+    login_as(Rol.MEDICO_TRATANTE)
+    monkeypatch.setattr(
+        "app.modules.consulta_medica.service.obtener_apigen",
+        lambda: SimpleNamespace(
+            buscar_genes=lambda prefix: ["GAA", "GAB1"] if prefix == "GA" else []
+        ),
+    )
+
+    response = client.get("/consulta_medica/studies/gene-search", params={"q": " GA "})
+
+    assert response.status_code == 200
+    assert response.json() == {"genes": ["GAA", "GAB1"]}
+
+
+@pytest.mark.parametrize("q", [None, "", "  ", "G A", "X" * 21])
+def test_the_gene_search_rejects_an_invalid_prefix(client, login_as, q):
+    login_as(Rol.MEDICO_TRATANTE)
+
+    response = client.get("/consulta_medica/studies/gene-search", params={"q": q} if q else {})
+
+    assert response.status_code == 422
+
+
+def test_the_gene_search_answers_503_if_apigen_fails(client, login_as, monkeypatch):
+    login_as(Rol.MEDICO_TRATANTE)
+
+    def broken():
+        raise RuntimeError("caído")
+
+    monkeypatch.setattr("app.modules.consulta_medica.service.obtener_apigen", broken)
+
+    assert client.get("/consulta_medica/studies/gene-search", params={"q": "GA"}).status_code == 503
+
+
+@pytest.mark.parametrize("role", NOT_DOCTORS)
+def test_only_the_treating_doctor_can_search_genes(client, login_as, role):
+    login_as(role)
+
+    assert client.get("/consulta_medica/studies/gene-search", params={"q": "GA"}).status_code == 403

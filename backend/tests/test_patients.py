@@ -11,8 +11,8 @@ NOT_DOCTORS = [rol for rol in Rol if rol != Rol.MEDICO_TRATANTE]
 
 PAIN = {"code": "SIM-001", "term": "Dolor"}
 FEVER = {"code": "SIM-002", "term": "Fiebre"}
-FABRY = {"id": 1, "name": "Fabry", "cardinal": PAIN, "secondary": [FEVER]}
-POMPE = {"id": 2, "name": "Pompe", "cardinal": FEVER, "secondary": [PAIN]}
+FABRY = {"id": 1, "name": "Fabry", "code": "FABRY", "cardinal": PAIN, "secondary": [FEVER]}
+POMPE = {"id": 2, "name": "Pompe", "code": "POMPE", "cardinal": FEVER, "secondary": [PAIN]}
 ADULT_BIRTH_DATE = "1990-05-20"
 
 
@@ -46,7 +46,7 @@ class World:
         self.created_accounts = []
         self.deleted_accounts = []
         self.mails = []
-        self.cdss_answer = "Fabry"
+        self.cdss_answer = ["FABRY"]
         self.cdss_error = None
         self.cdss_calls = []
         self.mail_works = True
@@ -236,21 +236,21 @@ def test_the_cdss_receives_the_symptom_codes_and_the_configured_strategy(client,
 
 def test_the_alta_is_blocked_when_the_cdss_points_to_another_pathology(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
-    world.cdss_answer = "Pompe"
+    world.cdss_answer = ["POMPE"]
 
     response = client.post(URL, json=valid_payload(pathology_ids=[1]))
 
     assert response.status_code == 422
     detail = response.json()["detalle"]
     assert "no corresponden" in detail
-    assert "Pompe" in detail
+    assert "POMPE" in detail
     assert "«Dolor»" in detail
     assert (world.created_patients, world.created_accounts, world.mails) == ([], [], [])
 
 
 def test_the_alta_is_blocked_when_the_cdss_says_it_is_not_compatible(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
-    world.cdss_answer = "no compatible con patologías lisosomales"
+    world.cdss_answer = []
 
     response = client.post(URL, json=valid_payload())
 
@@ -260,9 +260,18 @@ def test_the_alta_is_blocked_when_the_cdss_says_it_is_not_compatible(client, log
 
 def test_it_is_enough_that_the_cdss_matches_one_of_the_chosen_pathologies(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
-    world.cdss_answer = "pompe"
+    world.cdss_answer = ["pompe"]
 
     response = client.post(URL, json=valid_payload(pathology_ids=[1, 2]))
+
+    assert response.status_code == 201
+
+
+def test_a_tie_in_the_cdss_is_accepted_if_one_of_the_tied_is_chosen(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+    world.cdss_answer = ["POMPE", "FABRY"]
+
+    response = client.post(URL, json=valid_payload(pathology_ids=[1]))
 
     assert response.status_code == 201
 
