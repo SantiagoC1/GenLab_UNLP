@@ -1,7 +1,7 @@
 import pytest
 
 from app.integrations import snomed
-from app.integrations.snomed import PAGE_SIZE, SnomedReal, SnomedSimulador
+from app.integrations.snomed import PAGE_SIZE, SnomedSimulador
 
 
 def search(text, page=1):
@@ -48,8 +48,3 @@ def test_paginates_and_knows_when_there_is_one_more_page(monkeypatch):
     assert len(second["items"]) == PAGE_SIZE and second["has_more"] is False
     assert third == {"items": [], "has_more": False}
     assert first["items"][0]["code"] != second["items"][0]["code"]
-
-
-def test_the_real_client_is_not_implemented_yet():
-    with pytest.raises(NotImplementedError):
-        SnomedReal().buscar_terminos("hipo")

@@ -1,9 +1,11 @@
+import re
 import unicodedata
 
 from app.core.enums import CdssStrategy
 from app.modules.config_medica import repository
 
 MAX_NAME_LENGTH = 100
+CODE_PATTERN = re.compile(r"[A-Za-z0-9_]{1,30}")
 MAX_FIELD_LENGTH = 200
 MIN_SECONDARY = 2
 MAX_SECONDARY = 30
@@ -60,8 +62,22 @@ def validate_symptoms(data: dict) -> list[str]:
     return errors
 
 
+def _validate_code(code) -> list[str]:
+    """Valida el código que usan Apigen y el CDSS, por ejemplo POMPE.
+
+    Solo letras, números y guion bajo, sin repetirse.
+    """
+    if not (code and code.strip()):
+        return ["Ingresá el código de la patología."]
+    if not CODE_PATTERN.fullmatch(code.strip()):
+        return ["El código solo puede tener letras, números y guion bajo (hasta 30)."]
+    if repository.code_exists(code):
+        return ["Ya existe una patología con ese código."]
+    return []
+
+
 def validate_pathology(data: dict) -> list[str]:
-    """Valida el alta de una patología: nombre, unicidad y síntomas."""
+    """Valida el alta de una patología: nombre, código y síntomas."""
     errors = []
     name = data.get("name")
     if not (name and name.strip()):
@@ -72,7 +88,7 @@ def validate_pathology(data: dict) -> list[str]:
         errors.append(f"El nombre no puede tener más de {MAX_NAME_LENGTH} caracteres.")
     elif repository.name_exists(name):
         errors.append("Ya existe una patología con ese nombre.")
-    return errors + validate_symptoms(data)
+    return errors + _validate_code(data.get("code")) + validate_symptoms(data)
 
 
 def validate_cdss_strategy(data: dict) -> list[str]:

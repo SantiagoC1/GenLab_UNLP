@@ -19,8 +19,7 @@ from app.modules.consulta_medica import repository as patient_repository
 logger = logging.getLogger(__name__)
 
 AGE_OF_MAJORITY = 18
-CDSS_NOT_COMPATIBLE = "no compatible con patologías lisosomales"
-POMPE_NAME = "pompe"
+POMPE_CODE = "POMPE"
 POMPE_URGENT_MONTHS = 4
 EMAIL_UNAVAILABLE = (
     "No se puede usar ese mail para el alta. Usá otro o consultá con el administrador."
@@ -60,8 +59,8 @@ def find_patient(dni: str) -> dict:
     return patient
 
 
-def _ask_cdss(symptoms: list[dict]) -> str:
-    """REUTILIZABLE. Pregunta al CDSS qué patología corresponde.
+def _ask_cdss(symptoms: list[dict]) -> list[str]:
+    """REUTILIZABLE. Pregunta al CDSS qué patologías corresponden.
 
     Si no responde, 503: sin su respuesta no se puede verificar la
     sospecha.
@@ -75,14 +74,14 @@ def _ask_cdss(symptoms: list[dict]) -> str:
 
 
 def _check_clinical_match(symptoms: list[dict], chosen: list[dict]) -> None:
-    """Acepta la sospecha clínica si el CDSS devuelve una patología elegida.
+    """Acepta la sospecha clínica si el CDSS sugiere una patología elegida.
 
     Si no, bloquea el alta (422) y dice qué síntoma cardinal se
     esperaba.
     """
     answer = _ask_cdss(symptoms)
-    chosen_names = {pathology_repository.name_key(pathology["name"]) for pathology in chosen}
-    if pathology_repository.name_key(answer) in chosen_names:
+    chosen_codes = {pathology["code"].upper() for pathology in chosen}
+    if any(code.upper() in chosen_codes for code in answer):
         return
 
     expected = [
@@ -91,8 +90,8 @@ def _check_clinical_match(symptoms: list[dict], chosen: list[dict]) -> None:
         if pathology["cardinal"]
     ]
     message = "Los síntomas cargados no corresponden a la patología sospechada."
-    if answer != CDSS_NOT_COMPATIBLE:
-        message += f" El CDSS indica: {answer}."
+    if answer:
+        message += f" El CDSS indica: {', '.join(answer)}."
     if expected:
         message += " Revisá los síntomas: " + "; ".join(expected) + "."
     raise BusinessRuleError(message, 422)
@@ -206,11 +205,9 @@ def months_old(birth_date: date, today: date | None = None) -> int:
 def is_pompe_urgent(birth_date: date, pathologies: list[dict], today: date | None = None) -> bool:
     """Indica si hay Pompe y el paciente tiene menos de 4 meses.
 
-    Pompe se reconoce porque su nombre contiene 'pompe'.
+    Pompe se reconoce por su código en Apigen y en el CDSS.
     """
-    has_pompe = any(
-        POMPE_NAME in pathology_repository.name_key(pathology["name"]) for pathology in pathologies
-    )
+    has_pompe = any(pathology["code"].upper() == POMPE_CODE for pathology in pathologies)
     return has_pompe and months_old(birth_date, today) < POMPE_URGENT_MONTHS
 
 
@@ -225,7 +222,7 @@ def _ask_genes(pathologies: list[dict], with_secondary: bool) -> list[str]:
         apigen = obtener_apigen()
         genes = []
         for pathology in pathologies:
-            for gene in apigen.genes_por_patologia(pathology["name"], with_secondary):
+            for gene in apigen.genes_por_patologia(pathology["code"], with_secondary):
                 if gene not in genes:
                     genes.append(gene)
         return genes
@@ -246,6 +243,14 @@ def _study_genes(pathologies: list[dict], secondary_findings: bool) -> list[dict
             if gene not in base:
                 genes.append({"gene": gene, "origin": "hallazgo_secundario"})
     return genes
+
+
+def search_genes(prefix: str) -> dict:
+    """Sugiere genes de Apigen para agregar uno a mano al estudio."""
+    try:
+        return {"genes": obtener_apigen().buscar_genes(prefix.strip())}
+    except Exception:
+        raise InvalidIntegration("Apigen") from None
 
 
 def _chosen_pathologies(pathology_ids: list[int]) -> list[dict]:

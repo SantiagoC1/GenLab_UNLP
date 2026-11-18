@@ -8,6 +8,7 @@ class SymptomData(BaseModel):
 
 class PathologyData(BaseModel):
     name: str | None = None
+    code: str | None = None
     cardinal: SymptomData | None = None
     secondary: list[SymptomData] | None = None
 
@@ -29,8 +30,16 @@ class SymptomOut(BaseModel):
 class PathologyOut(BaseModel):
     id: int
     name: str
+    code: str | None
     cardinal: SymptomOut | None
     secondary: list[SymptomOut]
+
+
+class ApigenPathologyOut(BaseModel):
+    """Una patología del catálogo de Apigen, para elegirla al darla de alta."""
+
+    code: str
+    name: str
 
 
 class CdssStrategyOut(BaseModel):

@@ -5,6 +5,7 @@ from app.core.security import require_role
 from app.core.validation import raise_if_invalid
 from app.modules.consulta_medica import service
 from app.modules.consulta_medica.schemas import (
+    GeneSearchOut,
     PatientCreatedOut,
     PatientData,
     PatientOut,
@@ -15,6 +16,7 @@ from app.modules.consulta_medica.schemas import (
 )
 from app.modules.consulta_medica.validate import (
     validate_dni_search,
+    validate_gene_search,
     validate_patient,
     validate_study,
     validate_study_genes_query,
@@ -65,6 +67,13 @@ def create_patient(body: PatientData, doctor: dict = Depends(DOCTOR_ONLY)):
     data = body.model_dump()
     raise_if_invalid(validate_patient(data))
     return service.create_patient(data, doctor)
+
+
+@router.get("/studies/gene-search", response_model=GeneSearchOut)
+def gene_search(q: str | None = None, _doctor: dict = Depends(DOCTOR_ONLY)):
+    """Sugiere genes de Apigen para agregar uno manual al estudio."""
+    raise_if_invalid(validate_gene_search(q))
+    return service.search_genes(q)
 
 
 @router.get("/studies/genes", response_model=StudyGenesOut)

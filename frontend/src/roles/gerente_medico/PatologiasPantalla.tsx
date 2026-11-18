@@ -64,7 +64,12 @@ export default function PatologiasPantalla() {
             ) : (
               <article className="rounded-lg border border-slate-300 bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-lg font-semibold text-slate-900">{pathology.name}</h2>
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <h2 className="text-lg font-semibold text-slate-900">{pathology.name}</h2>
+                    {pathology.code && (
+                      <span className="text-sm text-slate-600">Código: {pathology.code}</span>
+                    )}
+                  </div>
                   <Button
                     variant="secondary"
                     aria-label={`Editar síntomas de ${pathology.name}`}

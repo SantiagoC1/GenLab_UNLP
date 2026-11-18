@@ -5,6 +5,7 @@ from app.core.security import require_role
 from app.core.validation import raise_if_invalid
 from app.modules.config_medica import service
 from app.modules.config_medica.schemas import (
+    ApigenPathologyOut,
     CdssStrategyData,
     CdssStrategyOut,
     PathologyData,
@@ -37,6 +38,12 @@ def ping() -> dict[str, str]:
 @router.get("/pathologies", response_model=list[PathologyOut])
 def list_pathologies(_user: dict = Depends(CATALOG_READERS)):
     return service.list_pathologies()
+
+
+@router.get("/apigen-pathologies", response_model=list[ApigenPathologyOut])
+def list_apigen_pathologies(_user: dict = Depends(MANAGER_ONLY)):
+    """Patologías de Apigen, para elegir el código al dar de alta."""
+    return service.list_apigen_pathologies()
 
 
 @router.post("/pathologies", response_model=PathologyOut, status_code=201)

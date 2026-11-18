@@ -8,6 +8,7 @@ from app.modules.config_medica import repository as pathology_repository
 MIN_SEARCH_LENGTH = 3
 MAX_SEARCH_LENGTH = 100
 MAX_PAGE = 100
+GENE_PREFIX_PATTERN = re.compile(r"[A-Za-z0-9-]{1,20}")
 
 MAX_FIELD_LENGTH = 200
 MAX_NAME_LENGTH = 100
@@ -170,6 +171,13 @@ def validate_patient(data: dict) -> list[str]:
     errors += _validate_pathology_ids(data.get("pathology_ids"))
     errors += _validate_patient_symptoms(data.get("symptoms"), suspicion_type)
     return errors
+
+
+def validate_gene_search(text: str | None) -> list[str]:
+    """Valida el prefijo con el que se busca un gen, por ejemplo GA."""
+    if not GENE_PREFIX_PATTERN.fullmatch((text or "").strip()):
+        return ["Escribí hasta 20 letras o números para buscar un gen."]
+    return []
 
 
 def validate_study_genes_query(
