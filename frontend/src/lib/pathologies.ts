@@ -5,8 +5,15 @@ import type { Symptom } from './symptoms'
 export interface Pathology {
   id: number
   name: string
+  code: string | null
   cardinal: Symptom | null
   secondary: Symptom[]
+}
+
+/** Una patología del catálogo de Apigen, de donde se elige el código. */
+export interface ApigenPathology {
+  code: string
+  name: string
 }
 
 export interface PathologySymptoms {
@@ -48,10 +55,19 @@ export function usePathologies() {
   })
 }
 
+/** Pide el catálogo de Apigen. No reintenta, para que un 503 se vea enseguida. */
+export function useApigenPathologies() {
+  return useQuery({
+    queryKey: ['apigen-pathologies'],
+    queryFn: () => api<ApigenPathology[]>('/config_medica/apigen-pathologies'),
+    retry: false,
+  })
+}
+
 export function useCreatePathology() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: PathologySymptoms & { name: string }) =>
+    mutationFn: (data: PathologySymptoms & { name: string; code: string }) =>
       api<Pathology>('/config_medica/pathologies', { method: 'POST', ...json(data) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: PATHOLOGIES_KEY }),
   })

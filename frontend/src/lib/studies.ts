@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, json } from './api'
+import { useDebouncedValue } from './useDebouncedValue'
 
 export type GeneOrigin = 'patologia' | 'hallazgo_secundario' | 'manual'
 
@@ -47,6 +48,21 @@ export function useStudyGenes(pathologyIds: number[], secondaryFindings: boolean
     enabled: pathologyIds.length > 0,
     retry: false,
   })
+}
+
+/** Sugiere genes de Apigen que empiezan con lo que escribe el médico, para agregar uno a mano. */
+export function useGeneSuggestions(text: string) {
+  const prefix = useDebouncedValue(normalizeGene(text))
+  const query = useQuery({
+    queryKey: ['gene-search', prefix],
+    queryFn: () =>
+      api<{ genes: string[] }>(
+        `/consulta_medica/studies/gene-search?${new URLSearchParams({ q: prefix })}`,
+      ),
+    enabled: /^[A-Z0-9-]{1,20}$/.test(prefix),
+    retry: false,
+  })
+  return query.data?.genes ?? []
 }
 
 /** Hook de TanStack Query que solicita el estudio. */

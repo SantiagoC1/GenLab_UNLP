@@ -10,6 +10,7 @@ import {
   normalizeGene,
   ORIGIN_LABELS,
   useCreateStudy,
+  useGeneSuggestions,
   useStudyGenes,
   type CreatedStudy,
   type StudyGene,
@@ -36,6 +37,7 @@ export default function AltaEstudioPantalla() {
   const patientQuery = usePatientByDni(searchedDni)
   const pathologies = usePathologies()
   const genesQuery = useStudyGenes(pathologyIds, secondaryFindings)
+  const suggestions = useGeneSuggestions(manualText)
   const create = useCreateStudy()
 
   const patient = patientQuery.data
@@ -202,6 +204,7 @@ export default function AltaEstudioPantalla() {
             <div className="w-full sm:w-64">
               <TextField
                 label="Agregar un gen"
+                list="gene-suggestions"
                 value={manualText}
                 onChange={(event) => setManualText(event.target.value)}
                 onKeyDown={(event) => {
@@ -212,6 +215,11 @@ export default function AltaEstudioPantalla() {
                 }}
               />
             </div>
+            <datalist id="gene-suggestions">
+              {suggestions.map((gene) => (
+                <option key={gene} value={gene} />
+              ))}
+            </datalist>
             <Button type="button" variant="secondary" onClick={addManualGene}>
               Agregar gen
             </Button>

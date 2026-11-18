@@ -8,6 +8,11 @@ import PatologiasPantalla from './PatologiasPantalla'
 const LIST = 'GET /config_medica/pathologies'
 const CREATE = 'POST /config_medica/pathologies'
 const SEARCH = 'GET /consulta_medica/symptoms'
+const APIGEN = 'GET /config_medica/apigen-pathologies'
+const APIGEN_PATHOLOGIES = [
+  { code: 'FABRY', name: 'Enfermedad de Fabry' },
+  { code: 'POMPE', name: 'Enfermedad de Pompe' },
+]
 
 const PAIN: Symptom = { code: 'SIM-001', term: 'Dolor' }
 const FEVER: Symptom = { code: 'SIM-002', term: 'Fiebre' }
@@ -15,7 +20,13 @@ const TIREDNESS: Symptom = { code: 'SIM-003', term: 'Cansancio' }
 const RASH: Symptom = { code: 'SIM-004', term: 'Erupción' }
 const CATALOG = [PAIN, FEVER, TIREDNESS, RASH]
 
-const POMPE: Pathology = { id: 1, name: 'Pompe', cardinal: PAIN, secondary: [FEVER, TIREDNESS] }
+const POMPE: Pathology = {
+  id: 1,
+  name: 'Pompe',
+  code: 'POMPE',
+  cardinal: PAIN,
+  secondary: [FEVER, TIREDNESS],
+}
 
 const search = (url: URL) => {
   const text = (url.searchParams.get('q') ?? '').toLowerCase()
@@ -79,8 +90,17 @@ describe('PatologiasPantalla', () => {
     const mock = mockApi({
       [LIST]: () => ({ body: list }),
       [SEARCH]: search,
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
       [CREATE]: () => {
-        list = [{ id: 2, name: 'Fabry', cardinal: PAIN, secondary: [FEVER, TIREDNESS] }]
+        list = [
+          {
+            id: 2,
+            name: 'Enfermedad de Fabry',
+            code: 'FABRY',
+            cardinal: PAIN,
+            secondary: [FEVER, TIREDNESS],
+          },
+        ]
         return { status: 201, body: list[0] }
       },
     })
@@ -88,7 +108,7 @@ describe('PatologiasPantalla', () => {
     renderWithQuery(<PatologiasPantalla />)
 
     await user.click(await screen.findByRole('button', { name: 'Nueva patología' }))
-    await user.type(screen.getByLabelText('Nombre de la patología'), '  Fabry ')
+    await user.selectOptions(await screen.findByLabelText('Patología'), 'FABRY')
     await find(user, 'Buscar síntoma cardinal', 'dol', 'Dolor')
     await find(user, 'Buscar síntomas secundarios', 'fie', 'Fiebre')
 
@@ -99,15 +119,21 @@ describe('PatologiasPantalla', () => {
     expect(save).toBeEnabled()
     await user.click(save)
 
-    expect(await screen.findByText('Se guardó la patología Fabry.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Se guardó la patología Enfermedad de Fabry.'),
+    ).toBeInTheDocument()
     expect(sentTo(mock, CREATE)).toEqual([
-      { name: 'Fabry', cardinal: PAIN, secondary: [FEVER, TIREDNESS] },
+      { name: 'Enfermedad de Fabry', code: 'FABRY', cardinal: PAIN, secondary: [FEVER, TIREDNESS] },
     ])
-    expect(await screen.findByRole('heading', { name: 'Fabry' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Enfermedad de Fabry' })).toBeInTheDocument()
   })
 
   it('says what is missing while the save button is disabled', async () => {
-    mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
+    mockApi({
+      [LIST]: { body: [] },
+      [SEARCH]: search,
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
+    })
     const user = userEvent.setup()
     renderWithQuery(<PatologiasPantalla />)
 
@@ -118,10 +144,10 @@ describe('PatologiasPantalla', () => {
     expect(save).toBeDisabled()
     expect(save).toHaveAccessibleDescription(hint.textContent ?? '')
     expect(hint).toHaveTextContent(
-      'el nombre, el síntoma cardinal, al menos 2 síntomas secundarios',
+      'la patología, el síntoma cardinal, al menos 2 síntomas secundarios',
     )
 
-    await user.type(screen.getByLabelText('Nombre de la patología'), 'Fabry')
+    await user.selectOptions(await screen.findByLabelText('Patología'), 'FABRY')
     await find(user, 'Buscar síntoma cardinal', 'dol', 'Dolor')
     expect(screen.getByText(/Para guardar falta/)).toHaveTextContent(
       'Para guardar falta: al menos 2 síntomas secundarios.',
@@ -129,7 +155,11 @@ describe('PatologiasPantalla', () => {
   })
 
   it('announces the changes and keeps the focus when a symptom is removed', async () => {
-    mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
+    mockApi({
+      [LIST]: { body: [] },
+      [SEARCH]: search,
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
+    })
     const user = userEvent.setup()
     renderWithQuery(<PatologiasPantalla />)
 
@@ -147,7 +177,11 @@ describe('PatologiasPantalla', () => {
   })
 
   it('does not offer the cardinal symptom again as a secondary one', async () => {
-    mockApi({ [LIST]: { body: [] }, [SEARCH]: search })
+    mockApi({
+      [LIST]: { body: [] },
+      [SEARCH]: search,
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
+    })
     const user = userEvent.setup()
     renderWithQuery(<PatologiasPantalla />)
 
@@ -165,20 +199,21 @@ describe('PatologiasPantalla', () => {
     mockApi({
       [LIST]: { body: [POMPE] },
       [SEARCH]: search,
-      [CREATE]: { status: 422, body: { detalle: 'Ya existe una patología con ese nombre.' } },
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
+      [CREATE]: { status: 422, body: { detalle: 'Ya existe una patología con ese código.' } },
     })
     const user = userEvent.setup()
     renderWithQuery(<PatologiasPantalla />)
 
     await user.click(await screen.findByRole('button', { name: 'Nueva patología' }))
-    await user.type(screen.getByLabelText('Nombre de la patología'), 'pompe')
+    await user.selectOptions(await screen.findByLabelText('Patología'), 'POMPE')
     await find(user, 'Buscar síntoma cardinal', 'dol', 'Dolor')
     await find(user, 'Buscar síntomas secundarios', 'fie', 'Fiebre')
     await find(user, 'Buscar síntomas secundarios', 'can', 'Cansancio')
     await user.click(screen.getByRole('button', { name: 'Guardar patología' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ya existe una patología')
-    expect(screen.getByLabelText('Nombre de la patología')).toHaveValue('pompe')
+    expect(screen.getByLabelText('Patología')).toHaveValue('POMPE')
   })
 
   it('edits the symptoms of a pathology without asking for the name again', async () => {
@@ -186,6 +221,7 @@ describe('PatologiasPantalla', () => {
     const mock = mockApi({
       [LIST]: () => ({ body: list }),
       [SEARCH]: search,
+      [APIGEN]: { body: APIGEN_PATHOLOGIES },
       'PUT /config_medica/pathologies/1/symptoms': () => {
         list = [{ ...POMPE, secondary: [FEVER, RASH] }]
         return { body: list[0] }
@@ -195,7 +231,7 @@ describe('PatologiasPantalla', () => {
     renderWithQuery(<PatologiasPantalla />)
 
     await user.click(await screen.findByRole('button', { name: 'Editar síntomas de Pompe' }))
-    expect(screen.queryByLabelText('Nombre de la patología')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Patología')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Quitar Cansancio' }))
     const save = screen.getByRole('button', { name: 'Guardar cambios' })

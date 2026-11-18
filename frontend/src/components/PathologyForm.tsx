@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { ApiError } from '../lib/api'
+import { ApiError, errorMessage } from '../lib/api'
 import {
   MIN_SECONDARY_SYMPTOMS,
+  useApigenPathologies,
   useCreatePathology,
   useReplacePathologySymptoms,
   type Pathology,
@@ -9,8 +10,8 @@ import {
 import type { Symptom } from '../lib/symptoms'
 import { Alert } from './Alert'
 import { Button } from './Button'
+import { SelectField } from './SelectField'
 import { SymptomSearch } from './SymptomSearch'
-import { TextField } from './TextField'
 
 interface Props {
   /** Con una patología se editan sus síntomas; sin ella se da de alta. */
@@ -53,7 +54,9 @@ function SymptomList({
 
 export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
   const editing = pathology !== undefined
-  const [name, setName] = useState(pathology?.name ?? '')
+  const [apigenCode, setApigenCode] = useState('')
+  const apigenPathologies = useApigenPathologies()
+  const chosen = apigenPathologies.data?.find((item) => item.code === apigenCode)
   const [cardinal, setCardinal] = useState<Symptom | null>(pathology?.cardinal ?? null)
   const [secondary, setSecondary] = useState<Symptom[]>(pathology?.secondary ?? [])
 
@@ -74,7 +77,7 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
   }
 
   const missing: string[] = []
-  if (!editing && name.trim().length === 0) missing.push('el nombre')
+  if (!editing && chosen === undefined) missing.push('la patología')
   if (cardinal === null) missing.push('el síntoma cardinal')
   if (secondary.length < MIN_SECONDARY_SYMPTOMS)
     missing.push(`al menos ${MIN_SECONDARY_SYMPTOMS} síntomas secundarios`)
@@ -96,7 +99,7 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
     if (!cardinal) return
     const options = { onSuccess: onSaved }
     if (editing) replace.mutate({ cardinal, secondary }, options)
-    else create.mutate({ name: name.trim(), cardinal, secondary }, options)
+    else if (chosen) create.mutate({ ...chosen, cardinal, secondary }, options)
   }
 
   return (
@@ -112,12 +115,24 @@ export function PathologyForm({ pathology, onSaved, onCancel }: Props) {
       </h2>
 
       {!editing && (
-        <TextField
-          label="Nombre de la patología"
-          value={name}
-          maxLength={100}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <>
+          <SelectField
+            label="Patología"
+            value={apigenCode}
+            disabled={!apigenPathologies.isSuccess}
+            onChange={(event) => setApigenCode(event.target.value)}
+          >
+            <option value="">Elegí una patología</option>
+            {apigenPathologies.data?.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.name} ({item.code})
+              </option>
+            ))}
+          </SelectField>
+          {apigenPathologies.isError && (
+            <Alert kind="error">{errorMessage(apigenPathologies.error)}</Alert>
+          )}
+        </>
       )}
 
       <div ref={cardinalRef} tabIndex={-1} className="outline-none">

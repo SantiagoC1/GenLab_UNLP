@@ -6,6 +6,7 @@ import { mockApi, queriesTo, renderApp, sentTo, startTestSession } from '../../t
 const FIND = 'GET /consulta_medica/patients'
 const PATHOLOGIES = 'GET /config_medica/pathologies'
 const GENES = 'GET /consulta_medica/studies/genes'
+const GENE_SEARCH = 'GET /consulta_medica/studies/gene-search'
 const CREATE = 'POST /consulta_medica/studies'
 
 const PATIENT = {
@@ -15,8 +16,8 @@ const PATIENT = {
   last_name: 'Pérez',
   birth_date: '1990-05-20',
 }
-const FABRY = { id: 1, name: 'Fabry', cardinal: null, secondary: [] }
-const POMPE = { id: 2, name: 'Pompe', cardinal: null, secondary: [] }
+const FABRY = { id: 1, name: 'Fabry', code: 'FABRY', cardinal: null, secondary: [] }
+const POMPE = { id: 2, name: 'Pompe', code: 'POMPE', cardinal: null, secondary: [] }
 const CREATED = {
   id: 12,
   state: 'Creado',
@@ -37,6 +38,7 @@ function routes(overrides: Record<string, unknown> = {}) {
     [FIND]: { body: PATIENT },
     [PATHOLOGIES]: { body: [FABRY, POMPE] },
     [GENES]: genesFor,
+    [GENE_SEARCH]: { body: { genes: ['GAA', 'GAB1'] } },
     [CREATE]: { status: 201, body: CREATED },
     ...overrides,
   } as Parameters<typeof mockApi>[0]
@@ -133,6 +135,18 @@ describe('AltaEstudioPantalla', () => {
     expect(screen.queryByText('GLA · Agregado por el médico')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Quitar GAA' }))
     expect(screen.queryByText('GAA · Agregado por el médico')).not.toBeInTheDocument()
+  })
+
+  it('suggests genes from Apigen while the doctor types', async () => {
+    const mock = mockApi(routes())
+    const user = userEvent.setup()
+    renderApp('/medico_tratante/alta-estudio?dni=30123456')
+
+    await user.type(await screen.findByLabelText('Agregar un gen'), 'ga')
+
+    expect(await screen.findByDisplayValue('ga')).toBeInTheDocument()
+    await vi.waitFor(() => expect(queriesTo(mock, GENE_SEARCH)[0]?.get('q')).toBe('GA'))
+    expect(document.querySelectorAll('#gene-suggestions option')).toHaveLength(2)
   })
 
   it('requests the study with the patient, the pathologies and the manual genes', async () => {
