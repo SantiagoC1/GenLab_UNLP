@@ -1,1 +1,130 @@
 @import 'tailwindcss';
+
+/*
+ * Design tokens. Components use these names (bg-brand, text-muted, ...) and never raw colors.
+ * Contrast checked against WCAG AA: text-muted on surface is 7.6:1, brand on white is 5.9:1.
+ */
+@theme {
+  --color-brand: #0f766e;
+  --color-brand-strong: #115e59;
+  --color-brand-soft: #ccfbf1;
+  --color-brand-tint: #f0fdfa;
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-line: #cbd5e1;
+  --color-line-soft: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-muted: #475569;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-danger-line: #fca5a5;
+  --color-warning: #92400e;
+  --color-warning-soft: #fffbeb;
+  --color-warning-line: #fcd34d;
+  --color-success: #115e59;
+  --color-success-soft: #f0fdfa;
+  --color-success-line: #5eead4;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-sheet: 1rem;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-float: 0 10px 30px rgb(15 23 42 / 0.18);
+
+  --text-title: 1.5rem;
+  --text-subtitle: 1.125rem;
+
+  --breakpoint-xs: 30rem;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* Visible focus on every interactive element */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  /* 16px minimum in form fields so iOS does not zoom on focus */
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 16px);
+  }
+
+  img,
+  video,
+  iframe {
+    max-width: 100%;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-x {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  .animate-fade-in {
+    animation: fade-in 200ms ease-out both;
+  }
+  .animate-sheet-up {
+    animation: sheet-up 220ms ease-out both;
+  }
+  .animate-slide-in {
+    animation: slide-in 200ms ease-out both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

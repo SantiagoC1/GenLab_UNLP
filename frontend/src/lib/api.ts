@@ -15,6 +15,8 @@ export class ApiError extends Error {
     message: string,
     public code?: string,
     public errors: FieldError[] = [],
+    /** Seconds from the Retry-After header (429 and 503), when the server sent one. */
+    public retryAfter?: number,
   ) {
     super(message)
   }
@@ -39,7 +41,14 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     }
     // `detalle` es el formato de error de todo el backend (core/errors.py)
     const message = body.detalle ?? body.detail ?? response.statusText
-    throw new ApiError(response.status, message, body.code, body.errors)
+    const retryAfter = Number(response.headers.get('Retry-After'))
+    throw new ApiError(
+      response.status,
+      message,
+      body.code,
+      body.errors,
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+    )
   }
   return response.json() as Promise<T>
 }

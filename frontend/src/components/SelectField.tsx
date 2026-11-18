@@ -10,7 +10,7 @@ export function SelectField({ label, error, children, ...select }: Props) {
   const id = useId()
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="block text-sm font-medium text-ink">
         {label}
       </label>
       <select
@@ -23,7 +23,7 @@ export function SelectField({ label, error, children, ...select }: Props) {
         {children}
       </select>
       {error && (
-        <p id={`${id}-message`} className="mt-1 text-xs text-red-700">
+        <p id={`${id}-message`} className="mt-1 text-sm text-danger">
           {error}
         </p>
       )}

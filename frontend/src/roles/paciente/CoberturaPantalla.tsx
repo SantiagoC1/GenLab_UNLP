@@ -3,7 +3,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
+import { Card } from '../../components/Card'
+import { EmptyState } from '../../components/EmptyState'
+import { PageContainer } from '../../components/PageContainer'
+import { PageHeader } from '../../components/PageHeader'
 import { SelectField } from '../../components/SelectField'
+import { LoadingBlock } from '../../components/Skeleton'
+import { Stepper } from '../../components/Stepper'
 import { api, json } from '../../lib/api'
 import { MIS_ESTUDIOS_KEY, useMisEstudios, type EstudioDelPaciente } from '../../lib/presupuesto'
 
@@ -13,6 +19,7 @@ interface ObraSocial {
 }
 
 const NO_FIGURA = '__no_figura__'
+const STEPS = ['Cobertura', 'Pago', 'Turno de extracción', 'Resultado']
 
 export default function CoberturaPantalla() {
   const queryClient = useQueryClient()
@@ -41,15 +48,18 @@ export default function CoberturaPantalla() {
   const estudio = elegibles.find((e) => e.id === (estudioId ?? elegibles[0]?.id))
   const porcentaje = obrasSociales.data?.find((o) => o.nombre === obraSocial)?.cobertura
 
-  return (
-    <section>
-      <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
-        Elegir la cobertura por obra social
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">Escenario 12 · M4-RF3, RF4</p>
+  const canSubmit = Boolean(obraSocial) && obraSocial !== NO_FIGURA
 
-      <div className="mt-4 space-y-3">
-        {estudios.isPending && <p className="text-sm text-slate-500">Cargando…</p>}
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Elegir la cobertura por obra social"
+        reference="Escenario 12 · M4-RF3, RF4"
+      />
+      <Stepper steps={STEPS} current={0} />
+
+      <div className="space-y-3">
+        {estudios.isPending && <LoadingBlock />}
         {estudios.isError && <Alert kind="error">{estudios.error.message}</Alert>}
         {obrasSociales.isError && (
           <Alert kind="error">
@@ -66,82 +76,102 @@ export default function CoberturaPantalla() {
       </div>
 
       {enEspera.map((e) => (
-        <p key={e.id} className="mt-4 rounded-lg border border-slate-200 p-3 text-sm">
-          Estudio {e.id}: a la espera de la autorización de {e.cobertura?.obra_social} (cubre el{' '}
-          {e.cobertura?.porcentaje}%).
-        </p>
+        <Card key={e.id} className="mt-4">
+          <p className="text-sm">
+            Estudio {e.id}: a la espera de la autorización de {e.cobertura?.obra_social} (cubre el{' '}
+            {e.cobertura?.porcentaje}%).
+          </p>
+        </Card>
       ))}
 
       {estudios.data && elegibles.length === 0 && enEspera.length === 0 && (
-        <p className="mt-4 text-sm text-slate-500">
-          No tenés estudios con presupuesto para elegir la cobertura.
-        </p>
+        <div className="mt-4">
+          <EmptyState>No tenés estudios con presupuesto para elegir la cobertura.</EmptyState>
+        </div>
       )}
 
       {estudio && (
         <form
-          className="mt-6 max-w-md space-y-4"
+          className="mt-4 space-y-4"
           onSubmit={(event) => {
             event.preventDefault()
-            if (obraSocial && obraSocial !== NO_FIGURA) {
+            if (canSubmit) {
               elegir.mutate({ estudio: estudio.id, obra_social: obraSocial })
             }
           }}
         >
-          {elegibles.length > 1 && (
+          <Card className="space-y-5">
+            {elegibles.length > 1 && (
+              <SelectField
+                label="Estudio"
+                value={estudio.id}
+                onChange={(e) => setEstudioId(Number(e.target.value))}
+              >
+                {elegibles.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    Estudio {e.id}
+                  </option>
+                ))}
+              </SelectField>
+            )}
+
+            <div className="rounded-control bg-brand-tint p-4">
+              <p className="text-sm text-muted">Presupuesto</p>
+              <p className="text-3xl font-semibold text-brand-strong">
+                <strong>USD {estudio.importe_usd}</strong>
+              </p>
+              <p className="text-sm text-muted">{estudio.cantidad_genes} genes</p>
+            </div>
+
             <SelectField
-              label="Estudio"
-              value={estudio.id}
-              onChange={(e) => setEstudioId(Number(e.target.value))}
+              label="Obra social"
+              value={obraSocial}
+              onChange={(e) => setObraSocial(e.target.value)}
             >
-              {elegibles.map((e) => (
-                <option key={e.id} value={e.id}>
-                  Estudio {e.id}
+              <option value="">Elegí tu obra social</option>
+              {obrasSociales.data?.map((o) => (
+                <option key={o.nombre} value={o.nombre}>
+                  {o.nombre} · cubre el {o.cobertura}%
                 </option>
               ))}
+              <option value={NO_FIGURA}>Mi obra social no figura en la lista</option>
             </SelectField>
-          )}
-          <p className="text-sm">
-            Presupuesto: <strong>USD {estudio.importe_usd}</strong> ({estudio.cantidad_genes} genes)
-          </p>
 
-          <SelectField
-            label="Obra social"
-            value={obraSocial}
-            onChange={(e) => setObraSocial(e.target.value)}
-          >
-            <option value="">Elegí tu obra social</option>
-            {obrasSociales.data?.map((o) => (
-              <option key={o.nombre} value={o.nombre}>
-                {o.nombre} · cubre el {o.cobertura}%
-              </option>
-            ))}
-            <option value={NO_FIGURA}>Mi obra social no figura en la lista</option>
-          </SelectField>
+            {porcentaje !== undefined && (
+              <p className="text-sm text-ink-soft">
+                Esta obra social cubre el <strong>{porcentaje}%</strong> del estudio.
+              </p>
+            )}
+            {obraSocial === NO_FIGURA && (
+              <Alert kind="info">
+                Si tu obra social no figura en la lista, solo podés pagar de forma particular.{' '}
+                <Link to="../pago" className="font-medium underline">
+                  Ir al pago particular
+                </Link>
+              </Alert>
+            )}
+          </Card>
 
-          {porcentaje !== undefined && (
-            <p className="text-sm text-slate-700">
-              Esta obra social cubre el <strong>{porcentaje}%</strong> del estudio.
-            </p>
-          )}
-          {obraSocial === NO_FIGURA && (
-            <Alert kind="info">
-              Si tu obra social no figura en la lista, solo podés pagar de forma particular.{' '}
-              <Link to="../pago" className="font-medium underline">
-                Ir al pago particular
-              </Link>
-            </Alert>
-          )}
-
-          <Button
-            type="submit"
-            loading={elegir.isPending}
-            disabled={!obraSocial || obraSocial === NO_FIGURA}
-          >
-            Dejar a la espera de la autorización
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="submit"
+              loading={elegir.isPending}
+              disabled={!canSubmit}
+              aria-describedby="submit-help"
+              className="w-full sm:w-auto"
+            >
+              Dejar a la espera de la autorización
+            </Button>
+            {!canSubmit && (
+              <p id="submit-help" className="text-sm text-muted">
+                {obraSocial === NO_FIGURA
+                  ? 'Para continuar, elegí el pago particular.'
+                  : 'Elegí tu obra social para continuar.'}
+              </p>
+            )}
+          </div>
         </form>
       )}
-    </section>
+    </PageContainer>
   )
 }

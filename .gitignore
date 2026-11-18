@@ -32,3 +32,9 @@ Thumbs.db
 pgdata/
 
 supabase/.temp/
+
+# UI screenshots (before/after) generated for review
+docs/ui-screenshots/
+
+# Evidence for the presentation (chatbot endpoint cases)
+docs/presentation-screenshots/
