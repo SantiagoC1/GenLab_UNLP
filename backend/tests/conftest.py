@@ -5,6 +5,8 @@ os.environ.setdefault("SUPABASE_KEY", "test-anon-key")
 os.environ.setdefault("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 # Solo para los tests: la clave real de los tokens va en el .env propio
 os.environ.setdefault("SECRET_KEY", "clave-solo-para-los-tests-0123456789-abcdef")
+for integration in ("SNOMED", "CDSS", "APIGEN"):
+    os.environ[f"INTEGRACION_{integration}"] = "simulador"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

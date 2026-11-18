@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     chatbot_url: str = ""
     chatbot_apikey: str = ""
     chatbot_token: str = ""
+    snomed_url: str = ""
+    snomed_apikey: str = ""
+    cdss_url: str = ""
+    cdss_apikey: str = ""
+    apigen_url: str = ""
+    apigen_apikey: str = ""
     # Solo desarrollo: acepta X-Dev-Role en lugar del login. Nunca activarlo fuera de la máquina
     # de quien desarrolla (ver app/core/dev_auth.py).
     dev_auth: bool = False
