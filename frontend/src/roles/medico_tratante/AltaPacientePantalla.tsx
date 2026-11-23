@@ -127,6 +127,12 @@ export default function AltaPacientePantalla() {
             to={`/medico_tratante/alta-estudio?dni=${encodeURIComponent(existing.dni)}`}
           >
             Dar de alta el estudio
+          </Link>{' '}
+          <Link
+            className="font-medium underline"
+            to={`/medico_tratante/familiograma?dni=${encodeURIComponent(existing.dni)}`}
+          >
+            Cargar familiares
           </Link>
         </Alert>
       )}
@@ -142,6 +148,12 @@ export default function AltaPacientePantalla() {
             to={`/medico_tratante/alta-estudio?dni=${encodeURIComponent(created.dni)}`}
           >
             Dar de alta el estudio
+          </Link>{' '}
+          <Link
+            className="font-medium underline"
+            to={`/medico_tratante/familiograma?dni=${encodeURIComponent(created.dni)}`}
+          >
+            Cargar familiares
           </Link>
         </Alert>
       )}

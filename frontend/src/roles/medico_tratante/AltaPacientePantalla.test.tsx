@@ -87,6 +87,10 @@ describe('AltaPacientePantalla', () => {
     expect(links.map((link) => link.getAttribute('href'))).toContain(
       '/medico_tratante/alta-estudio?dni=30123456',
     )
+    const familyLinks = screen.getAllByRole('link', { name: 'Cargar familiares' })
+    expect(familyLinks.map((link) => link.getAttribute('href'))).toContain(
+      '/medico_tratante/familiograma?dni=30123456',
+    )
     expect(screen.queryByLabelText('Apellido')).not.toBeInTheDocument()
   })
 
@@ -118,6 +122,10 @@ describe('AltaPacientePantalla', () => {
 
     expect(await screen.findByText(/Se dio de alta a Ana Pérez/)).toBeInTheDocument()
     expect(screen.getByText(/Se enviaron las credenciales a ana@ejemplo.com/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Cargar familiares' })).toHaveAttribute(
+      'href',
+      '/medico_tratante/familiograma?dni=30123456',
+    )
     expect(sentTo(mock, CREATE)).toEqual([
       {
         dni: '30123456',
