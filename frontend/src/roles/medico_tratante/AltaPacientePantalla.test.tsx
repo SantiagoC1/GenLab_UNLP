@@ -42,6 +42,7 @@ async function fillPersonalData(
   await user.type(screen.getByLabelText('Nombre'), 'Ana')
   await user.type(screen.getByLabelText('Apellido'), 'Pérez')
   fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: birthDate } })
+  await user.click(screen.getByRole('radio', { name: 'Mujer' }))
   await user.type(screen.getByLabelText('Teléfono'), '2215550000')
   await user.type(screen.getByLabelText(/^Mail/), 'ana@ejemplo.com')
   await user.type(screen.getByLabelText('Resumen de historia clínica'), 'Dolor en manos.')
@@ -123,6 +124,7 @@ describe('AltaPacientePantalla', () => {
         first_name: 'Ana',
         last_name: 'Pérez',
         birth_date: '1990-05-20',
+        sex: 'mujer',
         phone: '2215550000',
         email: 'ana@ejemplo.com',
         suspicion_type: 'clinica',

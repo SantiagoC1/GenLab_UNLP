@@ -169,6 +169,7 @@ def create_patient(data: dict, doctor: dict) -> dict:
         "first_name": data["first_name"].strip(),
         "last_name": data["last_name"].strip(),
         "birth_date": birth_date.isoformat(),
+        "sex": data["sex"],
         "phone": data["phone"].strip(),
         "clinical_summary": data["clinical_summary"].strip(),
         "suspicion_type": data["suspicion_type"],

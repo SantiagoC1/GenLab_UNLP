@@ -21,6 +21,7 @@ class PatientData(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     birth_date: str | None = None
+    sex: str | None = None
     phone: str | None = None
     email: str | None = None
     suspicion_type: str | None = None
