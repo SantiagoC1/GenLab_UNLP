@@ -27,3 +27,30 @@ class RelativesData(BaseModel):
     """
 
     relatives: list[RelativeData] | None = None
+
+
+class KinshipOut(BaseModel):
+    """Un parentesco del módulo de familiograma, para el selector."""
+
+    id: int
+    name: str
+
+
+class RelativeOut(BaseModel):
+    """Un familiar guardado, con sus diagnósticos del catálogo."""
+
+    kinship_id: int
+    first_name: str
+    last_name: str
+    sex: str
+    age: float | None
+    deceased: bool
+    symptoms: list[SymptomData]
+    pathologies: list[dict]
+
+
+class FamilyTreeOut(BaseModel):
+    """El SVG del familiograma en base64 y las advertencias del módulo."""
+
+    warnings: list[str]
+    svg_base64: str
