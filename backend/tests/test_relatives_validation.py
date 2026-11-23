@@ -68,6 +68,8 @@ def test_every_required_field_is_checked(field):
         ({"first_name": "A" * 101}, "no puede tener más de 100"),
         ({"last_name": "Ru\niz"}, "caracteres que no se pueden usar"),
         ({"sex": "otro"}, "hombre, mujer o no identificado"),
+        ({"dni": "123"}, "7 u 8 dígitos"),
+        ({"dni": "12.345.678"}, "7 u 8 dígitos"),
         ({"age": -1}, "entre 0 y 120"),
         ({"age": 121}, "entre 0 y 120"),
         ({"symptoms": [{"code": "SIM-001"}]}, "síntoma que no es válido"),
@@ -81,6 +83,12 @@ def test_the_formats_are_checked(changes, message):
 
     assert len(errors) == 1
     assert message in errors[0]
+
+
+def test_the_dni_is_optional_and_a_valid_one_is_accepted():
+    assert validate_relatives({"relatives": [relative(dni=None)]}) == []
+    assert validate_relatives({"relatives": [relative(dni="  ")]}) == []
+    assert validate_relatives({"relatives": [relative(dni="20111222")]}) == []
 
 
 def test_a_fractional_age_is_valid():
@@ -144,6 +152,27 @@ class FakeClient:
     def table(self, name):
         assert name == "relatives"
         return FakeQuery(self)
+
+
+def test_looking_for_patients_by_dni_makes_one_query_and_maps_dni_to_id(monkeypatch):
+    class Client(FakeClient):
+        def table(self, name):
+            assert name == "patients"
+            return FakeQuery(self)
+
+    client = Client(listed=[{"id": "p-1", "dni": "20111222"}])
+    monkeypatch.setattr(repository, "supabase_admin", client)
+
+    assert repository.find_patient_ids_by_dni(["20111222", "30999888"]) == {"20111222": "p-1"}
+    assert len(client.calls) == 1
+
+
+def test_looking_for_no_dni_does_not_query(monkeypatch):
+    client = FakeClient(listed=[])
+    monkeypatch.setattr(repository, "supabase_admin", client)
+
+    assert repository.find_patient_ids_by_dni([]) == {}
+    assert client.calls == []
 
 
 def test_replacing_inserts_the_new_ones_before_deleting_the_old_ones(monkeypatch):

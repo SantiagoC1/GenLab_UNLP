@@ -57,6 +57,7 @@ class World:
             "patient_symptoms": [{"symptoms": PAIN}],
         }
         self.rows = []
+        self.patients_by_dni = {}
         self.module = FakeModule()
 
     def find_patient(self, patient_id):
@@ -64,6 +65,9 @@ class World:
 
     def list_by_patient(self, patient_id):
         return self.rows
+
+    def find_patient_ids_by_dni(self, dnis):
+        return {dni: self.patients_by_dni[dni] for dni in dnis if dni in self.patients_by_dni}
 
     def replace_all(self, patient_id, rows):
         self.rows = [{"id": number, **row} for number, row in enumerate(rows, start=1)]
@@ -76,6 +80,9 @@ def world(monkeypatch):
     monkeypatch.setattr("app.modules.familiograma.repository.find_patient", fake.find_patient)
     monkeypatch.setattr("app.modules.familiograma.repository.list_by_patient", fake.list_by_patient)
     monkeypatch.setattr("app.modules.familiograma.repository.replace_all", fake.replace_all)
+    monkeypatch.setattr(
+        "app.modules.familiograma.repository.find_patient_ids_by_dni", fake.find_patient_ids_by_dni
+    )
     monkeypatch.setattr(service, "obtener_familiograma", lambda: fake.module)
     return fake
 
@@ -125,6 +132,8 @@ def test_saving_replaces_the_relatives_and_returns_them(client, login_as, world)
             "kinship_id": 1,
             "first_name": "Carolina",
             "last_name": "Ruiz",
+            "dni": None,
+            "linked_patient_id": None,
             "sex": "mujer",
             "age": 36.0,
             "deceased": False,
@@ -133,6 +142,44 @@ def test_saving_replaces_the_relatives_and_returns_them(client, login_as, world)
         }
     ]
     assert client.get(RELATIVES_URL).json() == response.json()
+
+
+def test_a_relative_who_is_already_a_patient_comes_linked_by_the_dni(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+    world.patients_by_dni["20111222"] = "p-otro"
+    body = {"relatives": [valid_relative(dni="20111222"), valid_relative(dni="30999888")]}
+
+    response = client.put(RELATIVES_URL, json=body)
+
+    assert [r["dni"] for r in response.json()] == ["20111222", "30999888"]
+    assert [r["linked_patient_id"] for r in response.json()] == ["p-otro", None]
+
+
+def test_the_link_is_calculated_when_reading_so_it_follows_new_patients(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+    client.put(RELATIVES_URL, json={"relatives": [valid_relative(dni="20111222")]})
+    assert client.get(RELATIVES_URL).json()[0]["linked_patient_id"] is None
+
+    world.patients_by_dni["20111222"] = "p-nuevo"
+
+    assert client.get(RELATIVES_URL).json()[0]["linked_patient_id"] == "p-nuevo"
+
+
+def test_a_blank_dni_is_saved_as_missing(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+
+    response = client.put(RELATIVES_URL, json={"relatives": [valid_relative(dni="  ")]})
+
+    assert response.json()[0]["dni"] is None
+
+
+def test_the_dni_of_the_relative_does_not_travel_to_the_module(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+    client.put(RELATIVES_URL, json={"relatives": [valid_relative(dni="20111222")]})
+
+    client.get(TREE_URL)
+
+    assert "dni" not in world.module.received[0][1]
 
 
 def test_saving_an_empty_list_clears_the_relatives(client, login_as, world):

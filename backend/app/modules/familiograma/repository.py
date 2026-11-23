@@ -1,6 +1,6 @@
 from app.database import supabase_admin
 
-_COLUMNS = "id, kinship_id, name, last_name, sex, age, deceased, symptoms, diagnoses"
+_COLUMNS = "id, kinship_id, name, last_name, dni, sex, age, deceased, symptoms, diagnoses"
 
 
 def _table(name: str):
@@ -26,6 +26,18 @@ def replace_all(patient_id: str, rows: list[dict]) -> None:
         _table("relatives").insert(new_rows).execute()
     if old_ids:
         _table("relatives").delete().in_("id", old_ids).execute()
+
+
+def find_patient_ids_by_dni(dnis: list[str]) -> dict[str, str]:
+    """Devuelve el id del paciente de cada DNI que ya es paciente.
+
+    Es una sola consulta para toda la lista. Sirve para saber qué
+    familiares ya están dados de alta.
+    """
+    if not dnis:
+        return {}
+    rows = _table("patients").select("id, dni").in_("dni", dnis).execute().data
+    return {row["dni"]: row["id"] for row in rows}
 
 
 def find_patient(patient_id: str) -> dict | None:

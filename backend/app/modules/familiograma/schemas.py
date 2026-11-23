@@ -13,6 +13,7 @@ class RelativeData(BaseModel):
     kinship_id: int | None = None
     first_name: str | None = None
     last_name: str | None = None
+    dni: str | None = None
     sex: str | None = None
     age: float | None = None
     deceased: bool | None = None
@@ -37,11 +38,17 @@ class KinshipOut(BaseModel):
 
 
 class RelativeOut(BaseModel):
-    """Un familiar guardado, con sus diagnósticos del catálogo."""
+    """Un familiar guardado, con sus diagnósticos del catálogo.
+
+    `linked_patient_id` es el paciente que tiene el mismo DNI, si ya
+    está dado de alta.
+    """
 
     kinship_id: int
     first_name: str
     last_name: str
+    dni: str | None
+    linked_patient_id: str | None
     sex: str
     age: float | None
     deceased: bool

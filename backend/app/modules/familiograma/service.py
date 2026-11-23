@@ -31,12 +31,18 @@ def _get_patient(patient_id: str) -> dict:
     return patient
 
 
-def _to_relative_out(row: dict) -> dict:
-    """Convierte la fila guardada en lo que ve la pantalla."""
+def _to_relative_out(row: dict, patient_ids: dict[str, str]) -> dict:
+    """Convierte la fila guardada en lo que ve la pantalla.
+
+    `patient_ids` dice qué DNI ya son pacientes: así el vínculo se
+    calcula al leer y no se desactualiza si se reemplaza la lista.
+    """
     return {
         "kinship_id": row["kinship_id"],
         "first_name": row["name"],
         "last_name": row["last_name"],
+        "dni": row["dni"],
+        "linked_patient_id": patient_ids.get(row["dni"]),
         "sex": row["sex"],
         "age": row["age"],
         "deceased": row["deceased"],
@@ -46,9 +52,15 @@ def _to_relative_out(row: dict) -> dict:
 
 
 def get_relatives(patient_id: str) -> list[dict]:
-    """Devuelve los familiares guardados del paciente."""
+    """Devuelve los familiares guardados del paciente.
+
+    Cada familiar con DNI trae el id del paciente que lo tiene, si ya
+    es paciente.
+    """
     _get_patient(patient_id)
-    return [_to_relative_out(row) for row in repository.list_by_patient(patient_id)]
+    rows = repository.list_by_patient(patient_id)
+    patient_ids = repository.find_patient_ids_by_dni([row["dni"] for row in rows if row["dni"]])
+    return [_to_relative_out(row, patient_ids) for row in rows]
 
 
 def save_relatives(patient_id: str, data: dict) -> list[dict]:
@@ -78,6 +90,7 @@ def save_relatives(patient_id: str, data: dict) -> list[dict]:
                 "kinship_id": relative["kinship_id"],
                 "name": relative["first_name"].strip(),
                 "last_name": relative["last_name"].strip(),
+                "dni": (relative.get("dni") or "").strip() or None,
                 "sex": relative["sex"],
                 "age": relative.get("age"),
                 "deceased": bool(relative.get("deceased")),

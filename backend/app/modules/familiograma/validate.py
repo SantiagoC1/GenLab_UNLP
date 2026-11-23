@@ -1,6 +1,7 @@
 from app.modules.acceso.validate import FIELD_LABELS, required_field_error
 from app.modules.config_medica import repository as pathology_repository
 from app.modules.consulta_medica.validate import (
+    DNI_PATTERN,
     MAX_NAME_LENGTH,
     SEXES,
     _has_control_characters,
@@ -61,6 +62,10 @@ def _validate_relative(relative: dict, catalog_ids: set[int]) -> list[str]:
 
     errors += _validate_name(relative, "first_name")
     errors += _validate_name(relative, "last_name")
+
+    dni = relative.get("dni")
+    if _is_filled(dni) and not DNI_PATTERN.fullmatch(dni.strip()):
+        errors.append("El DNI tiene que tener 7 u 8 dígitos.")
 
     sex = relative.get("sex")
     if not _is_filled(sex):
