@@ -121,6 +121,17 @@ def _relative_person(row: dict) -> dict:
     }
 
 
+def _rejection_message(error: FamiliogramaInvalido) -> str:
+    """Arma el mensaje con el motivo de cada campo que rechazó el módulo.
+
+    El mensaje general del módulo es siempre el mismo ("Revisá los
+    campos indicados"): el motivo real viene en los detalles, con un
+    código adelante (PARENTESCO_NO_RECONOCIDO: ...) que se descarta.
+    """
+    reasons = [detail["mensaje"].split(": ", 1)[-1] for detail in error.detalles]
+    return "El módulo de familiograma rechazó los datos: " + " ".join(reasons or [error.mensaje])
+
+
 def generate_family_tree(patient_id: str) -> dict:
     """Pide el familiograma al módulo con el paciente y sus familiares.
 
@@ -134,9 +145,7 @@ def generate_family_tree(patient_id: str) -> dict:
     try:
         result = obtener_familiograma().generar_familiograma(people)
     except FamiliogramaInvalido as error:
-        raise BusinessRuleError(
-            f"El módulo de familiograma rechazó los datos: {error.mensaje}", 422
-        ) from None
+        raise BusinessRuleError(_rejection_message(error), 422) from None
     except Exception:
         raise InvalidIntegration("familiograma") from None
     return {"warnings": result["advertencias"], "svg_base64": result["svg_base64"]}

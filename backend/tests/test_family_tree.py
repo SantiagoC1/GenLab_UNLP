@@ -221,11 +221,27 @@ def test_the_family_tree_works_without_relatives(client, login_as, world):
 
 def test_the_family_tree_reports_what_the_module_rejected(client, login_as, world):
     login_as(Rol.MEDICO_TRATANTE)
-    world.module.error = FamiliogramaInvalido("Vínculos ambiguos", [])
+    details = [
+        {
+            "ruta": "personas.1.parentesco",
+            "mensaje": "PARENTESCO_NO_RECONOCIDO: usar un entero de 0 a 15.",
+        }
+    ]
+    world.module.error = FamiliogramaInvalido("Revisá los campos indicados.", details)
 
     response = client.get(TREE_URL)
 
     assert response.status_code == 422
+    assert "usar un entero de 0 a 15" in response.json()["detalle"]
+    assert "PARENTESCO_NO_RECONOCIDO" not in response.json()["detalle"]
+
+
+def test_the_general_message_is_used_when_the_module_gives_no_details(client, login_as, world):
+    login_as(Rol.MEDICO_TRATANTE)
+    world.module.error = FamiliogramaInvalido("Vínculos ambiguos", [])
+
+    response = client.get(TREE_URL)
+
     assert "Vínculos ambiguos" in response.json()["detalle"]
 
 
