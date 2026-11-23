@@ -210,6 +210,13 @@ alter table public.relatives
 alter table public.relatives drop constraint if exists relatives_age_check;
 alter table public.relatives add constraint relatives_age_check check (age >= 0);
 
+-- DNI opcional del familiar. No es único: dos hermanos pueden declarar a la misma madre. El
+-- vínculo con el paciente que tiene ese DNI no se guarda: se calcula al leer, así sigue
+-- bien aunque se reemplace la lista de familiares.
+alter table public.relatives add column if not exists dni text;
+
+create index if not exists relatives_dni_idx on public.relatives (dni) where dni is not null;
+
 create table if not exists public.relative_symptoms (
     relative_id  integer not null references public.relatives (id) on delete cascade,
     symptom_code text    not null references public.symptoms (code),
