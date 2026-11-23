@@ -95,6 +95,13 @@ create table if not exists public.pathologies (
 create unique index if not exists pathologies_name_unique
     on public.pathologies (lower(name));
 
+-- Código de la patología en Apigen y en el CDSS (por ejemplo FABRY o POMPE). Las filas anteriores
+-- quedan en null hasta que se les cargue a mano; la API lo exige en las nuevas.
+alter table public.pathologies add column if not exists code text;
+
+create unique index if not exists pathologies_code_unique
+    on public.pathologies (upper(code));
+
 -- Síntomas elegidos con el buscador de SNOMED (MA2): se guarda el código y el término
 create table if not exists public.symptoms (
     code text primary key,
