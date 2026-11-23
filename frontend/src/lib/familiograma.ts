@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, json } from './api'
-import type { Sex } from './patients'
+import { isValidDni, type Sex } from './patients'
 import type { Symptom } from './symptoms'
 import type { Errors } from './validation'
 
@@ -24,6 +24,8 @@ export interface Relative {
   kinship_id: number
   first_name: string
   last_name: string
+  dni: string | null
+  linked_patient_id: string | null
   sex: Sex
   age: number | null
   deceased: boolean
@@ -37,6 +39,7 @@ export interface RelativeForm {
   kinshipId: string
   firstName: string
   lastName: string
+  dni: string
   sex: Sex | ''
   age: string
   deceased: boolean
@@ -56,6 +59,7 @@ export function emptyRelativeForm(key: number): RelativeForm {
     kinshipId: '',
     firstName: '',
     lastName: '',
+    dni: '',
     sex: '',
     age: '',
     deceased: false,
@@ -71,6 +75,7 @@ export function relativeToForm(relative: Relative, key: number): RelativeForm {
     kinshipId: String(relative.kinship_id),
     firstName: relative.first_name,
     lastName: relative.last_name,
+    dni: relative.dni ?? '',
     sex: relative.sex,
     age: relative.age === null ? '' : String(relative.age),
     deceased: relative.deceased,
@@ -81,13 +86,16 @@ export function relativeToForm(relative: Relative, key: number): RelativeForm {
 
 /**
  * Valida un familiar antes de enviarlo, para avisar campo por campo. El backend repite las reglas
- * y es el que manda. La edad puede quedar vacía (desconocida).
+ * y es el que manda. La edad y el DNI pueden quedar vacíos.
  */
 export function validateRelative(form: RelativeForm): Errors {
   const errors: Errors = {}
   if (!form.kinshipId) errors.kinshipId = 'Elegí el parentesco.'
   if (!form.firstName.trim()) errors.firstName = 'Completá el nombre.'
   if (!form.lastName.trim()) errors.lastName = 'Completá el apellido.'
+  if (form.dni.trim() !== '' && !isValidDni(form.dni)) {
+    errors.dni = 'El DNI tiene que tener 7 u 8 dígitos.'
+  }
   if (!form.sex) errors.sex = 'Elegí el sexo.'
   if (form.age.trim() !== '') {
     const age = Number(form.age)
@@ -115,6 +123,7 @@ export function toPayload(forms: RelativeForm[]) {
       kinship_id: Number(form.kinshipId),
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
+      dni: form.dni.trim() === '' ? null : form.dni.trim(),
       sex: form.sex,
       age: form.age.trim() === '' ? null : Number(form.age),
       deceased: form.deceased,

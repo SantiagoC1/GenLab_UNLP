@@ -28,6 +28,8 @@ const MOTHER: Relative = {
   kinship_id: 1,
   first_name: 'Carolina',
   last_name: 'Ruiz',
+  dni: null,
+  linked_patient_id: null,
   sex: 'mujer',
   age: 36,
   deceased: false,
@@ -57,6 +59,7 @@ async function fillRelative(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(within(relative).getByLabelText('Parentesco'), 'progenitor')
   await user.type(within(relative).getByLabelText('Nombre'), 'Carolina')
   await user.type(within(relative).getByLabelText('Apellido'), 'Ruiz')
+  await user.type(within(relative).getByLabelText('DNI (opcional)'), '20111222')
   await user.click(within(relative).getByRole('radio', { name: 'Mujer' }))
   await user.type(within(relative).getByLabelText(/^Edad/), '36')
   await user.click(within(relative).getByRole('checkbox', { name: 'Fabry' }))
@@ -144,6 +147,7 @@ describe('FamiliogramaPantalla', () => {
             kinship_id: 1,
             first_name: 'Carolina',
             last_name: 'Ruiz',
+            dni: '20111222',
             sex: 'mujer',
             age: 36,
             deceased: false,
@@ -154,6 +158,57 @@ describe('FamiliogramaPantalla', () => {
       },
     ])
     expect(sentTo(mock, TREE)).toEqual([])
+  })
+
+  it('says when the DNI of a saved relative is already a patient', async () => {
+    mockApi(
+      routes({
+        [RELATIVES]: { body: [{ ...MOTHER, dni: '20111222', linked_patient_id: 'p-9' }] },
+      }),
+    )
+    renderApp('/medico_tratante/familiograma?dni=30123456')
+
+    expect(await screen.findByText('Ya es paciente de GenLab.')).toBeInTheDocument()
+  })
+
+  it('does not say it when the relative is not a patient', async () => {
+    mockApi(routes({ [RELATIVES]: { body: [{ ...MOTHER, dni: '20111222' }] } }))
+    renderApp('/medico_tratante/familiograma?dni=30123456')
+
+    expect(await screen.findByLabelText('DNI (opcional)')).toHaveValue('20111222')
+    expect(screen.queryByText('Ya es paciente de GenLab.')).not.toBeInTheDocument()
+  })
+
+  it('shows the link after saving a DNI that belongs to a patient', async () => {
+    mockApi(
+      routes({
+        [SAVE]: { body: [{ ...MOTHER, dni: '20111222', linked_patient_id: 'p-9' }] },
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp('/medico_tratante/familiograma?dni=30123456')
+
+    await user.click(await screen.findByRole('button', { name: 'Agregar familiar' }))
+    await fillRelative(user)
+    await user.click(screen.getByRole('button', { name: 'Guardar familiares' }))
+
+    expect(await screen.findByText('Ya es paciente de GenLab.')).toBeInTheDocument()
+  })
+
+  it('rejects a DNI with a wrong format without sending', async () => {
+    const mock = mockApi(routes())
+    const user = userEvent.setup()
+    renderApp('/medico_tratante/familiograma?dni=30123456')
+
+    await user.click(await screen.findByRole('button', { name: 'Agregar familiar' }))
+    await fillRelative(user)
+    const dni = screen.getByLabelText('DNI (opcional)')
+    await user.clear(dni)
+    await user.type(dni, '123')
+    await user.click(screen.getByRole('button', { name: 'Guardar familiares' }))
+
+    expect(await screen.findByText('El DNI tiene que tener 7 u 8 dígitos.')).toBeInTheDocument()
+    expect(sentTo(mock, SAVE)).toEqual([])
   })
 
   it('removes a relative from the list', async () => {
@@ -258,13 +313,20 @@ describe('validateRelative', () => {
 
 describe('relatives payload', () => {
   it('keeps what was saved when it is edited and sent again', () => {
-    const payload = toPayload([relativeToForm(MOTHER, 0)])
+    const payload = toPayload([relativeToForm({ ...MOTHER, dni: '20111222' }, 0)])
 
     expect(payload.relatives[0]).toMatchObject({
       kinship_id: 1,
+      dni: '20111222',
       age: 36,
       pathology_ids: [1],
     })
+  })
+
+  it('sends a null DNI when it is empty', () => {
+    const payload = toPayload([relativeToForm(MOTHER, 0)])
+
+    expect(payload.relatives[0].dni).toBeNull()
   })
 
   it('sends a null age when it is unknown', () => {

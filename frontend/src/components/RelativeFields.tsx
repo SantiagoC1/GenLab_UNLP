@@ -13,12 +13,14 @@ interface Props {
   kinships: Kinship[]
   pathologies: Pathology[]
   errors: Errors
+  /** Indica que el DNI del familiar es el de un paciente ya dado de alta. */
+  isPatient: boolean
   onChange: (patch: Partial<RelativeForm>) => void
   onRemove: () => void
 }
 
 /**
- * Los datos de un familiar: parentesco, nombre, sexo, edad, síntomas y diagnósticos. Es un
+ * Los datos de un familiar: parentesco, nombre, DNI, sexo, edad, síntomas y diagnósticos. Es un
  * `fieldset` con el número del familiar como leyenda, para que un lector de pantalla sepa a cuál
  * pertenece cada campo.
  */
@@ -28,6 +30,7 @@ export function RelativeFields({
   kinships,
   pathologies,
   errors,
+  isPatient,
   onChange,
   onRemove,
 }: Props) {
@@ -97,6 +100,15 @@ export function RelativeFields({
           value={form.lastName}
           error={errors.lastName}
           onChange={(event) => onChange({ lastName: event.target.value })}
+        />
+        <TextField
+          label="DNI (opcional)"
+          inputMode="numeric"
+          maxLength={8}
+          value={form.dni}
+          error={errors.dni}
+          hint={isPatient ? 'Ya es paciente de GenLab.' : undefined}
+          onChange={(event) => onChange({ dni: event.target.value })}
         />
       </div>
 

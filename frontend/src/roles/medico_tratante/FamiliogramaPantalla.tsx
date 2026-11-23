@@ -106,6 +106,11 @@ function RelativesEditor({ patient, initial }: EditorProps) {
   const pathologies = usePathologies()
   const save = useSaveRelatives(patient.id)
   const tree = useFamilyTree(patient.id)
+  const patientDnis = new Set(
+    (save.data ?? initial)
+      .filter((relative) => relative.linked_patient_id !== null)
+      .map((relative) => relative.dni),
+  )
 
   useEffect(() => {
     if (errorCount > 0) errorSummary.current?.focus()
@@ -170,6 +175,7 @@ function RelativesEditor({ patient, initial }: EditorProps) {
           kinships={kinships.data ?? []}
           pathologies={pathologies.data ?? []}
           errors={errors[form.key] ?? {}}
+          isPatient={form.dni.trim() !== '' && patientDnis.has(form.dni.trim())}
           onChange={(patch) => changeRelative(form.key, patch)}
           onRemove={() => removeRelative(form.key)}
         />
