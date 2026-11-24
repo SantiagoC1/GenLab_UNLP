@@ -3,7 +3,7 @@ import secrets
 from datetime import date
 
 from app.core.config import get_settings
-from app.core.enums import Rol
+from app.core.enums import EstadoEstudio, Rol
 from app.core.errors import BusinessRuleError, InvalidIntegration
 from app.database import supabase_admin
 from app.integrations.apigen import obtener_apigen
@@ -15,6 +15,7 @@ from app.modules.acceso.service import create_account
 from app.modules.config_medica import repository as pathology_repository
 from app.modules.config_medica.service import get_cdss_strategy
 from app.modules.consulta_medica import repository as patient_repository
+from app.modules.presupuesto_pago.estado import validate_transition
 
 logger = logging.getLogger(__name__)
 
@@ -294,3 +295,54 @@ def create_study(data: dict, doctor: dict) -> dict:
     }
     study = patient_repository.create_study(row, data["pathology_ids"], genes)
     return {**study, "genes": genes}
+
+
+def _study_list_item(row: dict) -> dict:
+    """Aplana la fila de Supabase (con sus relaciones) para la pantalla."""
+    patient = row["patients"]
+    return {
+        "id": row["id"],
+        "state": row["state"],
+        "pompe_urgent": row["pompe_urgent"],
+        "created_at": row["created_at"],
+        "state_changed_at": row["state_changed_at"],
+        "patient_name": f"{patient['first_name']} {patient['last_name']}",
+        "patient_dni": patient["dni"],
+        "pathologies": [link["pathologies"]["name"] for link in row["study_pathologies"]],
+        "gene_count": row["study_genes"][0]["count"],
+    }
+
+
+def list_doctor_studies(doctor: dict) -> list[dict]:
+    """Los estudios que pidió el médico, para su pantalla "Mis estudios"."""
+    rows = patient_repository.list_studies_requested_by(doctor["id"])
+    return [_study_list_item(row) for row in rows]
+
+
+def list_patient_studies(account: dict) -> list[dict]:
+    """Los estudios del paciente (o de sus hijos si la cuenta es de un padre)."""
+    rows = patient_repository.list_studies_of_account(account["id"])
+    return [_study_list_item(row) for row in rows]
+
+
+def change_study_state(
+    study_id: int, new_state: EstadoEstudio, changed_by: str | None = None
+) -> dict:
+    """Pasa el estudio a otro estado, si el ciclo de vida lo permite.
+
+    REUTILIZABLE: es el único camino para cambiar el estado de un
+    estudio en la base. Los módulos de pago, turnos, logística y
+    bioinformática la llaman en lugar de escribir `studies.state`.
+    `changed_by` queda vacío si el cambio viene de una señal externa.
+    """
+    study = patient_repository.find_study(study_id)
+    if study is None:
+        raise BusinessRuleError("No existe el estudio.", 404)
+    current = EstadoEstudio(study["state"])
+    validate_transition(current, new_state)
+    changed = patient_repository.change_study_state(
+        study_id, current.value, new_state.value, changed_by
+    )
+    if changed is None:
+        raise BusinessRuleError("El estudio cambió de estado mientras se procesaba el pedido.")
+    return changed

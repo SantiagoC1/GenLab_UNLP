@@ -12,6 +12,7 @@ from app.modules.consulta_medica.schemas import (
     StudyCreatedOut,
     StudyData,
     StudyGenesOut,
+    StudyListItemOut,
     SymptomSearchOut,
 )
 from app.modules.consulta_medica.validate import (
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/consulta_medica", tags=["consulta_medica"])
 
 SYMPTOM_USERS = require_role(Rol.MEDICO_TRATANTE, Rol.GERENTE_MEDICO)
 DOCTOR_ONLY = require_role(Rol.MEDICO_TRATANTE)
+PATIENT_ONLY = require_role(Rol.PACIENTE)
 
 
 @router.get("/ping")
@@ -102,3 +104,15 @@ def create_study(body: StudyData, doctor: dict = Depends(DOCTOR_ONLY)):
     data = body.model_dump()
     raise_if_invalid(validate_study(data))
     return service.create_study(data, doctor)
+
+
+@router.get("/studies", response_model=list[StudyListItemOut])
+def list_doctor_studies(doctor: dict = Depends(DOCTOR_ONLY)):
+    """Los estudios que pidió el médico tratante."""
+    return service.list_doctor_studies(doctor)
+
+
+@router.get("/my-studies", response_model=list[StudyListItemOut])
+def list_my_studies(patient: dict = Depends(PATIENT_ONLY)):
+    """Los estudios del paciente que inició sesión."""
+    return service.list_patient_studies(patient)
