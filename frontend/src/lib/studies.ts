@@ -72,3 +72,47 @@ export function useCreateStudy() {
       api<CreatedStudy>('/consulta_medica/studies', { method: 'POST', ...json(request) }),
   })
 }
+
+/** Una fila de "Mis estudios", tal como la devuelve el backend. */
+export interface StudyListItem {
+  id: number
+  state: string
+  pompe_urgent: boolean
+  created_at: string
+  state_changed_at: string
+  patient_name: string
+  patient_dni: string
+  pathologies: string[]
+  gene_count: number
+}
+
+export const STATE_LABELS: Record<string, string> = {
+  Creado: 'Creado',
+  Pagado: 'Pagado',
+  Autorizado: 'Autorizado',
+  Rechazado: 'Rechazado',
+  TurnoSacado: 'Turno sacado',
+  ListoParaRetirar: 'Listo para retirar',
+  EnCaminoAlLaboratorioCentral: 'En camino al laboratorio central',
+  EnLaboratorioCentral: 'En el laboratorio central',
+  EnViajeACorea: 'En viaje a Corea',
+  EnElAreaDeBioinformatica: 'En el área de bioinformática',
+  EnAnalisisPorUnBioinformatico: 'En análisis',
+  ResultadoDisponible: 'Resultado disponible',
+}
+
+/** Los estudios que pidió el médico tratante que inició sesión. */
+export function useDoctorStudies() {
+  return useQuery({
+    queryKey: ['studies', 'doctor'],
+    queryFn: () => api<StudyListItem[]>('/consulta_medica/studies'),
+  })
+}
+
+/** Los estudios del paciente que inició sesión (y los de sus hijos, si es padre o madre). */
+export function usePatientStudies() {
+  return useQuery({
+    queryKey: ['studies', 'patient'],
+    queryFn: () => api<StudyListItem[]>('/consulta_medica/my-studies'),
+  })
+}

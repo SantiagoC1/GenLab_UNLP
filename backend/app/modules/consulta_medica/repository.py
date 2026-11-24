@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from postgrest.exceptions import APIError
 
 from app.database import supabase_admin
@@ -120,3 +122,71 @@ def create_study(row: dict, pathology_ids: list[int], genes: list[dict]) -> dict
         _table("studies").delete().eq("id", study["id"]).execute()
         raise
     return study
+
+
+STUDY_COLUMNS = (
+    "id, state, pompe_urgent, created_at, state_changed_at, "
+    "patients!inner(first_name, last_name, dni, account_user_id), "
+    "study_pathologies(pathologies(name)), study_genes(count)"
+)
+
+
+def list_studies_requested_by(doctor_id: str) -> list[dict]:
+    """Los estudios que pidió ese médico, del más nuevo al más viejo."""
+    return (
+        _table("studies")
+        .select(STUDY_COLUMNS)
+        .eq("requested_by", doctor_id)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+
+def list_studies_of_account(account_id: str) -> list[dict]:
+    """Los estudios de los pacientes que cuelgan de esa cuenta.
+
+    Incluye los de los hijos menores, que usan la cuenta de sus padres.
+    """
+    return (
+        _table("studies")
+        .select(STUDY_COLUMNS)
+        .eq("patients.account_user_id", account_id)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+
+def find_study(study_id: int) -> dict | None:
+    """El estudio con ese id, o None si no existe."""
+    rows = _table("studies").select("id, state").eq("id", study_id).execute().data
+    return rows[0] if rows else None
+
+
+def change_study_state(
+    study_id: int, from_state: str, to_state: str, changed_by: str | None
+) -> dict | None:
+    """Cambia el estado del estudio y lo anota en el historial.
+
+    Solo actualiza si el estudio sigue en `from_state`: si otro pedido
+    lo cambió antes, no toca nada y devuelve None.
+    """
+    rows = (
+        _table("studies")
+        .update({"state": to_state, "state_changed_at": datetime.now(UTC).isoformat()})
+        .eq("id", study_id)
+        .eq("state", from_state)
+        .execute()
+        .data
+    )
+    if not rows:
+        return None
+    history = {
+        "study_id": study_id,
+        "from_state": from_state,
+        "to_state": to_state,
+        "changed_by": changed_by,
+    }
+    _table("study_state_history").insert(history).execute()
+    return rows[0]

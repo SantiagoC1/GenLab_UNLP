@@ -21,6 +21,7 @@ class PatientData(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     birth_date: str | None = None
+    sex: str | None = None
     phone: str | None = None
     email: str | None = None
     suspicion_type: str | None = None
@@ -95,3 +96,17 @@ class StudyCreatedOut(BaseModel):
     pompe_urgent: bool
     secondary_findings: bool
     genes: list[StudyGeneOut]
+
+
+class StudyListItemOut(BaseModel):
+    """Una fila de "Mis estudios": el estudio con su paciente y su estado."""
+
+    id: int
+    state: str
+    pompe_urgent: bool
+    created_at: str
+    state_changed_at: str
+    patient_name: str
+    patient_dni: str
+    pathologies: list[str]
+    gene_count: int

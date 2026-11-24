@@ -12,6 +12,7 @@ from app.modules.chatbot.router import router as router_chatbot
 from app.modules.config_medica.router import router as router_config_medica
 from app.modules.consulta_medica.router import router as router_consulta_medica
 from app.modules.cupones.router import router as router_cupones
+from app.modules.familiograma.router import router as router_familiograma
 from app.modules.logistics.router import router as router_logistica
 from app.modules.presupuesto_pago.router import router as router_presupuesto_pago
 from app.modules.turnos.router import router as router_turnos
@@ -37,6 +38,7 @@ def create_app():
     app.include_router(router_acceso)
     app.include_router(router_config_medica)
     app.include_router(router_consulta_medica)
+    app.include_router(router_familiograma)
     app.include_router(router_presupuesto_pago)
     app.include_router(router_cupones)
     app.include_router(router_turnos)

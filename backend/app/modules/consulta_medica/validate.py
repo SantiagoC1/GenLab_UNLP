@@ -22,12 +22,14 @@ ONE_LINE_FIELDS = {
     "email": MAX_EMAIL_LENGTH,
 }
 SUSPICION_TYPES = ("clinica", "familiar")
+SEXES = ("hombre", "mujer", "no_identificado")
 DNI_PATTERN = re.compile(r"[0-9]{7,8}")
 REQUIRED_PATIENT_FIELDS = (
     "dni",
     "first_name",
     "last_name",
     "birth_date",
+    "sex",
     "phone",
     "email",
     "suspicion_type",
@@ -162,6 +164,10 @@ def validate_patient(data: dict) -> list[str]:
         errors.append("El mail no tiene un formato válido.")
     if _is_filled(data.get("birth_date")):
         errors += _validate_birth_date(data["birth_date"])
+
+    sex = data.get("sex")
+    if _is_filled(sex) and sex not in SEXES:
+        errors.append("El sexo tiene que ser hombre, mujer o no identificado.")
 
     suspicion_type = data.get("suspicion_type")
     if _is_filled(suspicion_type) and suspicion_type not in SUSPICION_TYPES:

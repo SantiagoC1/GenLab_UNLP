@@ -155,6 +155,14 @@ create table if not exists public.patients (
 
 create index if not exists patients_account_idx on public.patients (account_user_id);
 
+-- Sexo del paciente, que pide el módulo de familiograma. Los pacientes cargados antes quedan en
+-- null; la API lo exige en las altas nuevas.
+alter table public.patients add column if not exists sex text;
+
+alter table public.patients drop constraint if exists patients_sex_check;
+alter table public.patients
+    add constraint patients_sex_check check (sex in ('hombre', 'mujer', 'no_identificado'));
+
 -- Diagnósticos presuntivos (M3-RF3)
 create table if not exists public.patient_pathologies (
     patient_id   uuid    not null references public.patients (id) on delete cascade,
@@ -181,6 +189,33 @@ create table if not exists public.relatives (
 );
 
 create index if not exists relatives_patient_idx on public.relatives (patient_id);
+
+-- Datos que pide el módulo de familiograma. `name` es el nombre de pila y el parentesco se
+-- guarda por su id del módulo, así que `kinship` (texto) ya no se usa. Los síntomas y los
+-- diagnósticos se guardan como lista de {codigo, nombre}, tal como los recibe el módulo.
+-- `diagnosis` y `relative_symptoms` quedan sin uso.
+alter table public.relatives alter column kinship drop not null;
+alter table public.relatives add column if not exists kinship_id integer;
+alter table public.relatives add column if not exists last_name text;
+alter table public.relatives add column if not exists sex text;
+alter table public.relatives add column if not exists age numeric;
+alter table public.relatives add column if not exists deceased boolean not null default false;
+alter table public.relatives add column if not exists symptoms jsonb not null default '[]';
+alter table public.relatives add column if not exists diagnoses jsonb not null default '[]';
+
+alter table public.relatives drop constraint if exists relatives_sex_check;
+alter table public.relatives
+    add constraint relatives_sex_check check (sex in ('hombre', 'mujer', 'no_identificado'));
+
+alter table public.relatives drop constraint if exists relatives_age_check;
+alter table public.relatives add constraint relatives_age_check check (age >= 0);
+
+-- DNI opcional del familiar. No es único: dos hermanos pueden declarar a la misma madre. El
+-- vínculo con el paciente que tiene ese DNI no se guarda: se calcula al leer, así sigue
+-- bien aunque se reemplace la lista de familiares.
+alter table public.relatives add column if not exists dni text;
+
+create index if not exists relatives_dni_idx on public.relatives (dni) where dni is not null;
 
 create table if not exists public.relative_symptoms (
     relative_id  integer not null references public.relatives (id) on delete cascade,

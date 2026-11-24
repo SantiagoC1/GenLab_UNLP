@@ -13,12 +13,14 @@ import {
   MAX_NAME_LENGTH,
   MAX_PHONE_LENGTH,
   MAX_SUMMARY_LENGTH,
+  SEX_LABELS,
   todayAsIso,
   useCreatePatient,
   useFindPatient,
   validatePatient,
   type CreatedPatient,
   type PatientForm,
+  type Sex,
   type SuspicionType,
 } from '../../lib/patients'
 import { usePathologies } from '../../lib/pathologies'
@@ -40,6 +42,7 @@ export default function AltaPacientePantalla() {
   const pathologies = usePathologies()
   const summaryId = useId()
   const errorSummary = useRef<HTMLDivElement>(null)
+  const sexErrorId = useId()
   const suspicionErrorId = useId()
   const pathologiesErrorId = useId()
   const summaryErrorId = useId()
@@ -124,6 +127,12 @@ export default function AltaPacientePantalla() {
             to={`/medico_tratante/alta-estudio?dni=${encodeURIComponent(existing.dni)}`}
           >
             Dar de alta el estudio
+          </Link>{' '}
+          <Link
+            className="font-medium underline"
+            to={`/medico_tratante/familiograma?dni=${encodeURIComponent(existing.dni)}`}
+          >
+            Cargar familiares
           </Link>
         </Alert>
       )}
@@ -139,6 +148,12 @@ export default function AltaPacientePantalla() {
             to={`/medico_tratante/alta-estudio?dni=${encodeURIComponent(created.dni)}`}
           >
             Dar de alta el estudio
+          </Link>{' '}
+          <Link
+            className="font-medium underline"
+            to={`/medico_tratante/familiograma?dni=${encodeURIComponent(created.dni)}`}
+          >
+            Cargar familiares
           </Link>
         </Alert>
       )}
@@ -206,6 +221,29 @@ export default function AltaPacientePantalla() {
               onChange={(event) => set('email', event.target.value)}
             />
           </div>
+
+          <fieldset aria-describedby={errors.sex ? sexErrorId : undefined}>
+            <legend className="text-sm font-medium text-slate-800">Sexo</legend>
+            <div className="mt-1 flex gap-4">
+              {(Object.keys(SEX_LABELS) as Sex[]).map((sex) => (
+                <label key={sex} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="sex"
+                    value={sex}
+                    checked={form.sex === sex}
+                    onChange={() => set('sex', sex)}
+                  />
+                  {SEX_LABELS[sex]}
+                </label>
+              ))}
+            </div>
+            {errors.sex && (
+              <p id={sexErrorId} role="alert" className="mt-1 text-xs text-red-700">
+                {errors.sex}
+              </p>
+            )}
+          </fieldset>
 
           <fieldset aria-describedby={errors.suspicionType ? suspicionErrorId : undefined}>
             <legend className="text-sm font-medium text-slate-800">Tipo de sospecha</legend>

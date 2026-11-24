@@ -42,6 +42,7 @@ async function fillPersonalData(
   await user.type(screen.getByLabelText('Nombre'), 'Ana')
   await user.type(screen.getByLabelText('Apellido'), 'Pérez')
   fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: birthDate } })
+  await user.click(screen.getByRole('radio', { name: 'Mujer' }))
   await user.type(screen.getByLabelText('Teléfono'), '2215550000')
   await user.type(screen.getByLabelText(/^Mail/), 'ana@ejemplo.com')
   await user.type(screen.getByLabelText('Resumen de historia clínica'), 'Dolor en manos.')
@@ -86,6 +87,10 @@ describe('AltaPacientePantalla', () => {
     expect(links.map((link) => link.getAttribute('href'))).toContain(
       '/medico_tratante/alta-estudio?dni=30123456',
     )
+    const familyLinks = screen.getAllByRole('link', { name: 'Cargar familiares' })
+    expect(familyLinks.map((link) => link.getAttribute('href'))).toContain(
+      '/medico_tratante/familiograma?dni=30123456',
+    )
     expect(screen.queryByLabelText('Apellido')).not.toBeInTheDocument()
   })
 
@@ -117,12 +122,17 @@ describe('AltaPacientePantalla', () => {
 
     expect(await screen.findByText(/Se dio de alta a Ana Pérez/)).toBeInTheDocument()
     expect(screen.getByText(/Se enviaron las credenciales a ana@ejemplo.com/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Cargar familiares' })).toHaveAttribute(
+      'href',
+      '/medico_tratante/familiograma?dni=30123456',
+    )
     expect(sentTo(mock, CREATE)).toEqual([
       {
         dni: '30123456',
         first_name: 'Ana',
         last_name: 'Pérez',
         birth_date: '1990-05-20',
+        sex: 'mujer',
         phone: '2215550000',
         email: 'ana@ejemplo.com',
         suspicion_type: 'clinica',

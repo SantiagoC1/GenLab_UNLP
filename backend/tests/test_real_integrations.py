@@ -1,12 +1,19 @@
 """Clientes reales de SNOMED, del CDSS y de Apigen, con HTTP simulado."""
 
+import base64
+
 import httpx
 import pytest
 
 from app.core.config import get_settings
-from app.integrations import apigen, cdss, snomed
+from app.integrations import apigen, cdss, familiograma, snomed
 from app.integrations.apigen import ApigenReal
 from app.integrations.cdss import CdssReal
+from app.integrations.familiograma import (
+    FamiliogramaInvalido,
+    FamiliogramaReal,
+    FamiliogramaSimulador,
+)
 from app.integrations.snomed import PAGE_SIZE, SnomedReal
 
 
@@ -16,6 +23,7 @@ class FakeResponse:
     def __init__(self, data=None, status=200):
         self._data = data
         self.status = status
+        self.status_code = status
 
     def raise_for_status(self):
         if self.status >= 400:
@@ -33,6 +41,8 @@ def settings(monkeypatch):
     monkeypatch.setenv("CDSS_APIKEY", "clave-cdss")
     monkeypatch.setenv("APIGEN_URL", "https://apigen.test/rest/v1/")
     monkeypatch.setenv("APIGEN_APIKEY", "clave-apigen")
+    monkeypatch.setenv("FAMILIOGRAMA_URL", "https://familiograma.test/v1/")
+    monkeypatch.setenv("FAMILIOGRAMA_APIKEY", "clave-familiograma")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -223,3 +233,70 @@ def test_apigen_lists_its_pathologies_with_code_and_name(monkeypatch):
         {"codigo": "POMPE", "nombre": "Enfermedad de Pompe"}
     ]
     assert calls == ["https://apigen.test/rest/v1/rpc/listar_patologias"]
+
+
+PERSONAS = [{"parentesco": 0, "nombre": "Tomás", "apellido": "Ruiz"}]
+
+
+def test_familiograma_lists_the_kinships_without_the_patient(monkeypatch):
+    calls = []
+
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeResponse(
+            [{"id": 0, "parentesco": "paciente"}, {"id": 1, "parentesco": "progenitor"}]
+        )
+
+    monkeypatch.setattr(familiograma.httpx, "get", fake_get)
+
+    assert FamiliogramaReal().listar_parentescos() == [{"id": 1, "parentesco": "progenitor"}]
+    url, kwargs = calls[0]
+    assert url == "https://familiograma.test/v1/parentescos"
+    assert kwargs["headers"] == {"x-api-key": "clave-familiograma"}
+
+
+def test_familiograma_sends_the_people_and_returns_the_svg(monkeypatch):
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return FakeResponse(
+            {"advertencias": ["aviso"], "imagen": {"tipo": "image/svg+xml", "base64": "PHN2Zz4="}}
+        )
+
+    monkeypatch.setattr(familiograma.httpx, "post", fake_post)
+
+    result = FamiliogramaReal().generar_familiograma(PERSONAS)
+
+    assert result == {"advertencias": ["aviso"], "svg_base64": "PHN2Zz4="}
+    url, kwargs = calls[0]
+    assert url == "https://familiograma.test/v1"
+    assert kwargs["json"] == {"personas": PERSONAS, "opciones": {"reglaSospecha": "desactivada"}}
+    assert kwargs["headers"] == {"x-api-key": "clave-familiograma"}
+
+
+def test_familiograma_turns_a_422_into_an_invalid_data_error(monkeypatch):
+    error = {"error": {"codigo": "VALIDACION", "mensaje": "Vínculos ambiguos", "detalles": ["x"]}}
+    monkeypatch.setattr(familiograma.httpx, "post", lambda *a, **k: FakeResponse(error, status=422))
+
+    with pytest.raises(FamiliogramaInvalido) as raised:
+        FamiliogramaReal().generar_familiograma(PERSONAS)
+
+    assert raised.value.mensaje == "Vínculos ambiguos"
+    assert raised.value.detalles == ["x"]
+
+
+def test_familiograma_lets_the_other_errors_rise(monkeypatch):
+    monkeypatch.setattr(familiograma.httpx, "post", lambda *a, **k: FakeResponse({}, status=502))
+
+    with pytest.raises(httpx.HTTPStatusError):
+        FamiliogramaReal().generar_familiograma(PERSONAS)
+
+
+def test_familiograma_simulator_returns_kinships_and_a_svg():
+    simulator = FamiliogramaSimulador()
+
+    assert all(item["id"] != 0 for item in simulator.listar_parentescos())
+    result = simulator.generar_familiograma(PERSONAS)
+    assert result["advertencias"] == []
+    assert base64.b64decode(result["svg_base64"]).startswith(b"<svg")

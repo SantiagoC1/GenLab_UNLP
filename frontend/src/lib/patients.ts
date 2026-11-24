@@ -4,6 +4,13 @@ import type { Symptom } from './symptoms'
 import type { Errors } from './validation'
 
 export type SuspicionType = 'clinica' | 'familiar'
+export type Sex = 'hombre' | 'mujer' | 'no_identificado'
+
+export const SEX_LABELS: Record<Sex, string> = {
+  hombre: 'Hombre',
+  mujer: 'Mujer',
+  no_identificado: 'No identificado',
+}
 
 /** Los datos del formulario de alta de paciente, tal como se escriben en pantalla. */
 export interface PatientForm {
@@ -11,6 +18,7 @@ export interface PatientForm {
   firstName: string
   lastName: string
   birthDate: string
+  sex: Sex | ''
   phone: string
   email: string
   suspicionType: SuspicionType | ''
@@ -24,6 +32,7 @@ export const EMPTY_PATIENT_FORM: PatientForm = {
   firstName: '',
   lastName: '',
   birthDate: '',
+  sex: '',
   phone: '',
   email: '',
   suspicionType: '',
@@ -93,6 +102,7 @@ export function validatePatient(form: PatientForm, today: Date = new Date()): Er
   else if (form.birthDate > todayAsIso(today)) {
     errors.birthDate = 'La fecha de nacimiento no puede ser futura.'
   }
+  if (!form.sex) errors.sex = 'Elegí el sexo.'
   if (!form.phone.trim()) errors.phone = 'Completá el teléfono.'
   if (!form.email.trim()) errors.email = 'Completá el mail.'
   else if (!EMAIL_FORMAT.test(form.email.trim()))
@@ -117,6 +127,7 @@ export function toPayload(form: PatientForm) {
     first_name: form.firstName.trim(),
     last_name: form.lastName.trim(),
     birth_date: form.birthDate,
+    sex: form.sex,
     phone: form.phone.trim(),
     email: form.email.trim().toLowerCase(),
     suspicion_type: form.suspicionType,

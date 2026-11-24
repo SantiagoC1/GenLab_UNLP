@@ -9,6 +9,7 @@ import GerenteMedicoAsignarCuponesMedicosPantalla from './gerente_medico/Asignar
 import MedicoTratanteEstudiosPantalla from './medico_tratante/EstudiosPantalla'
 import MedicoTratanteAltaPacientePantalla from './medico_tratante/AltaPacientePantalla'
 import MedicoTratanteAltaEstudioPantalla from './medico_tratante/AltaEstudioPantalla'
+import MedicoTratanteFamiliogramaPantalla from './medico_tratante/FamiliogramaPantalla'
 import MedicoTratanteAsignarCuponPantalla from './medico_tratante/AsignarCuponPantalla'
 import MedicoTratanteResultadoPantalla from './medico_tratante/ResultadoPantalla'
 import MedicoTratanteReanalisisPantalla from './medico_tratante/ReanalisisPantalla'
@@ -113,6 +114,12 @@ export const PANTALLAS: Pantalla[] = [
     ruta: 'alta-estudio',
     titulo: 'Dar de alta el estudio',
     componente: MedicoTratanteAltaEstudioPantalla,
+  },
+  {
+    rol: 'medico_tratante',
+    ruta: 'familiograma',
+    titulo: 'Familiograma del paciente',
+    componente: MedicoTratanteFamiliogramaPantalla,
   },
   {
     rol: 'medico_tratante',

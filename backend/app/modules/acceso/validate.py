@@ -21,6 +21,8 @@ FIELD_LABELS = {
     "message": "mensaje",
     "dni": "DNI",
     "birth_date": "fecha de nacimiento",
+    "kinship_id": "parentesco",
+    "sex": "sexo",
     "suspicion_type": "tipo de sospecha",
     "clinical_summary": "resumen de historia clínica",
 }
