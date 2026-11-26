@@ -110,7 +110,6 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
             estudio_id: 1,
             estado: 'ListoParaRetirar',
             volumen_ml: 3.5,
-            volumen_suficiente: true,
             listo_para_retirar: true,
           },
         }
@@ -133,17 +132,15 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
     expect(sentTo(mock, MUESTRA)).toEqual([{ estudio_id: 1, volumen_ml: 3.5 }])
   })
 
-  it('avisa que con menos de 2 ml no se habilita el retiro', async () => {
+  it('con un volumen chico la muestra también queda lista para retirar', async () => {
     mockApi({
       [AGENDA]: { body: [TURNO] },
       [MUESTRA]: {
         body: {
           estudio_id: 1,
-          estado: 'TurnoSacado',
+          estado: 'ListoParaRetirar',
           volumen_ml: 1.5,
-          volumen_suficiente: false,
-          listo_para_retirar: false,
-          remuestreo: { medico_avisado: true, paciente_avisado: true },
+          listo_para_retirar: true,
         },
       },
     })
@@ -154,7 +151,7 @@ describe('Simulador del laboratorio de extracción: inasistencias', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar mensaje de Telegram' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'El volumen es menor a 2 ml: no se habilita el retiro y se habilitó un remuestreo sin costo. Se avisó al médico y al paciente.',
+      'Notificación recibida: estudio 1, 1.5 ml. El estudio pasó a Listo para retirar.',
     )
   })
 

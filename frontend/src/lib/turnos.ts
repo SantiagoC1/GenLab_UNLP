@@ -39,9 +39,15 @@ export interface Habilitado {
 
 /** Por qué hace falta una nueva muestra, para mostrárselo al paciente. */
 export function describirRemuestreo(motivo: string): string {
-  return motivo === 'adn_desnaturalizado'
-    ? 'el ADN de la muestra no alcanzó para el análisis'
-    : 'la muestra tuvo menos de 2 ml'
+  switch (motivo) {
+    case 'mala_calidad_de_muestra':
+      return 'la muestra llegó con mala calidad'
+    case 'adn_desnaturalizado':
+      return 'el ADN de la muestra no alcanzó para el análisis'
+    default:
+      // Por ejemplo `volumen_menor_2ml`, de datos anteriores a que se quitara el umbral.
+      return 'la muestra anterior no sirvió para el estudio'
+  }
 }
 
 const ZONA = 'America/Argentina/Buenos_Aires'

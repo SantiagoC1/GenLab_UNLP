@@ -177,6 +177,30 @@ describe('Sacar turno de extracción', () => {
             estado: 'TurnoSacado',
             motivo: 'nueva_reserva',
             inasistencias: 0,
+            remuestreo_motivo: 'mala_calidad_de_muestra',
+          },
+        ],
+      },
+      [LABORATORIOS]: { body: [LAB] },
+    })
+    renderApp(PATH)
+
+    expect(
+      await screen.findByText(/Hace falta una nueva muestra: la muestra llegó con mala calidad/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/no tiene costo/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('Provincia')).toBeInTheDocument()
+  })
+
+  it('con un motivo desconocido avisa sin mencionar ningún volumen', async () => {
+    mockApi({
+      [HABILITADOS]: {
+        body: [
+          {
+            estudio_id: 1,
+            estado: 'TurnoSacado',
+            motivo: 'nueva_reserva',
+            inasistencias: 0,
             remuestreo_motivo: 'volumen_menor_2ml',
           },
         ],
@@ -186,9 +210,10 @@ describe('Sacar turno de extracción', () => {
     renderApp(PATH)
 
     expect(
-      await screen.findByText(/Hace falta una nueva muestra: la muestra tuvo menos de 2 ml/),
+      await screen.findByText(
+        /Hace falta una nueva muestra: la muestra anterior no sirvió para el estudio/,
+      ),
     ).toBeInTheDocument()
-    expect(screen.getByText(/no tiene costo/)).toBeInTheDocument()
-    expect(await screen.findByLabelText('Provincia')).toBeInTheDocument()
+    expect(screen.queryByText(/2 ml/)).not.toBeInTheDocument()
   })
 })
