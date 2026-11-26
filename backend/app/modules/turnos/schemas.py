@@ -106,11 +106,15 @@ class RemuestreoPorAdnEntrada(BaseModel):
     detalle: str | None = Field(default=None, max_length=300)
 
 
+class RemuestreoAdministrativoEntrada(BaseModel):
+    """The reason is required: it is what the patient and the doctor are told."""
+
+    motivo: str = Field(min_length=3, max_length=300)
+
+
 class MuestraRecibidaSalida(BaseModel):
     estudio_id: int
     estado: EstadoEstudio
     muestra_id: int
     volumen_ml: float
-    volumen_suficiente: bool
     listo_para_retirar: bool
-    remuestreo: RemuestreoSalida | None = None

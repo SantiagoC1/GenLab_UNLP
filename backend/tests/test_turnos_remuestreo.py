@@ -8,7 +8,7 @@ from app.main import app
 from app.modules.presupuesto_pago.repositorio import obtener_repositorio
 from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from app.modules.turnos import reglas
-from app.modules.turnos.reglas import ARG, MOTIVO_ADN, MOTIVO_VOLUMEN
+from app.modules.turnos.reglas import ARG, MOTIVO_ADN, MOTIVO_CALIDAD
 from app.modules.turnos.repositorio import RepositorioTurnosEnMemoria
 from app.modules.turnos.repositorio import obtener_repositorio as obtener_repositorio_turnos
 from tests.fakes import AvisosEspia
@@ -19,18 +19,19 @@ AHORA = datetime(2026, 11, 2, 10, 7, tzinfo=ARG)
 INICIO = datetime(2026, 11, 3, 9, 15, tzinfo=ARG)
 OTRO_INICIO = datetime(2026, 11, 4, 9, 15, tzinfo=ARG)
 
-HACIA_EL_ANALISIS = (
+HACIA_COREA = (
     EstadoEstudio.LISTO_PARA_RETIRAR,
     EstadoEstudio.EN_CAMINO_AL_LABORATORIO_CENTRAL,
     EstadoEstudio.EN_LABORATORIO_CENTRAL,
     EstadoEstudio.EN_VIAJE_A_COREA,
-    EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA,
-    EstadoEstudio.EN_ANALISIS_POR_UN_BIOINFORMATICO,
 )
+HACIA_BIOINFORMATICA = (*HACIA_COREA, EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA)
+HACIA_EL_ANALISIS = (*HACIA_BIOINFORMATICA, EstadoEstudio.EN_ANALISIS_POR_UN_BIOINFORMATICO)
+MOTIVO = "La muestra llegó hemolizada."
 
 
 @pytest.fixture
-def entorno(client, login_as):
+def entorno(client, login_as, remuestreos):
     """Lucía's study (requested by Ana Pérez) is Pagado and has an appointment."""
     estudios = RepositorioEstudiosEnMemoria()
     turnos = RepositorioTurnosEnMemoria()
@@ -62,43 +63,130 @@ def notificar(client, volumen):
     )
 
 
-# --- less than 2 ml ---------------------------------------------------------------------------
+def pedir(client, motivo=MOTIVO, estudio=1):
+    return client.post(
+        f"/turnos/estudios/{estudio}/remuestreo-administrativo", json={"motivo": motivo}
+    )
 
 
-def test_con_menos_de_2_ml_se_habilita_un_remuestreo_y_se_avisa_al_medico_y_al_paciente(
-    client, entorno
-):
+def llevar_a(estudios, estados):
+    for estado in estados:
+        estudios.cambiar_estado(1, estado, AHORA)
+
+
+@pytest.fixture
+def en_corea(client, entorno):
+    """The sample was received and the study travels to Korea."""
     estudios, turnos, avisos = entorno
-    r = notificar(client, 1.5)
-    assert r.status_code == 200
-    remuestreo = r.json()["remuestreo"]
-    assert remuestreo["motivo"] == MOTIVO_VOLUMEN
-    assert remuestreo["detalle"] == "Muestra de 1.5 ml"
-    assert remuestreo["medico_avisado"] is True
-    assert remuestreo["paciente_avisado"] is True
-    assert r.json()["listo_para_retirar"] is False
-
-    assert "nueva muestra" in avisos.para(DOCTORA)[0]
-    assert "Lucía Fernández" in avisos.para(DOCTORA)[0]
-    assert "sin costo" in avisos.para(LUCIA)[0].replace("no tiene costo", "sin costo")
-    # same study, still TurnoSacado, previous sample kept, nothing charged
-    assert estudios.obtener(1).estado == EstadoEstudio.TURNO_SACADO
-    assert len(estudios.estudios) == 3
-    assert estudios.asientos == []
-    assert [m.volumen_ml for m in turnos.listar_muestras(1)] == [1.5]
+    assert notificar(client, 3).status_code == 200
+    llevar_a(estudios, HACIA_COREA[1:])
+    avisos.enviados.clear()
+    return entorno
 
 
-def test_una_muestra_suficiente_no_genera_remuestreo(client, entorno):
-    r = notificar(client, 3)
-    assert r.json()["remuestreo"] is None
-    assert entorno[1].remuestreos == []
+# --- a small volume no longer opens a resampling ----------------------------------------------
+
+
+def test_un_volumen_chico_no_genera_remuestreo(client, entorno, remuestreos):
+    r = notificar(client, 0.5)
+    assert r.json()["listo_para_retirar"] is True
+    assert remuestreos.listar(1) == []
     assert entorno[2].enviados == []
 
 
-def test_el_paciente_queda_habilitado_para_un_nuevo_turno_hasta_que_lo_reserva(
-    client, entorno, login_as
+# --- the administrative user asks for it -------------------------------------------------------
+
+
+@pytest.mark.parametrize("desde", [HACIA_COREA, HACIA_BIOINFORMATICA])
+def test_el_administrativo_pide_el_remuestreo_desde_corea_o_la_bioinformatica(
+    client, entorno, remuestreos, desde
 ):
-    notificar(client, 1)
+    estudios, turnos, avisos = entorno
+    notificar(client, 3)
+    llevar_a(estudios, desde[1:])
+    avisos.enviados.clear()
+
+    r = pedir(client)
+
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["motivo"] == MOTIVO_CALIDAD
+    assert cuerpo["detalle"] == MOTIVO
+    assert cuerpo["estado"] == "TurnoSacado"
+    assert cuerpo["medico_avisado"] is True and cuerpo["paciente_avisado"] is True
+    assert "nueva muestra" in avisos.para(DOCTORA)[0]
+    assert "mala calidad" in avisos.para(DOCTORA)[0]
+    assert "no tiene costo" in avisos.para(LUCIA)[0]
+    # same study, no new study, nothing charged, previous sample kept
+    assert estudios.obtener(1).estado == EstadoEstudio.TURNO_SACADO
+    assert len(estudios.estudios) == 3
+    assert estudios.asientos == []
+    assert [m.volumen_ml for m in turnos.listar_muestras(1)] == [3]
+    (guardado,) = remuestreos.listar(1)
+    assert (guardado.motivo, guardado.detalle, guardado.pedido_por) == (
+        MOTIVO_CALIDAD,
+        MOTIVO,
+        "u-sesion",
+    )
+    assert guardado.resuelto is False
+
+
+def test_el_remuestreo_del_administrativo_queda_en_el_historial_del_estudio(client, en_corea):
+    pedir(client)
+    historial = [(c.desde, c.hacia) for c in en_corea[0].obtener(1).historial]
+    assert historial[-1] == (EstadoEstudio.EN_VIAJE_A_COREA, EstadoEstudio.TURNO_SACADO)
+
+
+@pytest.mark.parametrize("motivo", ["", "   ", "ab"])
+def test_el_motivo_es_obligatorio(client, en_corea, remuestreos, motivo):
+    r = pedir(client, motivo)
+    assert r.status_code == 422
+    assert remuestreos.listar(1) == []
+    assert en_corea[0].obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
+
+
+def test_el_motivo_se_guarda_sin_espacios_de_mas(client, en_corea, remuestreos):
+    pedir(client, "  Muestra coagulada.  ")
+    assert remuestreos.listar(1)[0].detalle == "Muestra coagulada."
+
+
+@pytest.mark.parametrize(
+    "recorrido",
+    [None, (), HACIA_COREA[1:3], HACIA_EL_ANALISIS[1:]],
+    ids=["TurnoSacado", "ListoParaRetirar", "EnLaboratorioCentral", "EnAnalisis"],
+)
+def test_solo_se_pide_desde_viaje_a_corea_o_area_de_bioinformatica(
+    client, entorno, remuestreos, recorrido
+):
+    estudios, _, _ = entorno
+    if recorrido is not None:
+        notificar(client, 3)  # ListoParaRetirar
+        llevar_a(estudios, recorrido)
+    r = pedir(client)
+    assert r.status_code == 409
+    assert r.json()["code"] == "estudio_sin_remuestreo_posible"
+    assert remuestreos.listar(1) == []
+
+
+def test_un_estudio_inexistente_da_404(client, entorno):
+    assert pedir(client, estudio=99).status_code == 404
+
+
+def test_solo_el_administrativo_pide_el_remuestreo(client, en_corea, login_as, remuestreos):
+    for rol in (Rol.PACIENTE, Rol.BIOINFORMATICO, Rol.MEDICO_TRATANTE, Rol.TRANSPORTISTA):
+        login_as(rol, email=LUCIA)
+        assert pedir(client).status_code == 403
+    assert remuestreos.listar(1) == []
+    assert en_corea[0].obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
+
+
+# --- the patient books again -------------------------------------------------------------------
+
+
+def test_el_paciente_queda_habilitado_para_un_nuevo_turno_hasta_que_lo_reserva(
+    client, en_corea, remuestreos, login_as
+):
+    pedir(client)
     login_as(Rol.PACIENTE, email=LUCIA)
     pendientes = client.get("/turnos/habilitados").json()
     assert pendientes == [
@@ -107,7 +195,7 @@ def test_el_paciente_queda_habilitado_para_un_nuevo_turno_hasta_que_lo_reserva(
             "estado": "TurnoSacado",
             "motivo": "nueva_reserva",
             "inasistencias": 0,
-            "remuestreo_motivo": MOTIVO_VOLUMEN,
+            "remuestreo_motivo": MOTIVO_CALIDAD,
         }
     ]
     # if the patient does not book, the study stays stopped and the notice stays pending
@@ -115,15 +203,16 @@ def test_el_paciente_queda_habilitado_para_un_nuevo_turno_hasta_que_lo_reserva(
 
     reservar(client, OTRO_INICIO)
     assert client.get("/turnos/habilitados").json() == []
-    assert entorno[0].obtener(1).estado == EstadoEstudio.TURNO_SACADO
-    assert entorno[1].remuestreo_pendiente(1) is None
-    assert entorno[0].asientos == []  # no new charge
+    assert en_corea[0].obtener(1).estado == EstadoEstudio.TURNO_SACADO
+    assert remuestreos.pendiente(1) is None
+    assert remuestreos.listar(1)[0].resuelto is True
+    assert en_corea[0].asientos == []  # no new charge
 
 
 def test_cancelar_el_turno_de_un_remuestreo_no_devuelve_el_estudio_a_pagado(
-    client, entorno, login_as
+    client, en_corea, login_as
 ):
-    notificar(client, 1)
+    pedir(client)
     login_as(Rol.PACIENTE, email=LUCIA)
     nuevo = reservar(client, OTRO_INICIO)
     r = client.post(f"/turnos/{nuevo['id']}/cancelar")
@@ -132,36 +221,37 @@ def test_cancelar_el_turno_de_un_remuestreo_no_devuelve_el_estudio_a_pagado(
     assert client.get("/turnos/habilitados").json()[0]["motivo"] == "nueva_reserva"
 
 
-def test_se_puede_repetir_el_ciclo_si_la_segunda_muestra_tambien_es_insuficiente(
-    client, entorno, login_as
+def test_se_puede_repetir_el_ciclo_si_la_segunda_muestra_tambien_llega_mal(
+    client, en_corea, remuestreos, login_as
 ):
-    notificar(client, 1)
+    estudios = en_corea[0]
+    pedir(client)
     login_as(Rol.PACIENTE, email=LUCIA)
     reservar(client, OTRO_INICIO)
     login_as(Rol.ADMINISTRATIVO_LABORATORIO)
-    r = notificar(client, 1.9)
-    assert r.json()["remuestreo"]["motivo"] == MOTIVO_VOLUMEN
-    assert [m.volumen_ml for m in entorno[1].listar_muestras(1)] == [1, 1.9]
-    assert len(entorno[1].remuestreos) == 2
+    app.dependency_overrides[reglas.ahora] = lambda: OTRO_INICIO.replace(minute=40)
+    assert notificar(client, 1.9).status_code == 200
+    llevar_a(estudios, HACIA_COREA[1:])
+    assert pedir(client, "Otra vez en mal estado.").status_code == 200
+    assert [r.detalle for r in remuestreos.listar(1)] == [MOTIVO, "Otra vez en mal estado."]
 
 
-# --- DNA not enough, reported by the bioinformatician ------------------------------------------
+# --- DNA not enough, reported by the bioinformatician (it stays a valid path) -----------------
 
 
 @pytest.fixture
 def en_analisis(client, entorno, login_as):
     estudios, turnos, avisos = entorno
-    # the lab reported a good sample, so the appointment was attended
     notificar(client, 3)
-    estudios.cambiar_estado(1, EstadoEstudio.EN_CAMINO_AL_LABORATORIO_CENTRAL, AHORA)
-    for estado in HACIA_EL_ANALISIS[2:]:
-        estudios.cambiar_estado(1, estado, AHORA)
+    llevar_a(estudios, HACIA_EL_ANALISIS[1:])
     avisos.enviados.clear()
     login_as(Rol.BIOINFORMATICO)
     return estudios, turnos, avisos
 
 
-def test_con_adn_insuficiente_el_bioinformatico_habilita_el_remuestreo(client, en_analisis):
+def test_con_adn_insuficiente_el_bioinformatico_habilita_el_remuestreo(
+    client, en_analisis, remuestreos
+):
     estudios, turnos, avisos = en_analisis
     r = client.post("/turnos/estudios/1/remuestreo", json={"detalle": "ADN desnaturalizado"})
     assert r.status_code == 200
@@ -172,6 +262,7 @@ def test_con_adn_insuficiente_el_bioinformatico_habilita_el_remuestreo(client, e
     assert "ADN" in avisos.para(LUCIA)[0]
     assert estudios.obtener(1).estado == EstadoEstudio.TURNO_SACADO
     assert estudios.asientos == []
+    assert remuestreos.listar(1)[0].motivo == MOTIVO_ADN
 
 
 def test_despues_del_adn_insuficiente_el_paciente_reserva_un_nuevo_turno(

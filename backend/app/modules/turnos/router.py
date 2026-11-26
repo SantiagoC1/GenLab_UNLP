@@ -10,6 +10,8 @@ from app.integrations.avisos import AvisosIntegracion, obtener_avisos
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios
 from app.modules.presupuesto_pago.repositorio import obtener_repositorio as obtener_estudios
 from app.modules.turnos import reglas
+from app.modules.turnos.remuestreos import RepositorioRemuestreos
+from app.modules.turnos.remuestreos import obtener_repositorio as obtener_remuestreos
 from app.modules.turnos.repositorio import RepositorioTurnos, obtener_repositorio
 from app.modules.turnos.schemas import (
     AgendaSalida,
@@ -19,6 +21,7 @@ from app.modules.turnos.schemas import (
     LaboratorioSalida,
     MuestraRecibidaSalida,
     NotificacionMuestraEntrada,
+    RemuestreoAdministrativoEntrada,
     RemuestreoPorAdnEntrada,
     RemuestreoSalida,
     ReservarEntrada,
@@ -42,8 +45,9 @@ def obtener_servicio(
     estudios: Annotated[RepositorioEstudios, Depends(obtener_estudios)],
     avisos: Annotated[AvisosIntegracion, Depends(obtener_avisos)],
     ahora: Annotated[datetime, Depends(reglas.ahora)],
+    remuestreos: Annotated[RepositorioRemuestreos, Depends(obtener_remuestreos)],
 ) -> TurnosServicio:
-    return TurnosServicio(turnos, estudios, avisos, ahora)
+    return TurnosServicio(turnos, estudios, avisos, ahora, remuestreos)
 
 
 Servicio = Annotated[TurnosServicio, Depends(obtener_servicio)]
@@ -150,7 +154,7 @@ def recibir_notificacion_de_muestra(
 ) -> MuestraRecibidaSalida:
     """El laboratorio de extracción informa la muestra tomada: estudio y volumen en ml.
 
-    Con al menos 2 ml el estudio pasa a Listo para retirar. [assumption] Hasta definir cómo se
+    Toda muestra recibida pasa a Listo para retirar; el volumen solo se registra. [assumption] Hasta definir cómo se
     autentica el bot de Telegram (P7) el endpoint exige la sesión del administrativo, que es quien
     usa el simulador.
     """
@@ -163,3 +167,17 @@ def solicitar_remuestreo_por_adn(
 ) -> RemuestreoSalida:
     """El bioinformático informa ADN insuficiente: se habilita un remuestreo sin costo."""
     return servicio.solicitar_remuestreo_por_adn(estudio_id, datos.detalle)
+
+
+@router.post("/estudios/{estudio_id}/remuestreo-administrativo")
+def solicitar_remuestreo_por_administrativo(
+    estudio_id: int,
+    datos: RemuestreoAdministrativoEntrada,
+    usuario: Annotated[dict, Depends(exigir_administrativo)],
+    servicio: Servicio,
+) -> RemuestreoSalida:
+    """La muestra llegó a Corea con mala calidad: el administrativo pide un remuestreo sin costo.
+
+    Solo desde En viaje a Corea o En el área de bioinformática. El estudio vuelve a Turno sacado.
+    """
+    return servicio.solicitar_remuestreo_por_administrativo(estudio_id, datos.motivo, usuario["id"])

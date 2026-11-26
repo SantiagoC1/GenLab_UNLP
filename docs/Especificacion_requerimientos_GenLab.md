@@ -225,8 +225,8 @@ Reserva del turno en el laboratorio de extracción, documentos para asistir, can
 - M6-RF6. El paciente deberá poder descargar la orden de extracción (fecha, hora, laboratorio e indicaciones) y el consentimiento informado para imprimir. El firmado se entrega en papel y no se sube al sistema (escenario 21).
 - M6-RF7. El paciente deberá poder cancelar un turno futuro sin costo, y el estudio vuelve al estado previo **[supuesto]**. Un turno cuya hora ya pasó no se cancela (escenario 22).
 - M6-RF8. El sistema deberá registrar una inasistencia, avisar la cantidad acumulada y permitir reprogramar. Al llegar a 5 avisa pero no aplica bloqueo hasta resolver P2 (escenario 23).
-- M6-RF9. El sistema deberá recibir, sin intervención de personas, la notificación del laboratorio de extracción con el estudio y el volumen de la muestra, y pasar el estudio a Listo para retirar si hay al menos 2 ml (escenario 24).
-- M6-RF10. Con menos de 2 ml, o con ADN insuficiente informado por el bioinformático, el sistema deberá habilitar un remuestreo sin costo y sin crear un estudio nuevo, y avisar al médico y al paciente (escenario 25).
+- M6-RF9. El sistema deberá recibir, sin intervención de personas, la notificación del laboratorio de extracción con el estudio y el volumen de la muestra, y pasar el estudio a Listo para retirar, cualquiera sea el volumen, que solo se registra (escenario 24).
+- M6-RF10. Si la muestra llega a Corea con mala calidad, el administrativo del laboratorio deberá poder pedir un remuestreo del estudio, indicando el motivo, desde En viaje a Corea o En el área de bioinformática. Lo mismo vale para el ADN insuficiente informado por el bioinformático. El sistema habilita una nueva reserva sin costo y sin crear un estudio nuevo, saca el estudio de su lote y avisa al médico y al paciente (escenario 25). La comunicación con Corea es por mail y no se modela.
 
 #### Notas
 
@@ -235,7 +235,7 @@ Reserva del turno en el laboratorio de extracción, documentos para asistir, can
 
 #### Permisos
 
-- Turnos y documentos: paciente. Notificación: actor externo. Remuestreo por ADN: bioinformático.
+- Turnos y documentos: paciente. Notificación: actor externo. Remuestreo por ADN: bioinformático. Remuestreo por mala calidad de la muestra: administrativo del laboratorio.
 
 ---
 
