@@ -4,10 +4,8 @@ from app.core.enums import Rol
 from app.integrations.avisos import AvisosIntegracion, obtener_avisos
 from app.main import app
 from app.modules.presupuesto_pago import router as router_presupuesto
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 
 
 class AvisosEspia(AvisosIntegracion):
@@ -25,7 +23,7 @@ def avisos():
     repositorio = RepositorioEstudiosEnMemoria()
     app.dependency_overrides[obtener_repositorio] = lambda: repositorio
     app.dependency_overrides[obtener_avisos] = lambda: espia
-    app.dependency_overrides[router_presupuesto.exigir_administrativo] = lambda: None
+    app.dependency_overrides[router_presupuesto.exigir_administrativo] = lambda: {"id": "u-admin"}
     yield espia
     app.dependency_overrides.clear()
 

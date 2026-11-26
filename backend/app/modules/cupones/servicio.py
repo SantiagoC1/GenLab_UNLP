@@ -137,7 +137,7 @@ class CuponesServicio:
             raise BusinessRuleError(
                 "Ese cupón no está entre tus cupones disponibles.", code="cupon_no_disponible"
             )
-        paciente = self.pacientes.obtener(contacto_paciente)
+        paciente = self.pacientes.obtener(contacto_paciente, contacto_medico)
         if paciente is None or paciente.medico != contacto_medico:
             raise BusinessRuleError("No existe el paciente.", status_code=404)
         if self._estado_en_el_modulo(cupon.codigo) != VIGENTE:

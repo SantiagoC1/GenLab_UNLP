@@ -7,14 +7,13 @@ from app.integrations import cupones as integracion_cupones
 from app.integrations.avisos import obtener_avisos
 from app.integrations.cupones import CuponesSimulador, obtener_cupones
 from app.main import app
-from app.modules.cupones.repositorio import Cupon, RepositorioCuponesEnMemoria
+from app.modules.cupones.repositorio import Cupon
 from app.modules.cupones.repositorio import obtener_repositorio as obtener_repositorio_cupones
+from app.modules.cupones.repositorio_memoria import RepositorioCuponesEnMemoria
 from app.modules.cupones.servicio import documento_pdf
 from app.modules.presupuesto_pago.paciente import importe_con_descuento
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from tests.fakes import AvisosEspia
 
 LUCIA = "lucia.fernandez@example.com"

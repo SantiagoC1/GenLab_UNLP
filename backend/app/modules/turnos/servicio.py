@@ -118,7 +118,9 @@ class TurnosServicio:
             ) from None
 
         if estudio.estado != EstadoEstudio.TURNO_SACADO:
-            self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
+            estudio = self.estudios.cambiar_estado(
+                estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora
+            )
         # The patient booked the new appointment: the resampling stops being pending.
         self.turnos.resolver_remuestreo(estudio.id)
         avisar(
@@ -151,7 +153,7 @@ class TurnosServicio:
         # everything as it was.
         anterior = self._estado_previo_al_turno(estudio)
         if anterior is not None:
-            self.estudios.cambiar_estado(estudio.id, anterior, self.ahora)
+            estudio = self.estudios.cambiar_estado(estudio.id, anterior, self.ahora)
         # The appointment is released (it leaves the book) and its reminder is cancelled.
         cancelado = self.turnos.marcar_turno(turno.id, CANCELADO, anular_recordatorio=True)
         avisar(
@@ -253,7 +255,9 @@ class TurnosServicio:
         suficiente = volumen_ml >= reglas.VOLUMEN_MINIMO_ML
         remuestreo = None
         if suficiente:
-            self.estudios.cambiar_estado(estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora)
+            estudio = self.estudios.cambiar_estado(
+                estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora
+            )
         else:
             # Scenario 24 continues with the resampling (scenario 25).
             remuestreo = self._habilitar_remuestreo(
@@ -294,7 +298,7 @@ class TurnosServicio:
         # Same study, no new charge and no new study: it goes back to (or stays in) TurnoSacado
         # and, with no valid appointment, the patient can book again. The previous sample and the
         # history of the study are kept.
-        self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
+        estudio = self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
         remuestreo = self.turnos.registrar_remuestreo(estudio.id, motivo, detalle, self.ahora)
         causa = (
             "el volumen de la muestra fue menor a 2 ml"

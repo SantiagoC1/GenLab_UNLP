@@ -1,16 +1,15 @@
 """Access to the studies for the budget, the coverage and the payment.
 
-TODO: the studies table is defined by Integrante A (tasks T1 and 3.4). When it exists, swap
-`RepositorioEstudiosEnMemoria` for an implementation backed by the database without touching
-the services or the routers.
+`RepositorioEstudiosSupabase` (repositorio_supabase.py) is the real implementation. The one in
+memory (repositorio_memoria.py) only serves `DEV_AUTH=true` and the tests.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.core import dev_auth
 from app.core.enums import EstadoEstudio
-from app.modules.presupuesto_pago.estado import validate_transition
 
 PENDIENTE = "Pendiente"
 AUTORIZADO = "Autorizado"
@@ -28,6 +27,7 @@ class Cobertura:
     motivo_rechazo: str | None = None
     elegida_en: datetime | None = None
     resuelta_en: datetime | None = None
+    registrada_por: str | None = None  # id of the user who recorded the answer
     # Court decision attached by the patient to ask for the reauthorization (M4-RF8).
     demanda_nombre: str | None = None
     demanda: bytes | None = None
@@ -35,7 +35,8 @@ class Cobertura:
 
     @property
     def tiene_demanda(self) -> bool:
-        return self.demanda is not None
+        # The listings do not load the PDF itself: the name tells whether there is one.
+        return self.demanda_nombre is not None
 
 
 @dataclass(frozen=True)
@@ -101,9 +102,13 @@ class RepositorioEstudios(ABC):
 
     @abstractmethod
     def guardar_presupuesto(
-        self, estudio_id: int, importe_usd: int, emitido_en: datetime
+        self,
+        estudio_id: int,
+        importe_usd: int,
+        emitido_en: datetime,
+        emitido_por: str | None = None,
     ) -> EstudioParaPresupuesto:
-        """Publica el presupuesto del estudio."""
+        """Publica el presupuesto del estudio. `emitido_por` es el id del usuario que lo emite."""
 
     @abstractmethod
     def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
@@ -117,9 +122,16 @@ class RepositorioEstudios(ABC):
 
     @abstractmethod
     def cambiar_estado(
-        self, estudio_id: int, nuevo: EstadoEstudio, en: datetime
+        self,
+        estudio_id: int,
+        nuevo: EstadoEstudio,
+        en: datetime,
+        cambiado_por: str | None = None,
     ) -> EstudioParaPresupuesto:
-        """Cambia el estado si la transición es válida y la deja en el historial."""
+        """Cambia el estado si la transición es válida y la deja en el historial.
+
+        Devuelve el estudio ya actualizado: quien llama debe leer el estado de ese resultado.
+        """
 
     @abstractmethod
     def registrar_asiento(
@@ -136,101 +148,16 @@ class RepositorioEstudios(ABC):
     def listar_asientos(self) -> list[AsientoFinanciero]:
         """El registro financiero, del más reciente al más antiguo."""
 
-
-def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
-    return [
-        EstudioParaPresupuesto(
-            1,
-            "Lucía Fernández",
-            "lucia.fernandez@example.com",
-            ["GBA", "GLA", "IDUA"],
-            contacto_medico="ana.perez@example.com",
-        ),
-        EstudioParaPresupuesto(
-            2,
-            "Martín Gómez",
-            "martin.gomez@example.com",
-            ["GBA", "GLA", "IDUA", "IDS", "NPC1", "NPC2", "GAA", "ARSA"],
-            contacto_medico="ana.perez@example.com",
-        ),
-        EstudioParaPresupuesto(
-            3,
-            "Sofía Ramírez",
-            "sofia.ramirez@example.com",
-            ["GBA", "GLA", "IDUA", "IDS", "NPC1"],
-            contacto_medico="carlos.rivas@example.com",
-        ),
-    ]
-
-
-class RepositorioEstudiosEnMemoria(RepositorioEstudios):
-    """Datos de ejemplo para desarrollar y demostrar sin la tabla de estudios."""
-
-    def __init__(self) -> None:
-        self.estudios = {e.id: e for e in _estudios_de_ejemplo()}
-        self.asientos: list[AsientoFinanciero] = []
-
-    def listar_creados_sin_presupuesto(self) -> list[EstudioParaPresupuesto]:
-        return [e for e in self.estudios.values() if not e.tiene_presupuesto]
-
-    def listar_con_cobertura(self) -> list[EstudioParaPresupuesto]:
-        return [e for e in self.estudios.values() if e.cobertura is not None]
-
-    def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
-        return [e for e in self.estudios.values() if e.contacto_paciente == contacto]
-
-    def obtener(self, estudio_id: int) -> EstudioParaPresupuesto | None:
-        return self.estudios.get(estudio_id)
-
-    def guardar_presupuesto(
-        self, estudio_id: int, importe_usd: int, emitido_en: datetime
-    ) -> EstudioParaPresupuesto:
-        estudio = self.estudios[estudio_id]
-        estudio.presupuesto_importe_usd = importe_usd
-        estudio.presupuesto_emitido_en = emitido_en
-        return estudio
-
-    def guardar_cobertura(self, estudio_id: int, cobertura: Cobertura) -> EstudioParaPresupuesto:
-        estudio = self.estudios[estudio_id]
-        estudio.cobertura = cobertura
-        return estudio
-
-    def guardar_cupon_aplicado(
-        self, estudio_id: int, cupon: CuponAplicado | None
-    ) -> EstudioParaPresupuesto:
-        estudio = self.estudios[estudio_id]
-        estudio.cupon_aplicado = cupon
-        return estudio
-
-    def cambiar_estado(
-        self, estudio_id: int, nuevo: EstadoEstudio, en: datetime
-    ) -> EstudioParaPresupuesto:
-        estudio = self.estudios[estudio_id]
-        validate_transition(estudio.estado, nuevo)
-        estudio.historial.append(CambioEstado(estudio.estado, nuevo, en))
-        estudio.estado = nuevo
-        return estudio
-
-    def registrar_asiento(
-        self,
-        estudio: EstudioParaPresupuesto,
-        importe_usd: int,
-        metodo: str,
-        fecha: datetime,
-        cupon: str | None = None,
-    ) -> AsientoFinanciero:
-        asiento = AsientoFinanciero(
-            len(self.asientos) + 1, estudio.id, estudio.paciente, importe_usd, metodo, fecha, cupon
-        )
-        self.asientos.append(asiento)
-        return asiento
-
-    def listar_asientos(self) -> list[AsientoFinanciero]:
-        return list(reversed(self.asientos))
-
-
-_repositorio = RepositorioEstudiosEnMemoria()
+    @abstractmethod
+    def obtener_demanda(self, estudio_id: int) -> bytes | None:
+        """El PDF de la demanda adjunta (los listados no lo traen)."""
 
 
 def obtener_repositorio() -> RepositorioEstudios:
-    return _repositorio
+    if dev_auth.is_enabled():
+        from app.modules.presupuesto_pago.repositorio_memoria import repositorio_en_memoria
+
+        return repositorio_en_memoria()
+    from app.modules.presupuesto_pago.repositorio_supabase import RepositorioEstudiosSupabase
+
+    return RepositorioEstudiosSupabase()

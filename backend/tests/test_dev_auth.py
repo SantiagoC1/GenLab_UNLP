@@ -6,10 +6,8 @@ from app.core import dev_auth
 from app.core.config import Settings, get_settings
 from app.core.dev_auth import ROLE_HEADER, USER_HEADER
 from app.main import app
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 
 TRAY = "/presupuesto_pago/estudios-pendientes"
 

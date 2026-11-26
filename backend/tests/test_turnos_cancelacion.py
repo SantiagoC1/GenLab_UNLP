@@ -5,10 +5,8 @@ import pytest
 from app.core.enums import EstadoEstudio, Rol
 from app.integrations.avisos import obtener_avisos
 from app.main import app
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from app.modules.turnos import reglas
 from app.modules.turnos.reglas import ARG
 from app.modules.turnos.repositorio import CANCELADO, RepositorioTurnosEnMemoria

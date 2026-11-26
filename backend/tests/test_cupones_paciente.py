@@ -6,12 +6,14 @@ from app.integrations.avisos import obtener_avisos
 from app.integrations.cupones import CuponesSimulador, obtener_cupones
 from app.main import app
 from app.modules.cupones.repositorio import (
-    RepositorioCuponesEnMemoria,
-    RepositorioMedicosEnMemoria,
-    RepositorioPacientesEnMemoria,
     obtener_repositorio,
     obtener_repositorio_medicos,
     obtener_repositorio_pacientes,
+)
+from app.modules.cupones.repositorio_memoria import (
+    RepositorioCuponesEnMemoria,
+    RepositorioMedicosEnMemoria,
+    RepositorioPacientesEnMemoria,
 )
 from tests.fakes import AvisosEspia
 

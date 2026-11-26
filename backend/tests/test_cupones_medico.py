@@ -5,11 +5,10 @@ from app.integrations import cupones as integracion_cupones
 from app.integrations.avisos import obtener_avisos
 from app.integrations.cupones import CuponesSimulador, obtener_cupones
 from app.main import app
-from app.modules.cupones.repositorio import (
+from app.modules.cupones.repositorio import obtener_repositorio, obtener_repositorio_medicos
+from app.modules.cupones.repositorio_memoria import (
     RepositorioCuponesEnMemoria,
     RepositorioMedicosEnMemoria,
-    obtener_repositorio,
-    obtener_repositorio_medicos,
 )
 from tests.fakes import AvisosCaido, AvisosEspia
 

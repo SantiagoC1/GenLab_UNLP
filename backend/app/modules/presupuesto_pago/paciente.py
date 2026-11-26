@@ -122,7 +122,9 @@ class PacienteServicio:
 
     # --- M4-RF5 and M4-RF9: private payment, simulated --------------------------------------
 
-    def pagar(self, contacto: str, estudio_id: int, metodo: str) -> PagoSalida:
+    def pagar(
+        self, contacto: str, estudio_id: int, metodo: str, usuario_id: str | None = None
+    ) -> PagoSalida:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
         self._exigir_pago_posible(estudio)
 
@@ -154,7 +156,9 @@ class PacienteServicio:
 
         ahora = datetime.now(UTC)
         # Nothing is recorded before this point, so leaving without paying changes nothing.
-        self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.PAGADO, ahora)
+        estudio = self.repositorio.cambiar_estado(
+            estudio.id, EstadoEstudio.PAGADO, ahora, usuario_id
+        )
         asiento = self.repositorio.registrar_asiento(estudio, importe, metodo, ahora, codigo)
         avisado = avisar(
             self.avisos,
