@@ -26,6 +26,23 @@
   --color-success-soft: #f0fdfa;
   --color-success-line: #5eead4;
 
+  /*
+   * Brand palette. Tokens brand, brand-strong, brand-soft, ink and muted keep their current
+   * values until feature/brand-palette redefines them.
+   */
+  --color-bg: #f6f7fb;
+  --color-panel: #ffffff;
+  --color-panel-2: #eef0f8;
+  --color-hair: #d5d9e8;
+  --color-magenta: #c2257f;
+  --color-cyan: #0e7c8b;
+  --color-signal: #b4531a; /* warm accent: once per screen at most */
+  --color-code: #eaedf6;
+  --color-ok: #0e8a5f;
+  --color-error: #c73a38;
+  --color-warn: #9a6a12;
+  --color-info: #0e7c8b;
+
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   --radius-control: 0.5rem;
