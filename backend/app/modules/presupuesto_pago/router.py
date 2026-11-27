@@ -7,10 +7,12 @@ from app.core.enums import Rol
 from app.core.security import require_role
 from app.integrations.avisos import AvisosIntegracion, obtener_avisos
 from app.integrations.cupones import CuponesIntegracion, obtener_cupones
+from app.integrations.mercadopago import MercadoPagoIntegracion, obtener_mercadopago
 from app.integrations.obras_sociales import ObrasSocialesIntegracion, obtener_obras_sociales
 from app.modules.cupones.repositorio import RepositorioCupones
 from app.modules.cupones.repositorio import obtener_repositorio as obtener_repositorio_cupones
 from app.modules.presupuesto_pago.autorizacion import AutorizacionServicio
+from app.modules.presupuesto_pago.mercadopago import MercadoPagoConfig, MercadoPagoServicio
 from app.modules.presupuesto_pago.paciente import PacienteServicio
 from app.modules.presupuesto_pago.repositorio import RepositorioEstudios, obtener_repositorio
 from app.modules.presupuesto_pago.schemas import (
@@ -18,6 +20,9 @@ from app.modules.presupuesto_pago.schemas import (
     AsientoFinancieroSalida,
     AutorizacionPendienteSalida,
     AutorizacionRegistradaSalida,
+    CheckoutSalida,
+    ConfirmacionPagoSalida,
+    ConfirmarPagoMercadoPagoEntrada,
     CuponAplicadoSalida,
     DemandaEnviadaSalida,
     DetalleEstudioSalida,
@@ -65,6 +70,21 @@ def obtener_servicio_paciente(
 
 
 ServicioPaciente = Annotated[PacienteServicio, Depends(obtener_servicio_paciente)]
+
+
+def obtener_config_mercadopago() -> MercadoPagoConfig:
+    return MercadoPagoConfig.from_settings()
+
+
+def obtener_servicio_mercadopago(
+    paciente: ServicioPaciente,
+    cliente: Annotated[MercadoPagoIntegracion, Depends(obtener_mercadopago)],
+    config: Annotated[MercadoPagoConfig, Depends(obtener_config_mercadopago)],
+) -> MercadoPagoServicio:
+    return MercadoPagoServicio(paciente, cliente, config)
+
+
+ServicioMercadoPago = Annotated[MercadoPagoServicio, Depends(obtener_servicio_mercadopago)]
 
 
 def obtener_servicio_autorizacion(
@@ -147,6 +167,27 @@ def ver_registro_financiero(
 ) -> list[AsientoFinancieroSalida]:
     """Todas las operaciones asentadas: importe, paciente, estudio, método, fecha y cupón."""
     return [AsientoFinancieroSalida(**vars(a)) for a in repositorio.listar_asientos()]
+
+
+@router.post("/mis-estudios/{estudio_id}/pago-mercadopago", status_code=201)
+def crear_pago_mercadopago(
+    estudio_id: int, usuario: UsuarioPaciente, servicio: ServicioMercadoPago
+) -> CheckoutSalida:
+    """Crea el cobro en Mercado Pago (con el cupón aplicado) y devuelve a dónde ir a pagar."""
+    return servicio.crear_checkout(usuario["email"], estudio_id)
+
+
+@router.post("/pago-mercadopago/confirmar")
+def confirmar_pago_mercadopago(
+    datos: ConfirmarPagoMercadoPagoEntrada,
+    usuario: UsuarioPaciente,
+    servicio: ServicioMercadoPago,
+) -> ConfirmacionPagoSalida:
+    """Al volver de Mercado Pago: consulta el pago, lo valida y, si está aprobado, lo registra.
+
+    Confirmar dos veces el mismo pago devuelve el mismo resultado sin repetir nada.
+    """
+    return servicio.confirmar(usuario["email"], datos.payment_id, usuario["id"])
 
 
 @router.post("/mis-estudios/{estudio_id}/cupon")
