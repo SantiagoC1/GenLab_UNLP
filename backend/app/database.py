@@ -4,6 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
+from app.core.resilient_http import harden_postgrest
+
 # El .env está en la raíz del repo (en Docker las variables llegan por docker-compose)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -18,6 +20,11 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 supabase_admin: Client | None = (
     create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) if SUPABASE_SERVICE_ROLE_KEY else None
 )
+
+# The two shared clients keep their connections open: a stale one must not turn into a 500.
+for _shared_client in (supabase, supabase_admin):
+    if _shared_client is not None:
+        harden_postgrest(_shared_client)
 
 
 def new_auth_client() -> Client:
