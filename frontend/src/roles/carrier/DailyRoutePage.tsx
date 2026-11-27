@@ -37,8 +37,6 @@ export default function DailyRoutePage() {
   useEffect(() => {
     let isActive = true
 
-    setIsLoading(true)
-
     api<DailyRoute>(`/logistics/daily-route?date=${encodeURIComponent(selectedDate)}`)
       .then((result) => {
         if (isActive) {
@@ -79,7 +77,10 @@ export default function DailyRoutePage() {
           className="rounded border p-2"
           type="date"
           value={selectedDate}
-          onChange={(event) => setSelectedDate(event.target.value)}
+          onChange={(event) => {
+            setSelectedDate(event.target.value)
+            setIsLoading(true)
+          }}
         />
       </label>
 
