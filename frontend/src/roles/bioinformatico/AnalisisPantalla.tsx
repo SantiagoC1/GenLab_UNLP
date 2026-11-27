@@ -64,7 +64,8 @@ export default function AnalisisPantalla() {
   const [registered, setRegistered] = useState<Variant[]>([])
   const [completion, setCompletion] = useState<Completion | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [loading, setLoading] = useState(false)
+  // The first load starts with the screen.
+  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -76,8 +77,9 @@ export default function AnalisisPantalla() {
     setAssignments(result.filter((item) => item.state === 'EnAnalisisPorUnBioinformatico'))
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
+  // Another analyst: what was on the screen belongs to the previous one.
+  function changeAnalyst(id: string) {
+    setAnalystId(id)
     setLoading(true)
     setAssignments([])
     setStudyId(null)
@@ -87,6 +89,10 @@ export default function AnalisisPantalla() {
     setCompletion(null)
     setError('')
     setMessage('')
+  }
+
+  useEffect(() => {
+    let cancelled = false
 
     api<Assignment[]>(
       `/bioinformatics/studies/assigned?analyst_id=${encodeURIComponent(analystId)}`,
@@ -287,7 +293,7 @@ export default function AnalisisPantalla() {
           id="analysis-analyst"
           value={analystId}
           disabled={busy}
-          onChange={(event) => setAnalystId(event.target.value)}
+          onChange={(event) => changeAnalyst(event.target.value)}
           className="mt-2 w-full rounded-lg border p-3"
         >
           {ANALYSTS.map((analyst) => (

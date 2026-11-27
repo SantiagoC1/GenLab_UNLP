@@ -70,6 +70,23 @@ function query(params: Record<string, string>): string {
   return new URLSearchParams(params).toString()
 }
 
+/** The detail of a result and the reanalysis request of the doctor for that study. */
+function fetchResultAndRequest(studyId: number, doctorId: string) {
+  return Promise.all([
+    api<ResultDetail>(
+      `/bioinformatics/results/${studyId}?${query({
+        role: 'medico_tratante',
+        actor_id: doctorId,
+      })}`,
+    ),
+    api<ReanalysisRequest | null>(
+      `/bioinformatics/studies/${studyId}/reanalysis?${query({
+        doctor_id: doctorId,
+      })}`,
+    ),
+  ])
+}
+
 export default function ResultadoPantalla() {
   const [doctorId, setDoctorId] = useMockActor('medico_tratante')
   const [searchParams] = useSearchParams()
@@ -80,14 +97,16 @@ export default function ResultadoPantalla() {
   const [pathology, setPathology] = useState('')
   const [preview, setPreview] = useState<ReanalysisPreview | null>(null)
   const [request, setRequest] = useState<ReanalysisRequest | null>(null)
-  const [loading, setLoading] = useState(false)
+  // The first load starts with the screen.
+  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-
+  // Another doctor: what was on the screen belongs to the previous one.
+  const [shownDoctorId, setShownDoctorId] = useState(doctorId)
+  if (doctorId !== shownDoctorId) {
+    setShownDoctorId(doctorId)
     setLoading(true)
     setSelected(null)
     setResults([])
@@ -96,6 +115,38 @@ export default function ResultadoPantalla() {
     setPathology('')
     setError('')
     setSuccess('')
+  }
+
+  // The URL asks to open a study as soon as the list has it.
+  const openTarget =
+    Number.isSafeInteger(requestedStudyId) &&
+    requestedStudyId > 0 &&
+    !loading &&
+    results.some((result) => result.study_id === requestedStudyId)
+      ? requestedStudyId
+      : null
+  const [opened, setOpened] = useState<{
+    target: number | null
+    doctorId: string
+    results: ResultSummary[]
+  }>({ target: null, doctorId, results })
+  if (
+    openTarget !== null &&
+    (opened.target !== openTarget || opened.doctorId !== doctorId || opened.results !== results)
+  ) {
+    // What opening a study does first: show that it is busy and clear the previous one.
+    setOpened({ target: openTarget, doctorId, results })
+    setBusy(true)
+    setError('')
+    setSuccess('')
+    setSelected(null)
+    setPreview(null)
+    setRequest(null)
+    setPathology('')
+  }
+
+  useEffect(() => {
+    let cancelled = false
 
     Promise.all([
       api<ResultSummary[]>(
@@ -133,19 +184,7 @@ export default function ResultadoPantalla() {
     setPathology('')
 
     try {
-      const [detail, existingRequest] = await Promise.all([
-        api<ResultDetail>(
-          `/bioinformatics/results/${studyId}?${query({
-            role: 'medico_tratante',
-            actor_id: doctorId,
-          })}`,
-        ),
-        api<ReanalysisRequest | null>(
-          `/bioinformatics/studies/${studyId}/reanalysis?${query({
-            doctor_id: doctorId,
-          })}`,
-        ),
-      ])
+      const [detail, existingRequest] = await fetchResultAndRequest(studyId, doctorId)
 
       setSelected(detail)
       setRequest(existingRequest)
@@ -155,20 +194,26 @@ export default function ResultadoPantalla() {
       setBusy(false)
     }
   }
+  // Opens the study the URL asks for, like viewResult does after it clears the screen.
   useEffect(() => {
-    if (
-      !Number.isSafeInteger(requestedStudyId) ||
-      requestedStudyId <= 0 ||
-      loading ||
-      !results.some((result) => result.study_id === requestedStudyId)
-    ) {
-      return
+    if (openTarget === null) return
+    const studyId = openTarget
+
+    async function openRequested() {
+      try {
+        const [detail, existingRequest] = await fetchResultAndRequest(studyId, doctorId)
+
+        setSelected(detail)
+        setRequest(existingRequest)
+      } catch (caught) {
+        setError(errorMessage(caught))
+      } finally {
+        setBusy(false)
+      }
     }
 
-    void viewResult(requestedStudyId)
-    // The URL is the source of the requested study.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedStudyId, doctorId, results])
+    void openRequested()
+  }, [openTarget, doctorId, results])
 
   async function downloadPdf(studyId: number) {
     setError('')

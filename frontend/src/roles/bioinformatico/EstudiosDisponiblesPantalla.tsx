@@ -50,27 +50,42 @@ export default function EstudiosDisponiblesPantalla() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const loadStudies = useCallback(async (selectedAnalyst: string) => {
-    try {
-      const [available, assigned] = await Promise.all([
-        api<AvailableStudy[]>('/bioinformatics/studies/available'),
-        api<StudyAssignment[]>(
-          `/bioinformatics/studies/assigned?analyst_id=${encodeURIComponent(selectedAnalyst)}`,
-        ),
-      ])
+  // `isActive` lets the effect ignore the answer when the analyst changed or the screen is gone.
+  const loadStudies = useCallback(
+    async (selectedAnalyst: string, isActive: () => boolean = () => true) => {
+      try {
+        const [available, assigned] = await Promise.all([
+          api<AvailableStudy[]>('/bioinformatics/studies/available'),
+          api<StudyAssignment[]>(
+            `/bioinformatics/studies/assigned?analyst_id=${encodeURIComponent(selectedAnalyst)}`,
+          ),
+        ])
 
-      setStudies(available)
-      setAssignedStudies(assigned)
-      setError('')
-    } catch {
-      setError('No se pudieron consultar los estudios.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+        if (!isActive()) return
+        setStudies(available)
+        setAssignedStudies(assigned)
+        setError('')
+      } catch {
+        if (isActive()) setError('No se pudieron consultar los estudios.')
+      } finally {
+        if (isActive()) setIsLoading(false)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
-    void loadStudies(analystId)
+    let active = true
+
+    async function start() {
+      await loadStudies(analystId, () => active)
+    }
+
+    void start()
+
+    return () => {
+      active = false
+    }
   }, [analystId, loadStudies])
 
   async function openStudy(study: AvailableStudy) {
