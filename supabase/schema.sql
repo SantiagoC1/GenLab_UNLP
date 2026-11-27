@@ -583,3 +583,31 @@ alter table public.coupons add constraint coupons_status_check
 
 commit;
 -- FIN DE LA MIGRACIÓN N1
+
+
+-- ============================================================================
+-- MIGRACIÓN N3 y N4 (issues #88 y #89): pago con Mercado Pago, con cuotas
+-- ============================================================================
+-- Bloque para copiar y ejecutar a mano en el SQL Editor de Supabase, antes de mergear el PR.
+-- Es idempotente (`add column if not exists`, `create unique index if not exists`) y va en una
+-- transacción: o se aplica entero o no se aplica. Las bases nuevas lo ejecutan como parte de
+-- este mismo archivo.
+--
+-- Las cuotas las maneja Mercado Pago: la plataforma recibe UN pago aprobado y guarda el plan que
+-- eligió el paciente. No hay un estado por cuota.
+begin;
+
+-- Registro financiero (`payments`): cuántas cuotas eligió el paciente, el valor de cada una (en
+-- la moneda del cobro de Mercado Pago, MERCADOPAGO_CURRENCY_ID, no en USD) y el id del pago en
+-- Mercado Pago. El id es único: confirmar dos veces el mismo pago no lo registra dos veces.
+alter table public.payments add column if not exists installments       integer
+    check (installments is null or installments >= 1);
+alter table public.payments add column if not exists installment_amount numeric(10, 2)
+    check (installment_amount is null or installment_amount >= 0);
+alter table public.payments add column if not exists mp_payment_id      text;
+
+create unique index if not exists payments_mp_payment_idx
+    on public.payments (mp_payment_id) where mp_payment_id is not null;
+
+commit;
+-- FIN DE LA MIGRACIÓN N3 y N4
