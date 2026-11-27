@@ -23,13 +23,20 @@ export default function ResultadoPantalla() {
   const [searchParams] = useSearchParams()
   const requestedStudyId = Number(searchParams.get('study_id'))
   const [results, setResults] = useState<ResultSummary[]>([])
-  const [loading, setLoading] = useState(false)
+  // The first load starts with the screen.
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Another patient: the load below starts, and the results shown stay until it ends.
+  const [shownPatientId, setShownPatientId] = useState(patientId)
+  if (patientId !== shownPatientId) {
+    setShownPatientId(patientId)
+    setLoading(true)
+    setError('')
+  }
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError('')
 
     api<ResultSummary[]>(
       `/bioinformatics/results?role=paciente&actor_id=${encodeURIComponent(patientId)}`,
