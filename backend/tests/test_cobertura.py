@@ -7,10 +7,8 @@ from app.core.errors import BusinessRuleError
 from app.integrations.obras_sociales import obtener_obras_sociales
 from app.main import app
 from app.modules.presupuesto_pago.estado import TRANSITIONS, validate_transition
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from tests.fakes import ObrasSocialesFalsa
 
 PACIENTE = "lucia.fernandez@example.com"

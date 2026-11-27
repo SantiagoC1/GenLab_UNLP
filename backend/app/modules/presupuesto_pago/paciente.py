@@ -122,7 +122,9 @@ class PacienteServicio:
 
     # --- M4-RF5 and M4-RF9: private payment, simulated --------------------------------------
 
-    def pagar(self, contacto: str, estudio_id: int, metodo: str) -> PagoSalida:
+    def pagar(
+        self, contacto: str, estudio_id: int, metodo: str, usuario_id: str | None = None
+    ) -> PagoSalida:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
         self._exigir_pago_posible(estudio)
 
@@ -154,7 +156,9 @@ class PacienteServicio:
 
         ahora = datetime.now(UTC)
         # Nothing is recorded before this point, so leaving without paying changes nothing.
-        self.repositorio.cambiar_estado(estudio.id, EstadoEstudio.PAGADO, ahora)
+        estudio = self.repositorio.cambiar_estado(
+            estudio.id, EstadoEstudio.PAGADO, ahora, usuario_id
+        )
         asiento = self.repositorio.registrar_asiento(estudio, importe, metodo, ahora, codigo)
         avisado = avisar(
             self.avisos,
@@ -266,6 +270,10 @@ class PacienteServicio:
 
     def _validar_cupon(self, codigo: str) -> dict:
         try:
+            # The module may have restarted and forgotten a coupon the platform still holds.
+            conocido = self.repositorio_cupones.obtener(codigo)
+            if conocido is not None:
+                self.cupones.recordar_cupones([conocido.para_el_modulo()])
             return self.cupones.validar_cupon(codigo)
         except Exception:
             raise InvalidIntegration(INTEGRACION_CUPONES) from None

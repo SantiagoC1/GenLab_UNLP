@@ -37,6 +37,7 @@ exigir_administrativo = require_role(Rol.ADMINISTRATIVO_LABORATORIO)
 
 
 administrativo = [Depends(exigir_administrativo)]
+UsuarioAdministrativo = Annotated[dict, Depends(exigir_administrativo)]
 
 # Cobertura, pago y demanda: el paciente, sobre sus propios estudios.
 exigir_paciente = require_role(Rol.PACIENTE)
@@ -99,10 +100,12 @@ def ver_detalle_del_estudio(estudio_id: int, servicio: Servicio) -> DetalleEstud
     return servicio.detalle(estudio_id)
 
 
-@router.post("/estudios/{estudio_id}/presupuesto", dependencies=administrativo, status_code=201)
-def emitir_presupuesto(estudio_id: int, servicio: Servicio) -> PresupuestoEmitidoSalida:
+@router.post("/estudios/{estudio_id}/presupuesto", status_code=201)
+def emitir_presupuesto(
+    estudio_id: int, usuario: UsuarioAdministrativo, servicio: Servicio
+) -> PresupuestoEmitidoSalida:
     """Publica el presupuesto y avisa al paciente. El importe no se recibe: lo fija la tarifa."""
-    return servicio.emitir(estudio_id)
+    return servicio.emitir(estudio_id, usuario["id"])
 
 
 @router.get("/mis-estudios")
@@ -135,7 +138,7 @@ def pagar_estudio(
     estudio_id: int, datos: PagarEntrada, usuario: UsuarioPaciente, servicio: ServicioPaciente
 ) -> PagoSalida:
     """Pago particular simulado: asienta el pago y pasa el estudio a Pagado."""
-    return servicio.pagar(usuario["email"], estudio_id, datos.metodo)
+    return servicio.pagar(usuario["email"], estudio_id, datos.metodo, usuario["id"])
 
 
 @router.get("/registro-financiero", dependencies=administrativo)
@@ -184,14 +187,15 @@ def listar_autorizaciones_pendientes(
     return servicio.listar_pendientes()
 
 
-@router.post("/estudios/{estudio_id}/autorizacion", dependencies=administrativo)
+@router.post("/estudios/{estudio_id}/autorizacion")
 def registrar_autorizacion(
     estudio_id: int,
     datos: RespuestaObraSocialEntrada,
+    usuario: UsuarioAdministrativo,
     servicio: ServicioAutorizacion,
 ) -> AutorizacionRegistradaSalida:
     """Registra la respuesta de la obra social (Autorizado o Rechazado con motivo)."""
-    return servicio.registrar_respuesta(estudio_id, datos.resultado, datos.motivo)
+    return servicio.registrar_respuesta(estudio_id, datos.resultado, datos.motivo, usuario["id"])
 
 
 @router.post("/mis-estudios/{estudio_id}/demanda", status_code=201)

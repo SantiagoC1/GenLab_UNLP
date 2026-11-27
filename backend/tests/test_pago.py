@@ -6,10 +6,8 @@ from app.core.enums import EstadoEstudio, Rol
 from app.integrations.avisos import obtener_avisos
 from app.integrations.obras_sociales import obtener_obras_sociales
 from app.main import app
-from app.modules.presupuesto_pago.repositorio import (
-    RepositorioEstudiosEnMemoria,
-    obtener_repositorio,
-)
+from app.modules.presupuesto_pago.repositorio import obtener_repositorio
+from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from tests.fakes import AvisosCaido, AvisosEspia, ObrasSocialesFalsa
 
 LUCIA = "lucia.fernandez@example.com"

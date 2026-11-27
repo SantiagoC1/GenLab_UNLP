@@ -53,6 +53,9 @@ class CuponesServicio:
     # --- M5-RF1 and M5-RF5: generate coupons -------------------------------------------------
 
     def generar(self, descuento: int, cantidad: int) -> list[CuponSalida]:
+        # The module may have restarted: it has to know the coupons already stored to number
+        # the new ones after them.
+        self.cupones.recordar_cupones([c.para_el_modulo() for c in self.repositorio.listar()])
         try:
             nuevos = self.cupones.obtener_cupones(descuento, cantidad)
         except CuponesError as error:
@@ -97,7 +100,7 @@ class CuponesServicio:
             cupones.append(cupon)
         # The validity belongs to the coupons module: nothing is assigned unless all are valid.
         for cupon in cupones:
-            if self._estado_en_el_modulo(cupon.codigo) != VIGENTE:
+            if self._estado_en_el_modulo(cupon) != VIGENTE:
                 raise BusinessRuleError(
                     f"El cupón {cupon.codigo} no está Vigente.", code="cupon_no_vigente"
                 )
@@ -137,10 +140,10 @@ class CuponesServicio:
             raise BusinessRuleError(
                 "Ese cupón no está entre tus cupones disponibles.", code="cupon_no_disponible"
             )
-        paciente = self.pacientes.obtener(contacto_paciente)
+        paciente = self.pacientes.obtener(contacto_paciente, contacto_medico)
         if paciente is None or paciente.medico != contacto_medico:
             raise BusinessRuleError("No existe el paciente.", status_code=404)
-        if self._estado_en_el_modulo(cupon.codigo) != VIGENTE:
+        if self._estado_en_el_modulo(cupon) != VIGENTE:
             raise BusinessRuleError(
                 f"El cupón {cupon.codigo} no está Vigente.", code="cupon_no_vigente"
             )
@@ -163,9 +166,10 @@ class CuponesServicio:
         except Exception:
             return False
 
-    def _estado_en_el_modulo(self, codigo: str) -> str:
+    def _estado_en_el_modulo(self, cupon: Cupon) -> str:
         try:
-            return self.cupones.validar_cupon(codigo)["estado"]
+            self.cupones.recordar_cupones([cupon.para_el_modulo()])
+            return self.cupones.validar_cupon(cupon.codigo)["estado"]
         except Exception:
             raise InvalidIntegration(INTEGRACION) from None
 

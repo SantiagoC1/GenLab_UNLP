@@ -4,7 +4,8 @@ from app.core.enums import Rol
 from app.integrations import cupones as integracion_cupones
 from app.integrations.cupones import CuponesError, CuponesSimulador, obtener_cupones
 from app.main import app
-from app.modules.cupones.repositorio import RepositorioCuponesEnMemoria, obtener_repositorio
+from app.modules.cupones.repositorio import obtener_repositorio
+from app.modules.cupones.repositorio_memoria import RepositorioCuponesEnMemoria
 
 
 class CuponesRechazados(CuponesSimulador):

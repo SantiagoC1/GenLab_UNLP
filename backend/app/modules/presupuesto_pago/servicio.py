@@ -35,13 +35,13 @@ class PresupuestoServicio:
             presupuesto_emitido=estudio.tiene_presupuesto,
         )
 
-    def emitir(self, estudio_id: int) -> PresupuestoEmitidoSalida:
+    def emitir(self, estudio_id: int, usuario_id: str | None = None) -> PresupuestoEmitidoSalida:
         estudio = self._estudio(estudio_id)
         if estudio.tiene_presupuesto:
             raise BusinessRuleError("El estudio ya tiene el presupuesto emitido.")
         importe = calcular_importe(len(estudio.genes))
         emitido_en = datetime.now(UTC)
-        self.repositorio.guardar_presupuesto(estudio.id, importe, emitido_en)
+        self.repositorio.guardar_presupuesto(estudio.id, importe, emitido_en, usuario_id)
         # [supuesto] M4-RF2: el paciente recibe un aviso al publicarse el presupuesto.
         avisado = self.avisos.enviar_aviso(
             estudio.contacto_paciente,

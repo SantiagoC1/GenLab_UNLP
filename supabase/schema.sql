@@ -366,7 +366,7 @@ create table if not exists public.coupons (
     code         text        not null unique,
     discount_pct integer     not null check (discount_pct between 1 and 100),
     status       text        not null default 'Vigente' check (status in (
-        'Vigente', 'Utilizado', 'Vencido'
+        'Vigente', 'Usado', 'Vencido'
     )),
     doctor_id    uuid references public.users (id),
     patient_id   uuid references public.patients (id),
@@ -538,3 +538,48 @@ revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
 alter default privileges in schema public revoke all on tables    from anon, authenticated;
 alter default privileges in schema public revoke all on sequences from anon, authenticated;
+
+
+-- ============================================================================
+-- MIGRACIÓN N1 (issue #86): persistir presupuesto, cobertura, pago y cupones
+-- ============================================================================
+-- Bloque para copiar y ejecutar a mano en el SQL Editor de Supabase, antes de mergear el PR.
+-- Es idempotente: `add column if not exists`, y las restricciones se sueltan con
+-- `drop constraint if exists` antes de volver a crearlas, así que correrlo dos veces no rompe
+-- nada. Va en una transacción: o se aplica entero o no se aplica. Las bases nuevas lo ejecutan
+-- como parte de este mismo archivo.
+begin;
+
+-- Cobertura (`authorizations`): lo que el módulo de obras sociales devolvió al dar de alta el
+-- estudio, cuándo la eligió el paciente y la demanda judicial adjunta (M4-RF8).
+-- (`registered_by`, el usuario que registra la respuesta, ya existía en la tabla.)
+alter table public.authorizations add column if not exists external_id text;           -- id que devuelve el módulo de obras sociales
+alter table public.authorizations add column if not exists chosen_at   timestamptz;    -- cuándo eligió la cobertura el paciente
+alter table public.authorizations add column if not exists demand_name text;           -- nombre del PDF de la demanda
+alter table public.authorizations add column if not exists demand_at   timestamptz;    -- cuándo se adjuntó
+alter table public.authorizations add column if not exists demand_pdf  bytea;          -- el PDF; los listados NO lo piden (columnas explícitas)
+
+-- Presupuesto (`budgets`): el cupón que el paciente aplicó antes de pagar. Se guarda el código y
+-- el porcentaje porque el cupón puede venir del módulo MA3 y no estar en `coupons`.
+alter table public.budgets add column if not exists applied_coupon_code text;
+alter table public.budgets add column if not exists applied_coupon_pct  integer;
+alter table public.budgets drop constraint if exists budgets_applied_coupon_pct_check;
+alter table public.budgets add constraint budgets_applied_coupon_pct_check
+    check (applied_coupon_pct is null or applied_coupon_pct between 1 and 100);
+
+-- Registro financiero (`payments`): método de pago (o "obra_social (nombre)") y código del cupón
+-- usado. `coupon_id` queda para los cupones que están en nuestra tabla.
+alter table public.payments add column if not exists method      text not null default 'simulado';
+alter table public.payments add column if not exists coupon_code text;
+
+-- Cupones (`coupons`): el estado de un cupón usado es "Usado", como lo informa el módulo MA3.
+-- El orden importa: primero se suelta el CHECK viejo (que no admite "Usado"), después se pasan
+-- las filas "Utilizado" a "Usado" y recién entonces se crea el CHECK nuevo, que ya no admitiría
+-- "Utilizado".
+alter table public.coupons drop constraint if exists coupons_status_check;
+update public.coupons set status = 'Usado' where status = 'Utilizado';
+alter table public.coupons add constraint coupons_status_check
+    check (status in ('Vigente', 'Usado', 'Vencido'));
+
+commit;
+-- FIN DE LA MIGRACIÓN N1
