@@ -43,6 +43,18 @@ class Settings(BaseSettings):
     integracion_fedex: ModoIntegracion = "simulador"
     integracion_ministerio_salud: ModoIntegracion = "simulador"
     chatbot_integration: ModoIntegracion = "simulador"
+    integracion_mercadopago: ModoIntegracion = "simulador"
+
+    # Mercado Pago (Checkout Pro). El token es un secreto del servidor: nunca se escribe en el
+    # código, ni en los logs, ni en el repositorio.
+    mercadopago_access_token: str = ""
+    # Moneda del cobro y cuántas unidades de esa moneda vale 1 USD (el presupuesto está en USD).
+    mercadopago_currency_id: str = "ARS"
+    mercadopago_usd_rate: float = 1.0
+    # Máximo de cuotas que se ofrece en el checkout. Las cuotas las maneja Mercado Pago.
+    mercadopago_max_installments: int = 6
+    # A dónde vuelve el paciente desde Mercado Pago.
+    frontend_url: str = "http://localhost:5173"
 
     @property
     def cors_origins_lista(self):
