@@ -27,6 +27,7 @@ import AdministrativoLaboratorioDatosCrudosPantalla from './administrativo_labor
 import AdministrativoLaboratorioLotesPantalla from './administrativo_laboratorio/LotesPantalla'
 import AdministrativoLaboratorioRetiroFedexPantalla from './administrativo_laboratorio/RetiroFedexPantalla'
 import AdministrativoLaboratorioUbicacionMuestraPantalla from './administrativo_laboratorio/UbicacionMuestraPantalla'
+import AdministrativoLaboratorioRemuestreoPantalla from './administrativo_laboratorio/RemuestreoPantalla'
 import AdministrativoLaboratorioSimuladoresPantalla from './administrativo_laboratorio/SimuladoresPantalla'
 import CarrierDailyRoutePage from './carrier/DailyRoutePage'
 import TransportistaRetiroDeMuestrasPantalla from './carrier/RetiroDeMuestrasPantalla'
@@ -212,6 +213,12 @@ export const PANTALLAS: Pantalla[] = [
     ruta: 'ubicacion-muestra',
     titulo: 'Ubicación de una muestra en traslado',
     componente: AdministrativoLaboratorioUbicacionMuestraPantalla,
+  },
+  {
+    rol: 'administrativo_laboratorio',
+    ruta: 'remuestreo',
+    titulo: 'Pedir el remuestreo de un estudio',
+    componente: AdministrativoLaboratorioRemuestreoPantalla,
   },
   {
     rol: 'administrativo_laboratorio',
