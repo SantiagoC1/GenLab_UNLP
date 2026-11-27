@@ -461,3 +461,41 @@ def test_the_financial_record_shows_the_installments(client, entorno, login_as):
         333.33,
         "1001",
     )
+
+
+# --- what would be charged, before going to pay ---------------------------------------------------
+
+
+def test_the_conditions_show_the_amount_and_the_installments_without_creating_a_charge(
+    client, entorno
+):
+    _, _, _, mercadopago = entorno
+
+    r = client.get(f"{PAY}/1/pago-mercadopago")
+
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        "estudio_id": 1,
+        "importe_original_usd": 500,
+        "importe_usd": 500,
+        "cupon": None,
+        "moneda": "ARS",
+        "importe": 1000.0,
+        "cuotas_maximas": 6,
+    }
+    assert mercadopago.preferences == []
+
+
+def test_the_conditions_use_the_coupon_applied_and_refuse_a_study_that_cannot_be_paid(
+    client, entorno
+):
+    estudios = entorno[0]
+    client.post(f"{PAY}/1/cupon", json={"codigo": "CUP-0001"})
+
+    with_coupon = client.get(f"{PAY}/1/pago-mercadopago").json()
+    assert (with_coupon["importe_usd"], with_coupon["importe"]) == (400, 800.0)
+    assert with_coupon["cupon"] == "CUP-0001"
+
+    estudios.cambiar_estado(1, EstadoEstudio.PAGADO, datetime.now(UTC))
+    assert client.get(f"{PAY}/1/pago-mercadopago").status_code == 409
+    assert client.get(f"{PAY}/3/pago-mercadopago").status_code == 404

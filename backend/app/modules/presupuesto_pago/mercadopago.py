@@ -18,7 +18,11 @@ from app.core.errors import BusinessRuleError, InvalidIntegration
 from app.integrations.mercadopago import MercadoPagoIntegracion, PagoNoEncontrado
 from app.modules.presupuesto_pago.paciente import PacienteServicio, avisar
 from app.modules.presupuesto_pago.repositorio import AsientoFinanciero, EstudioParaPresupuesto
-from app.modules.presupuesto_pago.schemas import CheckoutSalida, ConfirmacionPagoSalida
+from app.modules.presupuesto_pago.schemas import (
+    CheckoutSalida,
+    CondicionesPagoSalida,
+    ConfirmacionPagoSalida,
+)
 
 logger = logging.getLogger("genlab.mercadopago")
 
@@ -70,17 +74,34 @@ class MercadoPagoServicio:
 
     # --- the charge: where the patient goes to pay ------------------------------------------
 
-    def crear_checkout(self, contacto: str, estudio_id: int) -> CheckoutSalida:
+    def condiciones(self, contacto: str, estudio_id: int) -> CondicionesPagoSalida:
+        """What would be charged, without creating anything in Mercado Pago."""
+        return self._condiciones(contacto, estudio_id)[0]
+
+    def _condiciones(self, contacto: str, estudio_id: int) -> tuple[CondicionesPagoSalida, Decimal]:
         estudio = self.paciente.estudio_del_paciente(contacto, estudio_id)
         self.paciente.exigir_pago_posible(estudio)
         original, importe, codigo = self.paciente.preparar_cobro(estudio)
         monto = self._monto(importe)
+        condiciones = CondicionesPagoSalida(
+            estudio_id=estudio.id,
+            importe_original_usd=original,
+            importe_usd=importe,
+            cupon=codigo,
+            moneda=self.config.currency_id,
+            importe=float(monto),
+            cuotas_maximas=self.config.max_installments,
+        )
+        return condiciones, monto
+
+    def crear_checkout(self, contacto: str, estudio_id: int) -> CheckoutSalida:
+        condiciones, monto = self._condiciones(contacto, estudio_id)
 
         return_url = f"{self.config.frontend_url.rstrip('/')}{RETURN_PATH}"
         try:
             preferencia = self.cliente.create_preference(
-                external_reference=reference_of(estudio.id),
-                title=f"Estudio de genética {estudio.id} - GenLab",
+                external_reference=reference_of(estudio_id),
+                title=f"Estudio de genética {estudio_id} - GenLab",
                 amount=monto,
                 currency_id=self.config.currency_id,
                 max_installments=self.config.max_installments,
@@ -91,15 +112,9 @@ class MercadoPagoServicio:
             raise InvalidIntegration(INTEGRACION_MERCADOPAGO) from None
 
         return CheckoutSalida(
-            estudio_id=estudio.id,
+            **condiciones.model_dump(),
             init_point=preferencia["init_point"],
             preference_id=preferencia["id"],
-            importe_original_usd=original,
-            importe_usd=importe,
-            cupon=codigo,
-            moneda=self.config.currency_id,
-            importe=float(monto),
-            cuotas_maximas=self.config.max_installments,
         )
 
     # --- the patient comes back: look the payment up and record it -------------------------

@@ -21,6 +21,7 @@ from app.modules.presupuesto_pago.schemas import (
     AutorizacionPendienteSalida,
     AutorizacionRegistradaSalida,
     CheckoutSalida,
+    CondicionesPagoSalida,
     ConfirmacionPagoSalida,
     ConfirmarPagoMercadoPagoEntrada,
     CuponAplicadoSalida,
@@ -167,6 +168,14 @@ def ver_registro_financiero(
 ) -> list[AsientoFinancieroSalida]:
     """Todas las operaciones asentadas: importe, paciente, estudio, método, fecha y cupón."""
     return [AsientoFinancieroSalida(**vars(a)) for a in repositorio.listar_asientos()]
+
+
+@router.get("/mis-estudios/{estudio_id}/pago-mercadopago")
+def ver_condiciones_del_pago_mercadopago(
+    estudio_id: int, usuario: UsuarioPaciente, servicio: ServicioMercadoPago
+) -> CondicionesPagoSalida:
+    """Cuánto se cobraría (moneda, importe y cuotas máximas), sin crear nada en Mercado Pago."""
+    return servicio.condiciones(usuario["email"], estudio_id)
 
 
 @router.post("/mis-estudios/{estudio_id}/pago-mercadopago", status_code=201)

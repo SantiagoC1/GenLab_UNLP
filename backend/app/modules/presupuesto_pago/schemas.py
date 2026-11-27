@@ -83,12 +83,10 @@ class PagoSalida(BaseModel):
     paciente_avisado: bool
 
 
-class CheckoutSalida(BaseModel):
-    """Where the patient goes to pay: the checkout of Mercado Pago."""
+class CondicionesPagoSalida(BaseModel):
+    """What the patient would pay through Mercado Pago, before going to pay."""
 
     estudio_id: int
-    init_point: str
-    preference_id: str
     importe_original_usd: int
     importe_usd: int
     cupon: str | None = None
@@ -97,6 +95,13 @@ class CheckoutSalida(BaseModel):
     importe: float
     # The installments are chosen and managed by Mercado Pago.
     cuotas_maximas: int
+
+
+class CheckoutSalida(CondicionesPagoSalida):
+    """Where the patient goes to pay: the checkout of Mercado Pago."""
+
+    init_point: str
+    preference_id: str
 
 
 class ConfirmarPagoMercadoPagoEntrada(BaseModel):
