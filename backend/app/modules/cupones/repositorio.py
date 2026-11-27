@@ -37,6 +37,10 @@ class Cupon:
     medico: str | None = None  # contact (e-mail) of the doctor who holds it
     paciente: str | None = None  # contact (e-mail) of the patient it was given to
 
+    def para_el_modulo(self) -> dict:
+        """What the coupons module is told about a coupon the platform holds."""
+        return {"codigo": self.codigo, "descuento": self.descuento, "estado": self.estado}
+
 
 class RepositorioCupones(ABC):
     @abstractmethod

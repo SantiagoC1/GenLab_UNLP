@@ -270,6 +270,10 @@ class PacienteServicio:
 
     def _validar_cupon(self, codigo: str) -> dict:
         try:
+            # The module may have restarted and forgotten a coupon the platform still holds.
+            conocido = self.repositorio_cupones.obtener(codigo)
+            if conocido is not None:
+                self.cupones.recordar_cupones([conocido.para_el_modulo()])
             return self.cupones.validar_cupon(codigo)
         except Exception:
             raise InvalidIntegration(INTEGRACION_CUPONES) from None

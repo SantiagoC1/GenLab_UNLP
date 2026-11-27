@@ -29,6 +29,13 @@ class CuponesIntegracion(ABC):
     def marcar_cupon_usado(self, codigo: str) -> dict:
         """Devuelve: cupón marcado como usado."""
 
+    def recordar_cupones(self, cupones: list[dict]) -> None:
+        """Le cuenta al módulo qué cupones guarda la plataforma (código, descuento y estado).
+
+        El módulo real los conoce por su cuenta, así que no hace nada. Solo lo usa el simulador.
+        """
+        return None
+
 
 # Cupones que emitió el simulador (el módulo real los guarda por su cuenta).
 _EMITIDOS: dict[str, dict] = {}
@@ -39,8 +46,29 @@ def reiniciar_simulador() -> None:
     _EMITIDOS.clear()
 
 
+def _numero(codigo: str) -> int:
+    """El número de un código CUP-0007, o 0 si el código no tiene esa forma."""
+    prefijo, _, numero = codigo.partition("-")
+    return int(numero) if prefijo == "CUP" and numero.isdigit() else 0
+
+
 class CuponesSimulador(CuponesIntegracion):
-    """Emite, valida y marca cupones en memoria, para demostrar sin depender de otro grupo."""
+    """Emite, valida y marca cupones en memoria, para demostrar sin depender de otro grupo.
+
+    Al reiniciar el backend olvida lo que emitió, pero la plataforma conserva los cupones en su
+    base: por eso la plataforma se los recuerda con `recordar_cupones` antes de preguntarle.
+    """
+
+    def recordar_cupones(self, cupones: list[dict]) -> None:
+        for cupon in cupones:
+            _EMITIDOS.setdefault(
+                cupon["codigo"],
+                {
+                    "codigo": cupon["codigo"],
+                    "descuento": cupon["descuento"],
+                    "estado": cupon["estado"],
+                },
+            )
 
     def obtener_cupones(self, descuento: int, cantidad: int) -> list[dict]:
         if not 1 <= descuento <= 100:
@@ -49,7 +77,7 @@ class CuponesSimulador(CuponesIntegracion):
             raise CuponesError("La cantidad tiene que estar entre 1 y 100.")
         nuevos = []
         for _ in range(cantidad):
-            codigo = f"CUP-{len(_EMITIDOS) + 1:04d}"
+            codigo = f"CUP-{max(map(_numero, _EMITIDOS), default=0) + 1:04d}"
             cupon = {"codigo": codigo, "descuento": descuento, "estado": "Vigente"}
             _EMITIDOS[codigo] = cupon
             nuevos.append(dict(cupon))
