@@ -16,6 +16,8 @@ import MedicoTratanteReanalisisPantalla from './medico_tratante/ReanalisisPantal
 import PacienteEstudiosPantalla from './paciente/EstudiosPantalla'
 import PacienteCoberturaPantalla from './paciente/CoberturaPantalla'
 import PacientePagoPantalla from './paciente/PagoPantalla'
+import PacientePagoMercadoPagoPantalla from './paciente/PagoMercadoPagoPantalla'
+import PacientePagoResultadoPantalla from './paciente/PagoResultadoPantalla'
 import PacienteDemandaPantalla from './paciente/DemandaPantalla'
 import PacienteTurnoPantalla from './paciente/TurnoPantalla'
 import PacienteDocumentosPantalla from './paciente/DocumentosPantalla'
@@ -50,6 +52,8 @@ export interface Pantalla {
   ruta: string
   titulo: string
   componente: ComponentType
+  /** Se llega por un enlace o una redirección, pero no aparece en el menú. */
+  oculta?: boolean
 }
 
 /** Una entrada por pantalla. La ruta completa es `/${rol}/${ruta}`. */
@@ -154,6 +158,19 @@ export const PANTALLAS: Pantalla[] = [
   { rol: 'paciente', ruta: 'pago', titulo: 'Pagar el estudio', componente: PacientePagoPantalla },
   {
     rol: 'paciente',
+    ruta: 'pagar-con-mercadopago',
+    titulo: 'Pagar con Mercado Pago',
+    componente: PacientePagoMercadoPagoPantalla,
+  },
+  {
+    rol: 'paciente',
+    ruta: 'pago-resultado',
+    titulo: 'Resultado del pago con Mercado Pago',
+    componente: PacientePagoResultadoPantalla,
+    oculta: true,
+  },
+  {
+    rol: 'paciente',
     ruta: 'demanda',
     titulo: 'Solicitar la reautorización con una demanda',
     componente: PacienteDemandaPantalla,
@@ -256,5 +273,5 @@ const INITIAL_SCREEN: Partial<Record<RolId, string>> = {
 }
 
 export function initialScreen(rol: RolId): string | undefined {
-  return INITIAL_SCREEN[rol] ?? PANTALLAS.find((p) => p.rol === rol)?.ruta
+  return INITIAL_SCREEN[rol] ?? PANTALLAS.find((p) => p.rol === rol && !p.oculta)?.ruta
 }

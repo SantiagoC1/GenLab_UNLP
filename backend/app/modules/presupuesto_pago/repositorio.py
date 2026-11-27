@@ -56,6 +56,11 @@ class AsientoFinanciero:
     metodo: str
     fecha: datetime
     cupon: str | None = None
+    # Payment through Mercado Pago: the installments are managed by Mercado Pago, the
+    # platform only keeps the plan the patient chose (in the currency of the charge).
+    cuotas: int | None = None
+    valor_cuota: float | None = None
+    mp_payment_id: str | None = None
 
 
 @dataclass
@@ -141,8 +146,15 @@ class RepositorioEstudios(ABC):
         metodo: str,
         fecha: datetime,
         cupon: str | None = None,
+        cuotas: int | None = None,
+        valor_cuota: float | None = None,
+        mp_payment_id: str | None = None,
     ) -> AsientoFinanciero:
         """Asienta una operación en el registro financiero."""
+
+    @abstractmethod
+    def buscar_asiento_por_pago_mp(self, mp_payment_id: str) -> AsientoFinanciero | None:
+        """El asiento del pago de Mercado Pago con ese id, si ya se registró."""
 
     @abstractmethod
     def listar_asientos(self) -> list[AsientoFinanciero]:

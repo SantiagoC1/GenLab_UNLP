@@ -107,12 +107,27 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
         metodo: str,
         fecha: datetime,
         cupon: str | None = None,
+        cuotas: int | None = None,
+        valor_cuota: float | None = None,
+        mp_payment_id: str | None = None,
     ) -> AsientoFinanciero:
         asiento = AsientoFinanciero(
-            len(self.asientos) + 1, estudio.id, estudio.paciente, importe_usd, metodo, fecha, cupon
+            len(self.asientos) + 1,
+            estudio.id,
+            estudio.paciente,
+            importe_usd,
+            metodo,
+            fecha,
+            cupon,
+            cuotas,
+            valor_cuota,
+            mp_payment_id,
         )
         self.asientos.append(asiento)
         return asiento
+
+    def buscar_asiento_por_pago_mp(self, mp_payment_id: str) -> AsientoFinanciero | None:
+        return next((a for a in self.asientos if a.mp_payment_id == mp_payment_id), None)
 
     def listar_asientos(self) -> list[AsientoFinanciero]:
         return list(reversed(self.asientos))

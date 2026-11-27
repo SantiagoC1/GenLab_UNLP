@@ -81,7 +81,7 @@ export function Layout() {
   const [open, setOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLElement>(null)
-  const menu = PANTALLAS.filter((p) => p.rol === rol)
+  const menu = PANTALLAS.filter((p) => p.rol === rol && !p.oculta)
 
   const close = (restoreFocus: boolean) => {
     setOpen(false)

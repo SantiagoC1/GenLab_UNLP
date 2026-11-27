@@ -83,6 +83,52 @@ class PagoSalida(BaseModel):
     paciente_avisado: bool
 
 
+class CondicionesPagoSalida(BaseModel):
+    """What the patient would pay through Mercado Pago, before going to pay."""
+
+    estudio_id: int
+    importe_original_usd: int
+    importe_usd: int
+    cupon: str | None = None
+    # What Mercado Pago charges, in its currency (the budget is in USD).
+    moneda: str
+    importe: float
+    # The installments are chosen and managed by Mercado Pago.
+    cuotas_maximas: int
+
+
+class CheckoutSalida(CondicionesPagoSalida):
+    """Where the patient goes to pay: the checkout of Mercado Pago."""
+
+    init_point: str
+    preference_id: str
+
+
+class ConfirmarPagoMercadoPagoEntrada(BaseModel):
+    # The id that Mercado Pago puts in the address the patient comes back to.
+    payment_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+class ConfirmacionPagoSalida(BaseModel):
+    """What happened with the payment when the patient came back from Mercado Pago."""
+
+    resultado: Literal["aprobado", "pendiente", "rechazado"]
+    estudio_id: int
+    estado_estudio: EstadoEstudio
+    estado_mp: str
+    detalle_mp: str | None = None
+    importe_original_usd: int | None = None
+    importe_usd: int | None = None
+    cupon: str | None = None
+    metodo: str | None = None
+    cuotas: int | None = None
+    valor_cuota: float | None = None
+    moneda: str | None = None
+    mp_payment_id: str | None = None
+    pagado_en: datetime | None = None
+    paciente_avisado: bool = False
+
+
 class AsientoFinancieroSalida(BaseModel):
     id: int
     estudio_id: int
@@ -91,6 +137,9 @@ class AsientoFinancieroSalida(BaseModel):
     metodo: str
     fecha: datetime
     cupon: str | None
+    cuotas: int | None = None
+    valor_cuota: float | None = None
+    mp_payment_id: str | None = None
 
 
 class AutorizacionPendienteSalida(BaseModel):

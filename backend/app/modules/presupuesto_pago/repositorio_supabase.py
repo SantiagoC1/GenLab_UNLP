@@ -31,7 +31,10 @@ AUTHORIZATION_COLUMNS = (
     "chosen_at, resolved_at, demand_name, demand_at, registered_by"
 )
 HISTORY_COLUMNS = "id, study_id, from_state, to_state, changed_at"
-PAYMENT_COLUMNS = "id, study_id, amount_usd, method, coupon_code, paid_at"
+PAYMENT_COLUMNS = (
+    "id, study_id, amount_usd, method, coupon_code, paid_at, installments, "
+    "installment_amount, mp_payment_id"
+)
 
 HEX_PREFIX = "\\x"
 
@@ -203,6 +206,9 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
         metodo: str,
         fecha: datetime,
         cupon: str | None = None,
+        cuotas: int | None = None,
+        valor_cuota: float | None = None,
+        mp_payment_id: str | None = None,
     ) -> AsientoFinanciero:
         cupon_id = None
         if cupon is not None:
@@ -218,14 +224,37 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
                     "coupon_code": cupon,
                     "method": metodo,
                     "paid_at": _iso(fecha),
+                    "installments": cuotas,
+                    "installment_amount": valor_cuota,
+                    "mp_payment_id": mp_payment_id,
                 }
             )
             .execute()
             .data[0]
         )
         return AsientoFinanciero(
-            fila["id"], estudio.id, estudio.paciente, importe_usd, metodo, fecha, cupon
+            fila["id"],
+            estudio.id,
+            estudio.paciente,
+            importe_usd,
+            metodo,
+            fecha,
+            cupon,
+            cuotas,
+            valor_cuota,
+            mp_payment_id,
         )
+
+    def buscar_asiento_por_pago_mp(self, mp_payment_id: str) -> AsientoFinanciero | None:
+        filas = (
+            table("payments")
+            .select(PAYMENT_COLUMNS)
+            .eq("mp_payment_id", mp_payment_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        return self._asientos(filas)[0] if filas else None
 
     def listar_asientos(self) -> list[AsientoFinanciero]:
         filas = (
@@ -236,6 +265,11 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
             .execute()
             .data
         )
+        return self._asientos(filas)
+
+    @staticmethod
+    def _asientos(filas: list[dict]) -> list[AsientoFinanciero]:
+        """The entries of those rows of `payments`, with the name of each patient."""
         estudios = select_in("studies", "id, patient_id", "id", [f["study_id"] for f in filas])
         pacientes = {
             p["id"]: f"{p['first_name']} {p['last_name']}"
@@ -253,6 +287,9 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
                 f["method"],
                 _when(f["paid_at"]),
                 f["coupon_code"],
+                f.get("installments"),
+                None if f.get("installment_amount") is None else float(f["installment_amount"]),
+                f.get("mp_payment_id"),
             )
             for f in filas
         ]

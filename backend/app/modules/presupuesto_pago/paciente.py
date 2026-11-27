@@ -126,32 +126,13 @@ class PacienteServicio:
         self, contacto: str, estudio_id: int, metodo: str, usuario_id: str | None = None
     ) -> PagoSalida:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
-        self._exigir_pago_posible(estudio)
+        self.exigir_pago_posible(estudio)
 
-        original = estudio.presupuesto_importe_usd
-        importe = original
-        codigo = None
-        if estudio.cupon_aplicado is not None:
-            # The coupon may have been used or expired since it was applied: ask again.
-            cupon = self._validar_cupon(estudio.cupon_aplicado.codigo)
-            if cupon["estado"] != VIGENTE:
-                self.repositorio.guardar_cupon_aplicado(estudio.id, None)
-                raise BusinessRuleError(
-                    f"El cupón {cupon['codigo']} ya no está Vigente ({cupon['estado']}): "
-                    "se mantiene el importe original.",
-                    code="cupon_no_vigente",
-                )
-            codigo = cupon["codigo"]
-            importe = importe_con_descuento(original, cupon["descuento"])
+        original, importe, codigo = self.preparar_cobro(estudio)
 
         informado = False
         if codigo is not None:
-            # M4-RF6: the use is reported to the coupons module. Nothing is recorded if it fails.
-            try:
-                self.cupones.marcar_cupon_usado(codigo)
-            except Exception:
-                raise InvalidIntegration(INTEGRACION_CUPONES) from None
-            self.repositorio_cupones.marcar_usado(codigo)
+            self.informar_uso_del_cupon(codigo)
             informado = True
 
         ahora = datetime.now(UTC)
@@ -177,11 +158,40 @@ class PacienteServicio:
             paciente_avisado=avisado,
         )
 
+    def preparar_cobro(self, estudio: EstudioParaPresupuesto) -> tuple[int, int, str | None]:
+        """What the study costs: the budget, what is charged and the coupon that gives the discount.
+
+        Returns `(original_usd, amount_usd, coupon_code)`. The coupon may have been used or
+        expired since it was applied, so the coupons module is asked again.
+        """
+        original = estudio.presupuesto_importe_usd
+        if original is None:
+            raise BusinessRuleError("El estudio todavía no tiene el presupuesto emitido.")
+        if estudio.cupon_aplicado is None:
+            return original, original, None
+        cupon = self._validar_cupon(estudio.cupon_aplicado.codigo)
+        if cupon["estado"] != VIGENTE:
+            self.repositorio.guardar_cupon_aplicado(estudio.id, None)
+            raise BusinessRuleError(
+                f"El cupón {cupon['codigo']} ya no está Vigente ({cupon['estado']}): "
+                "se mantiene el importe original.",
+                code="cupon_no_vigente",
+            )
+        return original, importe_con_descuento(original, cupon["descuento"]), cupon["codigo"]
+
+    def informar_uso_del_cupon(self, codigo: str) -> None:
+        """M4-RF6: the use is reported to the coupons module. Nothing is recorded if it fails."""
+        try:
+            self.cupones.marcar_cupon_usado(codigo)
+        except Exception:
+            raise InvalidIntegration(INTEGRACION_CUPONES) from None
+        self.repositorio_cupones.marcar_usado(codigo)
+
     # --- M4-RF6: apply a discount coupon ------------------------------------------------------
 
     def aplicar_cupon(self, contacto: str, estudio_id: int, codigo: str) -> CuponAplicadoSalida:
         estudio = self.estudio_del_paciente(contacto, estudio_id)
-        self._exigir_pago_posible(estudio)
+        self.exigir_pago_posible(estudio)
         codigo = codigo.strip()
 
         conocido = self.repositorio_cupones.obtener(codigo)
@@ -290,7 +300,7 @@ class PacienteServicio:
         )
 
     @staticmethod
-    def _exigir_pago_posible(estudio: EstudioParaPresupuesto) -> None:
+    def exigir_pago_posible(estudio: EstudioParaPresupuesto) -> None:
         if not estudio.tiene_presupuesto:
             raise BusinessRuleError("El estudio todavía no tiene el presupuesto emitido.")
         if estudio.estado in (EstadoEstudio.PAGADO, EstadoEstudio.AUTORIZADO):
