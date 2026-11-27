@@ -40,21 +40,30 @@ export default function LotesPantalla() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const loadBatches = useCallback(async () => {
-    setError('')
-
+  // `isActive` lets the effect ignore the answer when the screen is gone.
+  const loadBatches = useCallback(async (isActive: () => boolean = () => true) => {
     try {
       const result = await api<Batch[]>('/logistics/batches')
-      setBatches(result)
+      if (isActive()) setBatches(result)
     } catch {
-      setError('No se pudo cargar la información de los lotes.')
+      if (isActive()) setError('No se pudo cargar la información de los lotes.')
     } finally {
-      setIsLoading(false)
+      if (isActive()) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void loadBatches()
+    let active = true
+
+    async function start() {
+      await loadBatches(() => active)
+    }
+
+    void start()
+
+    return () => {
+      active = false
+    }
   }, [loadBatches])
 
   return (
@@ -72,6 +81,7 @@ export default function LotesPantalla() {
           type="button"
           onClick={() => {
             setIsLoading(true)
+            setError('')
             void loadBatches()
           }}
           disabled={isLoading}

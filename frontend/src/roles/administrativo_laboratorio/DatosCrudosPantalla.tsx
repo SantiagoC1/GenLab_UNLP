@@ -29,21 +29,33 @@ export default function DatosCrudosPantalla() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const loadStudies = useCallback(async () => {
+  // `isActive` lets the effect ignore the answer when the screen is gone.
+  const loadStudies = useCallback(async (isActive: () => boolean = () => true) => {
     try {
       const result = await api<PendingStudy[]>('/bioinformatics/raw-data/pending')
 
+      if (!isActive()) return
       setStudies(result)
       setError('')
     } catch {
-      setError('No se pudieron consultar los estudios pendientes.')
+      if (isActive()) setError('No se pudieron consultar los estudios pendientes.')
     } finally {
-      setIsLoading(false)
+      if (isActive()) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void loadStudies()
+    let active = true
+
+    async function start() {
+      await loadStudies(() => active)
+    }
+
+    void start()
+
+    return () => {
+      active = false
+    }
   }, [loadStudies])
 
   const selectedStudy = studies.find((study) => study.id === Number(selectedStudyId))

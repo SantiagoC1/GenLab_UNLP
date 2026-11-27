@@ -44,20 +44,32 @@ export default function RetiroFedexPantalla() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const loadBatches = useCallback(async () => {
+  // `isActive` lets the effect ignore the answer when the screen is gone.
+  const loadBatches = useCallback(async (isActive: () => boolean = () => true) => {
     try {
       const result = await api<Batch[]>('/logistics/batches')
+      if (!isActive()) return
       setBatches(result)
       setError('')
     } catch {
-      setError('No se pudieron consultar los lotes.')
+      if (isActive()) setError('No se pudieron consultar los lotes.')
     } finally {
-      setIsLoading(false)
+      if (isActive()) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void loadBatches()
+    let active = true
+
+    async function start() {
+      await loadBatches(() => active)
+    }
+
+    void start()
+
+    return () => {
+      active = false
+    }
   }, [loadBatches])
 
   useEffect(() => {
