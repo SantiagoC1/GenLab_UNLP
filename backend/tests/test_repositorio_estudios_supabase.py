@@ -34,6 +34,7 @@ def db(monkeypatch):
                 "account_user_id": PATIENT_ACCOUNT_ID,
                 "first_name": "Lucía",
                 "last_name": "Fernández",
+                "dni": "30111222",
                 "registered_by": "u-doctor",
             }
         ],
@@ -291,3 +292,23 @@ def test_authorizing_answers_with_the_new_state_and_records_the_entry(repo, db):
     assert db.rows("authorizations")[0]["registered_by"] == ADMIN_ID
     assert repo.obtener(1).cobertura.registrada_por == ADMIN_ID
     assert repo.obtener(1).cobertura.estado == AUTORIZADO
+
+
+def test_lists_the_studies_in_the_given_states_with_the_dni_of_the_patient(repo, db):
+    db.rows("studies")[1]["state"] = "EnViajeACorea"
+
+    (estudio,) = repo.listar_por_estados([EstadoEstudio.EN_VIAJE_A_COREA])
+
+    assert (estudio.id, estudio.paciente, estudio.dni) == (2, "Lucía Fernández", "30111222")
+    assert estudio.estado == EstadoEstudio.EN_VIAJE_A_COREA
+
+
+def test_the_states_are_a_filter_and_the_studies_come_in_order(repo, db):
+    db.rows("studies")[0]["state"] = "EnElAreaDeBioinformatica"
+    db.rows("studies")[1]["state"] = "EnViajeACorea"
+
+    estados = [EstadoEstudio.EN_VIAJE_A_COREA, EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA]
+
+    assert [e.id for e in repo.listar_por_estados(estados)] == [1, 2]
+    assert [e.id for e in repo.listar_por_estados([EstadoEstudio.PAGADO])] == []
+    assert repo.listar_por_estados([]) == []

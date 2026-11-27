@@ -5,6 +5,7 @@ memory (repositorio_memoria.py) only serves `DEV_AUTH=true` and the tests.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -75,6 +76,7 @@ class EstudioParaPresupuesto:
     presupuesto_importe_usd: int | None = None
     presupuesto_emitido_en: datetime | None = None
     contacto_medico: str = ""  # who requested the study: notified about a resampling
+    dni: str = ""  # of the patient: the administrative user finds the study by it
     cobertura: Cobertura | None = None
     cupon_aplicado: CuponAplicado | None = None
     historial: list[CambioEstado] = field(default_factory=list)
@@ -92,6 +94,10 @@ class RepositorioEstudios(ABC):
     @abstractmethod
     def listar_con_cobertura(self) -> list[EstudioParaPresupuesto]:
         """Estudios en los que el paciente eligió la cobertura por obra social."""
+
+    @abstractmethod
+    def listar_por_estados(self, estados: Iterable[EstadoEstudio]) -> list[EstudioParaPresupuesto]:
+        """Estudios que están en alguno de esos estados, del más viejo al más nuevo."""
 
     @abstractmethod
     def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:

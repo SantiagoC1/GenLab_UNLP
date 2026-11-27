@@ -4,6 +4,7 @@ Only for `DEV_AUTH=true` (nothing is written to the database) and as the test do
 `RepositorioEstudios` interface. The real implementation is in repositorio_supabase.py.
 """
 
+from collections.abc import Iterable
 from datetime import datetime
 
 from app.core.enums import EstadoEstudio
@@ -26,6 +27,7 @@ def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
             "lucia.fernandez@example.com",
             ["GBA", "GLA", "IDUA"],
             contacto_medico="ana.perez@example.com",
+            dni="30111222",
         ),
         EstudioParaPresupuesto(
             2,
@@ -33,6 +35,7 @@ def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
             "martin.gomez@example.com",
             ["GBA", "GLA", "IDUA", "IDS", "NPC1", "NPC2", "GAA", "ARSA"],
             contacto_medico="ana.perez@example.com",
+            dni="28333444",
         ),
         EstudioParaPresupuesto(
             3,
@@ -40,6 +43,7 @@ def _estudios_de_ejemplo() -> list[EstudioParaPresupuesto]:
             "sofia.ramirez@example.com",
             ["GBA", "GLA", "IDUA", "IDS", "NPC1"],
             contacto_medico="carlos.rivas@example.com",
+            dni="33555666",
         ),
     ]
 
@@ -56,6 +60,12 @@ class RepositorioEstudiosEnMemoria(RepositorioEstudios):
 
     def listar_con_cobertura(self) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if e.cobertura is not None]
+
+    def listar_por_estados(self, estados: Iterable[EstadoEstudio]) -> list[EstudioParaPresupuesto]:
+        buscados = set(estados)
+        return [
+            e for e in sorted(self.estudios.values(), key=lambda e: e.id) if e.estado in buscados
+        ]
 
     def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
         return [e for e in self.estudios.values() if e.contacto_paciente == contacto]
