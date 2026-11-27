@@ -1,16 +1,23 @@
 from datetime import datetime
+from typing import get_args
 
 import pytest
 
 from app.core.enums import EstadoEstudio, Rol
 from app.integrations.avisos import obtener_avisos
 from app.main import app
+from app.modules.presupuesto_pago.estado import can_transition
 from app.modules.presupuesto_pago.repositorio import obtener_repositorio
 from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from app.modules.turnos import reglas
-from app.modules.turnos.reglas import ARG, MOTIVO_ADN, MOTIVO_CALIDAD
+from app.modules.turnos.reglas import ARG, MOTIVO_ADN, MOTIVO_CALIDAD, MOTIVOS_REMUESTREO
 from app.modules.turnos.repositorio import RepositorioTurnosEnMemoria
 from app.modules.turnos.repositorio import obtener_repositorio as obtener_repositorio_turnos
+from app.modules.turnos.schemas import RemuestreoAdministrativoEntrada
+from app.modules.turnos.servicio import (
+    CAUSAS_DE_REMUESTREO,
+    ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO,
+)
 from tests.fakes import AvisosEspia
 
 LUCIA = "lucia.fernandez@example.com"
@@ -63,15 +70,22 @@ def notificar(client, volumen):
     )
 
 
-def pedir(client, motivo=MOTIVO, estudio=1):
+def pedir(client, detalle=MOTIVO, estudio=1, motivo=MOTIVO_CALIDAD):
     return client.post(
-        f"/turnos/estudios/{estudio}/remuestreo-administrativo", json={"motivo": motivo}
+        f"/turnos/estudios/{estudio}/remuestreo-administrativo",
+        json={"motivo": motivo, "detalle": detalle},
     )
 
 
-def llevar_a(estudios, estados):
+def remuestreables(client):
+    r = client.get("/turnos/estudios/remuestreables")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def llevar_a(estudios, estados, estudio=1):
     for estado in estados:
-        estudios.cambiar_estado(1, estado, AHORA)
+        estudios.cambiar_estado(estudio, estado, AHORA)
 
 
 @pytest.fixture
@@ -137,15 +151,15 @@ def test_el_remuestreo_del_administrativo_queda_en_el_historial_del_estudio(clie
     assert historial[-1] == (EstadoEstudio.EN_VIAJE_A_COREA, EstadoEstudio.TURNO_SACADO)
 
 
-@pytest.mark.parametrize("motivo", ["", "   ", "ab"])
-def test_el_motivo_es_obligatorio(client, en_corea, remuestreos, motivo):
-    r = pedir(client, motivo)
+@pytest.mark.parametrize("detalle", ["", "   ", "ab"])
+def test_el_detalle_es_obligatorio(client, en_corea, remuestreos, detalle):
+    r = pedir(client, detalle)
     assert r.status_code == 422
     assert remuestreos.listar(1) == []
     assert en_corea[0].obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
 
 
-def test_el_motivo_se_guarda_sin_espacios_de_mas(client, en_corea, remuestreos):
+def test_el_detalle_se_guarda_sin_espacios_de_mas(client, en_corea, remuestreos):
     pedir(client, "  Muestra coagulada.  ")
     assert remuestreos.listar(1)[0].detalle == "Muestra coagulada."
 
@@ -168,6 +182,50 @@ def test_solo_se_pide_desde_viaje_a_corea_o_area_de_bioinformatica(
     assert remuestreos.listar(1) == []
 
 
+@pytest.mark.parametrize("motivo", ["volumen_menor_2ml", "otro", ""])
+def test_el_motivo_tiene_que_ser_uno_de_los_dos_validos(client, en_corea, remuestreos, motivo):
+    r = pedir(client, motivo=motivo)
+    assert r.status_code == 422
+    assert remuestreos.listar(1) == []
+    assert en_corea[0].obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
+
+
+def test_el_administrativo_tambien_puede_pedirlo_por_adn_insuficiente(
+    client, en_corea, remuestreos
+):
+    estudios, _, avisos = en_corea
+
+    r = pedir(client, "El laboratorio de Corea informó ADN degradado.", motivo=MOTIVO_ADN)
+
+    assert r.status_code == 200
+    assert r.json()["motivo"] == MOTIVO_ADN
+    assert "ADN" in avisos.para(LUCIA)[0]
+    assert "mala calidad" not in avisos.para(LUCIA)[0]
+    assert remuestreos.listar(1)[0].motivo == MOTIVO_ADN
+    assert estudios.obtener(1).estado == EstadoEstudio.TURNO_SACADO
+
+
+def test_si_ya_hay_un_remuestreo_pendiente_no_se_pide_otro(client, en_corea, remuestreos):
+    estudios, _, avisos = en_corea
+    remuestreos.registrar(1, MOTIVO_ADN, "Pedido anterior", AHORA)
+
+    r = pedir(client)
+
+    assert r.status_code == 409
+    assert r.json()["code"] == "remuestreo_pendiente"
+    assert len(remuestreos.listar(1)) == 1
+    assert estudios.obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
+    assert avisos.enviados == []
+
+
+def test_un_remuestreo_ya_resuelto_no_impide_pedir_otro(client, en_corea, remuestreos):
+    remuestreos.registrar(1, MOTIVO_ADN, "Pedido anterior", AHORA)
+    remuestreos.resolver(1, AHORA)
+
+    assert pedir(client).status_code == 200
+    assert len(remuestreos.listar(1)) == 2
+
+
 def test_un_estudio_inexistente_da_404(client, entorno):
     assert pedir(client, estudio=99).status_code == 404
 
@@ -178,6 +236,93 @@ def test_solo_el_administrativo_pide_el_remuestreo(client, en_corea, login_as, r
         assert pedir(client).status_code == 403
     assert remuestreos.listar(1) == []
     assert en_corea[0].obtener(1).estado == EstadoEstudio.EN_VIAJE_A_COREA
+
+
+# --- the studies on which it can be asked -------------------------------------------------------
+
+
+def test_sin_estudios_en_corea_ni_en_bioinformatica_la_lista_esta_vacia(client, entorno):
+    assert remuestreables(client) == []
+
+
+def test_lista_el_estudio_en_viaje_a_corea_con_su_paciente_y_su_dni(client, en_corea):
+    assert remuestreables(client) == [
+        {
+            "estudio_id": 1,
+            "paciente": "Lucía Fernández",
+            "dni": "30111222",
+            "estado": "EnViajeACorea",
+            "remuestreo_pendiente": None,
+        }
+    ]
+
+
+def test_lista_los_estudios_de_los_dos_estados_en_orden_y_ningun_otro(client, en_corea):
+    estudios = en_corea[0]
+    llevar_a(estudios, [EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA])
+    # study 3 travels too, and study 2 stays in Creado
+    llevar_a(estudios, [EstadoEstudio.PAGADO, EstadoEstudio.TURNO_SACADO, *HACIA_COREA], estudio=3)
+
+    lista = remuestreables(client)
+
+    assert [(e["estudio_id"], e["estado"]) for e in lista] == [
+        (1, "EnElAreaDeBioinformatica"),
+        (3, "EnViajeACorea"),
+    ]
+
+
+def test_un_estudio_que_ya_paso_a_analisis_no_se_lista(client, en_corea):
+    llevar_a(
+        en_corea[0],
+        [
+            EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA,
+            EstadoEstudio.EN_ANALISIS_POR_UN_BIOINFORMATICO,
+        ],
+    )
+
+    assert remuestreables(client) == []
+
+
+def test_la_lista_muestra_el_remuestreo_pendiente_si_lo_hay(client, en_corea, remuestreos):
+    remuestreos.registrar(1, MOTIVO_ADN, "Pedido anterior", AHORA, "u-otro")
+
+    (estudio,) = remuestreables(client)
+
+    pendiente = estudio["remuestreo_pendiente"]
+    assert (pendiente["motivo"], pendiente["detalle"]) == (MOTIVO_ADN, "Pedido anterior")
+    assert pendiente["remuestreo_id"] == 1
+    assert pendiente["pedido_en"].startswith("2026-11-02T10:07")
+
+
+def test_un_remuestreo_resuelto_no_aparece_como_pendiente(client, en_corea, remuestreos):
+    remuestreos.registrar(1, MOTIVO_ADN, "Pedido anterior", AHORA)
+    remuestreos.resolver(1, AHORA)
+
+    assert remuestreables(client)[0]["remuestreo_pendiente"] is None
+
+
+def test_solo_el_administrativo_ve_la_lista(client, en_corea, login_as):
+    for rol in (Rol.PACIENTE, Rol.BIOINFORMATICO, Rol.MEDICO_TRATANTE, Rol.TRANSPORTISTA):
+        login_as(rol, email=LUCIA)
+        assert client.get("/turnos/estudios/remuestreables").status_code == 403
+
+
+# --- the states and the reasons agree with the rest of the code ---------------------------------
+
+
+def test_los_estados_de_la_lista_son_los_que_la_transicion_nueva_permite():
+    assert ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO == {
+        EstadoEstudio.EN_VIAJE_A_COREA,
+        EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA,
+    }
+    for estado in ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO:
+        assert can_transition(estado, EstadoEstudio.TURNO_SACADO)
+
+
+def test_los_motivos_del_endpoint_son_los_de_las_reglas():
+    motivo = RemuestreoAdministrativoEntrada.model_fields["motivo"].annotation
+    assert set(get_args(motivo)) == set(MOTIVOS_REMUESTREO)
+    assert set(CAUSAS_DE_REMUESTREO) == set(MOTIVOS_REMUESTREO)
 
 
 # --- the patient books again -------------------------------------------------------------------

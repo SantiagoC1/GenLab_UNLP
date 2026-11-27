@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.core.config import Settings
 from app.core.enums import EstadoEstudio as E
 from app.modules.presupuesto_pago.estado import can_transition
 from app.modules.turnos import remuestreos
@@ -154,10 +153,10 @@ def test_listar_devuelve_los_del_estudio_del_primero_al_ultimo(repositorio):
 def test_con_dev_auth_se_usa_la_memoria_y_sin_dev_auth_la_tabla(monkeypatch):
     monkeypatch.setattr(remuestreos, "_supabase", RepositorioRemuestreosSupabase(tabla=object))
 
-    monkeypatch.setattr(remuestreos, "get_settings", lambda: Settings(dev_auth=True))
+    monkeypatch.setattr("app.core.dev_auth.is_enabled", lambda: True)
     assert isinstance(remuestreos.obtener_repositorio(), RepositorioRemuestreosEnMemoria)
 
-    monkeypatch.setattr(remuestreos, "get_settings", lambda: Settings(dev_auth=False))
+    monkeypatch.setattr("app.core.dev_auth.is_enabled", lambda: False)
     assert isinstance(remuestreos.obtener_repositorio(), RepositorioRemuestreosSupabase)
 
 

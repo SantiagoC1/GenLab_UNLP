@@ -15,6 +15,7 @@ SERIAL_TABLES = {
     "coupons",
     "payments",
     "study_state_history",
+    "resamplings",
 }
 # The timestamp column the database fills in by itself when it is not sent.
 TIMESTAMP_DEFAULTS = {
@@ -22,6 +23,8 @@ TIMESTAMP_DEFAULTS = {
     "payments": "paid_at",
     "budgets": "issued_at",
 }
+# The columns the database leaves empty (or with a default) when they are not sent.
+COLUMN_DEFAULTS = {"resamplings": {"detail": "", "requested_by": None, "resolved_at": None}}
 START = datetime(2026, 11, 26, 10, 0, tzinfo=UTC)
 
 
@@ -123,6 +126,8 @@ class FakeSupabase:
             existing = [r["id"] for r in self.tables.get(name, [])]
             self._serial[name] = max(self._serial.get(name, 0), *existing, 0) + 1
             row["id"] = self._serial[name]
+        for column, value in COLUMN_DEFAULTS.get(name, {}).items():
+            row.setdefault(column, value)
         row.setdefault("created_at", self.now())
         if name in TIMESTAMP_DEFAULTS:
             row.setdefault(TIMESTAMP_DEFAULTS[name], self.now())

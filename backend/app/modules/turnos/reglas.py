@@ -18,6 +18,7 @@ LIMITE_INASISTENCIAS = 5
 # Reasons of a resampling (M6-RF10). The volume of a sample is only recorded: it decides nothing.
 MOTIVO_ADN = "adn_desnaturalizado"  # reported by the bioinformatician
 MOTIVO_CALIDAD = "mala_calidad_de_muestra"  # the sample arrived to Korea in bad condition
+MOTIVOS_REMUESTREO = (MOTIVO_CALIDAD, MOTIVO_ADN)
 # [assumption] How far ahead an appointment can be booked.
 HORIZONTE_DIAS = 60
 

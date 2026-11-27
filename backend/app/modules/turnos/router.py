@@ -17,6 +17,7 @@ from app.modules.turnos.schemas import (
     AgendaSalida,
     CancelacionSalida,
     EstudioHabilitadoSalida,
+    EstudioRemuestreableSalida,
     InasistenciaSalida,
     LaboratorioSalida,
     MuestraRecibidaSalida,
@@ -169,6 +170,12 @@ def solicitar_remuestreo_por_adn(
     return servicio.solicitar_remuestreo_por_adn(estudio_id, datos.detalle)
 
 
+@router.get("/estudios/remuestreables", dependencies=administrativo)
+def listar_estudios_remuestreables(servicio: Servicio) -> list[EstudioRemuestreableSalida]:
+    """Estudios En viaje a Corea o En el área de bioinformática, con su remuestreo pendiente."""
+    return servicio.estudios_remuestreables()
+
+
 @router.post("/estudios/{estudio_id}/remuestreo-administrativo")
 def solicitar_remuestreo_por_administrativo(
     estudio_id: int,
@@ -176,8 +183,11 @@ def solicitar_remuestreo_por_administrativo(
     usuario: Annotated[dict, Depends(exigir_administrativo)],
     servicio: Servicio,
 ) -> RemuestreoSalida:
-    """La muestra llegó a Corea con mala calidad: el administrativo pide un remuestreo sin costo.
+    """El administrativo pide un remuestreo sin costo, por mala calidad o por ADN insuficiente.
 
-    Solo desde En viaje a Corea o En el área de bioinformática. El estudio vuelve a Turno sacado.
+    Solo desde En viaje a Corea o En el área de bioinformática, y si el estudio no tiene ya
+    un remuestreo pendiente. El estudio vuelve a Turno sacado.
     """
-    return servicio.solicitar_remuestreo_por_administrativo(estudio_id, datos.motivo, usuario["id"])
+    return servicio.solicitar_remuestreo_por_administrativo(
+        estudio_id, datos.motivo, datos.detalle, usuario["id"]
+    )

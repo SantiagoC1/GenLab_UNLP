@@ -107,9 +107,27 @@ class RemuestreoPorAdnEntrada(BaseModel):
 
 
 class RemuestreoAdministrativoEntrada(BaseModel):
-    """The reason is required: it is what the patient and the doctor are told."""
+    """Why a new sample is needed (one of two reasons) and the detail of the user."""
 
-    motivo: str = Field(min_length=3, max_length=300)
+    motivo: Literal["mala_calidad_de_muestra", "adn_desnaturalizado"]
+    detalle: str = Field(min_length=3, max_length=300)
+
+
+class RemuestreoPendienteSalida(BaseModel):
+    remuestreo_id: int
+    motivo: str
+    detalle: str
+    pedido_en: datetime
+
+
+class EstudioRemuestreableSalida(BaseModel):
+    """A study on which the administrative user can ask for a resampling."""
+
+    estudio_id: int
+    paciente: str
+    dni: str
+    estado: EstadoEstudio
+    remuestreo_pendiente: RemuestreoPendienteSalida | None = None
 
 
 class MuestraRecibidaSalida(BaseModel):

@@ -23,9 +23,11 @@ from app.modules.turnos.schemas import (
     AgendaSalida,
     CancelacionSalida,
     EstudioHabilitadoSalida,
+    EstudioRemuestreableSalida,
     InasistenciaSalida,
     LaboratorioSalida,
     MuestraRecibidaSalida,
+    RemuestreoPendienteSalida,
     RemuestreoSalida,
     TurnoSalida,
     TurnosLibresSalida,
@@ -36,6 +38,11 @@ ANTICIPO_RECORDATORIO = timedelta(hours=24)
 ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO = frozenset(
     {EstadoEstudio.EN_VIAJE_A_COREA, EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA}
 )
+# What the doctor and the patient are told for each reason.
+CAUSAS_DE_REMUESTREO = {
+    reglas.MOTIVO_CALIDAD: "la muestra llegó con mala calidad",
+    reglas.MOTIVO_ADN: "el ADN de la muestra no alcanzó para el análisis",
+}
 
 
 class TurnosServicio:
@@ -290,17 +297,44 @@ class TurnosServicio:
             estudio,
             reglas.MOTIVO_ADN,
             (detalle or "").strip() or "ADN desnaturalizado",
-            "el ADN de la muestra no alcanzó para el análisis",
+            CAUSAS_DE_REMUESTREO[reglas.MOTIVO_ADN],
         )
 
+    def estudios_remuestreables(self) -> list[EstudioRemuestreableSalida]:
+        """The studies on which the administrative user can ask for a resampling."""
+        salida = []
+        for estudio in self.estudios.listar_por_estados(ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO):
+            pendiente = self.remuestreos.pendiente(estudio.id)
+            salida.append(
+                EstudioRemuestreableSalida(
+                    estudio_id=estudio.id,
+                    paciente=estudio.paciente,
+                    dni=estudio.dni,
+                    estado=estudio.estado,
+                    remuestreo_pendiente=None
+                    if pendiente is None
+                    else RemuestreoPendienteSalida(
+                        remuestreo_id=pendiente.id,
+                        motivo=pendiente.motivo,
+                        detalle=pendiente.detalle,
+                        pedido_en=pendiente.registrado_en,
+                    ),
+                )
+            )
+        return salida
+
     def solicitar_remuestreo_por_administrativo(
-        self, estudio_id: int, motivo: str, usuario_id: str | None
+        self, estudio_id: int, motivo: str, detalle: str, usuario_id: str | None
     ) -> RemuestreoSalida:
-        """The sample reached Korea in bad condition: the administrative user asks for a new one."""
-        motivo = motivo.strip()
-        if not motivo:
+        """The administrative user asks for a new sample, for one of the two reasons."""
+        detalle = detalle.strip()
+        if not detalle:
             raise BusinessRuleError(
-                "Indicá el motivo del remuestreo.", status_code=422, code="motivo_obligatorio"
+                "Indicá el detalle del remuestreo.", status_code=422, code="detalle_obligatorio"
+            )
+        if motivo not in CAUSAS_DE_REMUESTREO:
+            raise BusinessRuleError(
+                "El motivo del remuestreo no es válido.", status_code=422, code="motivo_invalido"
             )
         estudio = self.estudios.obtener(estudio_id)
         if estudio is None:
@@ -311,8 +345,14 @@ class TurnosServicio:
                 "muestra está en viaje a Corea o en el área de bioinformática.",
                 code="estudio_sin_remuestreo_posible",
             )
+        if self.remuestreos.pendiente(estudio.id) is not None:
+            raise BusinessRuleError(
+                "El estudio ya tiene un remuestreo pendiente: el paciente todavía no sacó el "
+                "nuevo turno.",
+                code="remuestreo_pendiente",
+            )
         return self._habilitar_remuestreo(
-            estudio, reglas.MOTIVO_CALIDAD, motivo, "la muestra llegó con mala calidad", usuario_id
+            estudio, motivo, detalle, CAUSAS_DE_REMUESTREO[motivo], usuario_id
         )
 
     def _habilitar_remuestreo(

@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.core.config import get_settings
+from app.core import dev_auth
 
 
 @dataclass
@@ -169,7 +169,7 @@ _supabase: RepositorioRemuestreosSupabase | None = None
 def obtener_repositorio() -> RepositorioRemuestreos:
     """In memory only with `DEV_AUTH=true` (the demo data); otherwise the real table."""
     global _supabase
-    if get_settings().dev_auth:
+    if dev_auth.is_enabled():
         return _en_memoria
     if _supabase is None:
         _supabase = RepositorioRemuestreosSupabase()
