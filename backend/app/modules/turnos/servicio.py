@@ -7,6 +7,7 @@ from app.modules.presupuesto_pago.paciente import avisar
 from app.modules.presupuesto_pago.repositorio import EstudioParaPresupuesto, RepositorioEstudios
 from app.modules.turnos import documentos, reglas
 from app.modules.turnos.reglas import ARG
+from app.modules.turnos.remuestreos import RepositorioRemuestreos
 from app.modules.turnos.repositorio import (
     AUSENTE,
     CANCELADO,
@@ -22,15 +23,26 @@ from app.modules.turnos.schemas import (
     AgendaSalida,
     CancelacionSalida,
     EstudioHabilitadoSalida,
+    EstudioRemuestreableSalida,
     InasistenciaSalida,
     LaboratorioSalida,
     MuestraRecibidaSalida,
+    RemuestreoPendienteSalida,
     RemuestreoSalida,
     TurnoSalida,
     TurnosLibresSalida,
 )
 
 ANTICIPO_RECORDATORIO = timedelta(hours=24)
+# N5 / M6-RF10: the states from which the administrative user can ask for a resampling.
+ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO = frozenset(
+    {EstadoEstudio.EN_VIAJE_A_COREA, EstadoEstudio.EN_EL_AREA_DE_BIOINFORMATICA}
+)
+# What the doctor and the patient are told for each reason.
+CAUSAS_DE_REMUESTREO = {
+    reglas.MOTIVO_CALIDAD: "la muestra llegó con mala calidad",
+    reglas.MOTIVO_ADN: "el ADN de la muestra no alcanzó para el análisis",
+}
 
 
 class TurnosServicio:
@@ -40,8 +52,10 @@ class TurnosServicio:
         estudios: RepositorioEstudios,
         avisos: AvisosIntegracion,
         ahora: datetime,
+        remuestreos: RepositorioRemuestreos,
     ):
         self.turnos = turnos
+        self.remuestreos = remuestreos
         self.estudios = estudios
         self.avisos = avisos
         self.ahora = ahora
@@ -122,7 +136,7 @@ class TurnosServicio:
                 estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora
             )
         # The patient booked the new appointment: the resampling stops being pending.
-        self.turnos.resolver_remuestreo(estudio.id)
+        self.remuestreos.resolver(estudio.id, self.ahora)
         avisar(
             self.avisos,
             estudio.contacto_paciente,
@@ -249,28 +263,19 @@ class TurnosServicio:
                 code="sin_turno_vigente",
             )
 
-        # Every sample is kept, also an insufficient one: the history of the study is preserved.
+        # Every sample is kept. The volume is only recorded: it decides nothing (N5), so a
+        # received sample always continues the process.
         muestra = self.turnos.registrar_muestra(estudio.id, volumen_ml, self.ahora)
         self.turnos.marcar_turno(turno.id, REALIZADO, anular_recordatorio=True)
-        suficiente = volumen_ml >= reglas.VOLUMEN_MINIMO_ML
-        remuestreo = None
-        if suficiente:
-            estudio = self.estudios.cambiar_estado(
-                estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora
-            )
-        else:
-            # Scenario 24 continues with the resampling (scenario 25).
-            remuestreo = self._habilitar_remuestreo(
-                estudio, reglas.MOTIVO_VOLUMEN, f"Muestra de {volumen_ml:g} ml"
-            )
+        estudio = self.estudios.cambiar_estado(
+            estudio.id, EstadoEstudio.LISTO_PARA_RETIRAR, self.ahora
+        )
         return MuestraRecibidaSalida(
             estudio_id=estudio.id,
             estado=estudio.estado,
             muestra_id=muestra.id,
             volumen_ml=volumen_ml,
-            volumen_suficiente=suficiente,
-            listo_para_retirar=suficiente,
-            remuestreo=remuestreo,
+            listo_para_retirar=True,
         )
 
     # --- M6-RF10: resampling ---------------------------------------------------------------------
@@ -289,22 +294,82 @@ class TurnosServicio:
                 code="estudio_no_en_analisis",
             )
         return self._habilitar_remuestreo(
-            estudio, reglas.MOTIVO_ADN, (detalle or "").strip() or "ADN desnaturalizado"
+            estudio,
+            reglas.MOTIVO_ADN,
+            (detalle or "").strip() or "ADN desnaturalizado",
+            CAUSAS_DE_REMUESTREO[reglas.MOTIVO_ADN],
+        )
+
+    def estudios_remuestreables(self) -> list[EstudioRemuestreableSalida]:
+        """The studies on which the administrative user can ask for a resampling."""
+        salida = []
+        for estudio in self.estudios.listar_por_estados(ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO):
+            pendiente = self.remuestreos.pendiente(estudio.id)
+            salida.append(
+                EstudioRemuestreableSalida(
+                    estudio_id=estudio.id,
+                    paciente=estudio.paciente,
+                    dni=estudio.dni,
+                    estado=estudio.estado,
+                    remuestreo_pendiente=None
+                    if pendiente is None
+                    else RemuestreoPendienteSalida(
+                        remuestreo_id=pendiente.id,
+                        motivo=pendiente.motivo,
+                        detalle=pendiente.detalle,
+                        pedido_en=pendiente.registrado_en,
+                    ),
+                )
+            )
+        return salida
+
+    def solicitar_remuestreo_por_administrativo(
+        self, estudio_id: int, motivo: str, detalle: str, usuario_id: str | None
+    ) -> RemuestreoSalida:
+        """The administrative user asks for a new sample, for one of the two reasons."""
+        detalle = detalle.strip()
+        if not detalle:
+            raise BusinessRuleError(
+                "Indicá el detalle del remuestreo.", status_code=422, code="detalle_obligatorio"
+            )
+        if motivo not in CAUSAS_DE_REMUESTREO:
+            raise BusinessRuleError(
+                "El motivo del remuestreo no es válido.", status_code=422, code="motivo_invalido"
+            )
+        estudio = self.estudios.obtener(estudio_id)
+        if estudio is None:
+            raise BusinessRuleError("No existe el estudio.", status_code=404)
+        if estudio.estado not in ESTADOS_PARA_REMUESTREO_ADMINISTRATIVO:
+            raise BusinessRuleError(
+                f"El estudio está {estudio.estado.value}: el remuestreo solo se pide cuando la "
+                "muestra está en viaje a Corea o en el área de bioinformática.",
+                code="estudio_sin_remuestreo_posible",
+            )
+        if self.remuestreos.pendiente(estudio.id) is not None:
+            raise BusinessRuleError(
+                "El estudio ya tiene un remuestreo pendiente: el paciente todavía no sacó el "
+                "nuevo turno.",
+                code="remuestreo_pendiente",
+            )
+        return self._habilitar_remuestreo(
+            estudio, motivo, detalle, CAUSAS_DE_REMUESTREO[motivo], usuario_id
         )
 
     def _habilitar_remuestreo(
-        self, estudio: EstudioParaPresupuesto, motivo: str, detalle: str
+        self,
+        estudio: EstudioParaPresupuesto,
+        motivo: str,
+        detalle: str,
+        causa: str,
+        pedido_por: str | None = None,
     ) -> RemuestreoSalida:
-        # Same study, no new charge and no new study: it goes back to (or stays in) TurnoSacado
-        # and, with no valid appointment, the patient can book again. The previous sample and the
-        # history of the study are kept.
+        # Same study, no new charge and no new study: it goes back to TurnoSacado and, with no
+        # valid appointment, the patient can book again. The previous sample and the history of
+        # the study are kept.
+        # TODO (coordinate with C): the study must leave its batch here (`studies.batch_id`) and
+        # the batch must forget it. Batches are not persisted yet, so nothing is done about it.
         estudio = self.estudios.cambiar_estado(estudio.id, EstadoEstudio.TURNO_SACADO, self.ahora)
-        remuestreo = self.turnos.registrar_remuestreo(estudio.id, motivo, detalle, self.ahora)
-        causa = (
-            "el volumen de la muestra fue menor a 2 ml"
-            if motivo == reglas.MOTIVO_VOLUMEN
-            else "el ADN de la muestra no alcanzó para el análisis"
-        )
+        remuestreo = self.remuestreos.registrar(estudio.id, motivo, detalle, self.ahora, pedido_por)
         medico_avisado = bool(estudio.contacto_medico) and avisar(
             self.avisos,
             estudio.contacto_medico,
@@ -328,7 +393,7 @@ class TurnosServicio:
         )
 
     def _motivo_remuestreo_pendiente(self, estudio_id: int) -> str | None:
-        pendiente = self.turnos.remuestreo_pendiente(estudio_id)
+        pendiente = self.remuestreos.pendiente(estudio_id)
         return pendiente.motivo if pendiente else None
 
     def mis_turnos(self, contacto: str) -> list[TurnoSalida]:

@@ -14,6 +14,22 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.core.enums import Rol  # noqa: E402
 from app.core.security import get_session_user  # noqa: E402
 from app.main import app  # noqa: E402
+from app.modules.turnos import remuestreos as modulo_remuestreos  # noqa: E402
+from app.modules.turnos.remuestreos import RepositorioRemuestreosEnMemoria  # noqa: E402
+
+
+@pytest.fixture
+def remuestreos() -> RepositorioRemuestreosEnMemoria:
+    """The resamplings of the test, in memory: no test touches the real table."""
+    repositorio = RepositorioRemuestreosEnMemoria()
+    app.dependency_overrides[modulo_remuestreos.obtener_repositorio] = lambda: repositorio
+    return repositorio
+
+
+@pytest.fixture(autouse=True)
+def _remuestreos_en_memoria(remuestreos):
+    """Every test gets its own empty resamplings, even if it does not ask for them."""
+    yield
 
 
 @pytest.fixture

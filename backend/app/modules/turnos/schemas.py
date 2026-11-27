@@ -106,11 +106,33 @@ class RemuestreoPorAdnEntrada(BaseModel):
     detalle: str | None = Field(default=None, max_length=300)
 
 
+class RemuestreoAdministrativoEntrada(BaseModel):
+    """Why a new sample is needed (one of two reasons) and the detail of the user."""
+
+    motivo: Literal["mala_calidad_de_muestra", "adn_desnaturalizado"]
+    detalle: str = Field(min_length=3, max_length=300)
+
+
+class RemuestreoPendienteSalida(BaseModel):
+    remuestreo_id: int
+    motivo: str
+    detalle: str
+    pedido_en: datetime
+
+
+class EstudioRemuestreableSalida(BaseModel):
+    """A study on which the administrative user can ask for a resampling."""
+
+    estudio_id: int
+    paciente: str
+    dni: str
+    estado: EstadoEstudio
+    remuestreo_pendiente: RemuestreoPendienteSalida | None = None
+
+
 class MuestraRecibidaSalida(BaseModel):
     estudio_id: int
     estado: EstadoEstudio
     muestra_id: int
     volumen_ml: float
-    volumen_suficiente: bool
     listo_para_retirar: bool
-    remuestreo: RemuestreoSalida | None = None

@@ -5,6 +5,7 @@ Reads the studies of module 3 (`studies`, `patients`, `study_genes`) and owns `b
 change `studies.state`, so every change leaves its row in `study_state_history`.
 """
 
+from collections.abc import Iterable
 from datetime import datetime
 
 from app.core.enums import EstadoEstudio
@@ -22,7 +23,7 @@ from app.modules.presupuesto_pago.repositorio import (
 
 # Explicit columns everywhere: the court decision PDF (`demand_pdf`) never travels in a listing.
 STUDY_COLUMNS = "id, patient_id, requested_by, state"
-PATIENT_COLUMNS = "id, account_user_id, first_name, last_name"
+PATIENT_COLUMNS = "id, account_user_id, first_name, last_name, dni"
 USER_COLUMNS = "id, email"
 GENE_COLUMNS = "study_id, gene"
 BUDGET_COLUMNS = "study_id, amount_usd, issued_at, applied_coupon_code, applied_coupon_pct"
@@ -92,6 +93,10 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
         con_cobertura = table("authorizations").select("study_id").execute().data
         ids = {row["study_id"] for row in con_cobertura}
         return self._armar(select_in("studies", STUDY_COLUMNS, "id", ids))
+
+    def listar_por_estados(self, estados: Iterable[EstadoEstudio]) -> list[EstudioParaPresupuesto]:
+        rows = select_in("studies", STUDY_COLUMNS, "state", [e.value for e in estados])
+        return self._armar(rows)
 
     def listar_de_paciente(self, contacto: str) -> list[EstudioParaPresupuesto]:
         cuentas = table("users").select("id").eq("email", contacto).limit(1).execute().data
@@ -337,6 +342,7 @@ class RepositorioEstudiosSupabase(RepositorioEstudios):
                     if presupuesto is None
                     else _when(presupuesto["issued_at"]),
                     contacto_medico=correos.get(e["requested_by"], ""),
+                    dni=paciente.get("dni") or "",
                     cobertura=None if cobertura is None else _cobertura(cobertura),
                     cupon_aplicado=None
                     if codigo is None

@@ -16,10 +16,20 @@ from app.modules.cupones.repositorio_supabase import (
 from app.modules.presupuesto_pago import repositorio as estudios
 from app.modules.presupuesto_pago.repositorio_memoria import RepositorioEstudiosEnMemoria
 from app.modules.presupuesto_pago.repositorio_supabase import RepositorioEstudiosSupabase
+from app.modules.turnos import remuestreos
+from app.modules.turnos.remuestreos import (
+    RepositorioRemuestreosEnMemoria,
+    RepositorioRemuestreosSupabase,
+)
 
 CASES = [
     (estudios.obtener_repositorio, RepositorioEstudiosEnMemoria, RepositorioEstudiosSupabase),
     (cupones.obtener_repositorio, RepositorioCuponesEnMemoria, RepositorioCuponesSupabase),
+    (
+        remuestreos.obtener_repositorio,
+        RepositorioRemuestreosEnMemoria,
+        RepositorioRemuestreosSupabase,
+    ),
     (cupones.obtener_repositorio_medicos, RepositorioMedicosEnMemoria, RepositorioMedicosSupabase),
     (
         cupones.obtener_repositorio_pacientes,

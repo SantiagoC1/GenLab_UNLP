@@ -409,7 +409,7 @@ create unique index if not exists appointments_one_active_per_study
     on public.appointments (study_id) where status = 'Programado';
 create index if not exists appointments_study_idx on public.appointments (study_id);
 
--- Muestra de sangre informada por el laboratorio de extracción (M6-RF9: desde 2 ml)
+-- Muestra de sangre informada por el laboratorio de extracción (M6-RF9). El volumen solo se registra.
 create table if not exists public.samples (
     id         serial primary key,
     study_id   integer       not null references public.studies (id),
@@ -419,6 +419,25 @@ create table if not exists public.samples (
 );
 
 create index if not exists samples_study_idx on public.samples (study_id);
+
+-- Remuestreo (M6-RF10, N5): se pide otra muestra del mismo estudio, sin costo. Lo pide el
+-- administrativo cuando la muestra llega a Corea con mala calidad (`reason` = 'mala_calidad_de_muestra'
+-- y `detail` = el motivo que escribió) o el bioinformático por ADN insuficiente
+-- ('adn_desnaturalizado'). Queda pendiente (`resolved_at` vacío) hasta que el paciente reserva el
+-- nuevo turno. `requested_by` es el usuario que lo pidió.
+create table if not exists public.resamplings (
+    id           serial primary key,
+    study_id     integer     not null references public.studies (id),
+    reason       text        not null check (reason in ('mala_calidad_de_muestra', 'adn_desnaturalizado')),
+    detail       text        not null default '',
+    requested_by uuid references public.users (id),
+    created_at   timestamptz not null default now(),
+    resolved_at  timestamptz
+);
+
+create index if not exists resamplings_study_idx on public.resamplings (study_id);
+create index if not exists resamplings_pending_idx
+    on public.resamplings (study_id) where resolved_at is null;
 
 -- Orden del día del transportista (M7-RF1). `arrived_at` es la llegada al laboratorio central.
 create table if not exists public.daily_routes (
@@ -527,6 +546,7 @@ alter table public.coupons              enable row level security;
 alter table public.payments             enable row level security;
 alter table public.appointments         enable row level security;
 alter table public.samples              enable row level security;
+alter table public.resamplings          enable row level security;
 alter table public.daily_routes         enable row level security;
 alter table public.route_stops          enable row level security;
 alter table public.raw_data             enable row level security;

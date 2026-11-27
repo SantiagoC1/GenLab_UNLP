@@ -91,7 +91,7 @@ Son independientes del ciclo de vida.
 | 22 | Cancelar el turno de extracción | Paciente | Principal |
 | 23 | Registrar una inasistencia y reprogramar el turno | Sistema, Paciente | Principal |
 | 24 | Tomar y notificar la muestra de sangre | Paciente, Laboratorio de extracción | Principal |
-| 25 | Solicitar el remuestreo | Sistema, Bioinformático | Subescenario de 24 y 36 |
+| 25 | Solicitar el remuestreo | Administrativo del laboratorio, Bioinformático, Sistema | Subescenario de 36 y de la mala calidad de la muestra en Corea |
 | 26 | Generar y consultar la orden del día | Sistema, Transportista | Principal [deseo] |
 | 27 | Retirar muestras en un laboratorio de extracción | Transportista | Principal |
 | 28 | Entregar las muestras y armar el lote | Transportista, Sistema | Principal |
@@ -702,7 +702,7 @@ Son independientes del ciclo de vida.
 **Contexto:**
 - El **paciente** asiste a su **turno de extracción**.
 - Restricción: el **laboratorio de extracción** no opera en la plataforma, y la recepción de la notificación en el **laboratorio central** no debe depender de una persona.
-- Restricción: la **muestra de sangre** debe tener un volumen mínimo de 2 ml para continuar el proceso.
+- Restricción: el volumen de la **muestra de sangre** solo se registra; no condiciona el proceso (no hay volumen mínimo).
 - [deseo] La notificación por Telegram con un bot es una propuesta del PO, sujeta al costo.
 - Restricción [supuesto]: el volumen viaja en la propia notificación (P7).
 
@@ -715,10 +715,10 @@ Son independientes del ciclo de vida.
 2. El **laboratorio de extracción** toma la **muestra de sangre** y registra su volumen en mililitros.
 3. El **laboratorio de extracción** notifica la toma al **laboratorio central**, con los datos que identifican el **estudio** y el volumen de la muestra.
 4. El sistema recibe la notificación sin intervención de personas y registra la **muestra de sangre** en el **estudio**.
-5. Si el volumen alcanza los 2 ml, el sistema pasa el **estudio** a **Listo para retirar** y lo incluye entre las muestras por retirar.
+5. El sistema pasa el **estudio** a **Listo para retirar** y lo incluye entre las muestras por retirar, cualquiera sea el volumen.
 
 **Excepciones:**
-- Si la **muestra de sangre** tiene menos de 2 ml, no se habilita su retiro y se continúa con SOLICITAR EL REMUESTREO (25).
+- Si la **muestra de sangre** llega a Corea con mala calidad, el **administrativo del laboratorio** pide el remuestreo con SOLICITAR EL REMUESTREO (25).
 
 ---
 
@@ -727,20 +727,22 @@ Son independientes del ciclo de vida.
 **Objetivo:** Que el paciente vuelva a dar una muestra, sin costo, cuando la anterior no sirve para el estudio.
 
 **Contexto:**
-- Subescenario invocado desde el escenario 24 (volumen menor a 2 ml) y desde el escenario 36 (**ADN** insuficiente).
+- Se invoca desde el escenario 36 (**ADN** insuficiente, lo informa el **bioinformático**) y cuando la **muestra de sangre** llega a Corea con mala calidad (lo pide el **administrativo del laboratorio**, con el **estudio** En viaje a Corea o En el área de bioinformática).
 - Restricción: es el mismo **estudio**, sin costo para el **paciente**, y conserva el historial del **estudio** y de la **muestra de sangre** anterior.
-- Restricción [supuesto]: el **ADN** desnaturalizado lo detecta el **bioinformático** al analizar el **estudio**, y el volumen insuficiente lo detecta el sistema al recibir la notificación.
+- Restricción [supuesto]: el **ADN** desnaturalizado lo detecta el **bioinformático** al analizar el **estudio**, y la mala calidad de la muestra la informa Corea por mail al **administrativo del laboratorio**; el sistema no modela esa comunicación.
+- Restricción [supuesto]: el **administrativo del laboratorio** debe indicar el motivo del remuestreo.
+- Pendiente: qué pasa con un **lote** ya sellado o en viaje; hoy el remuestreo se registra y el **estudio** sale del **lote** cuando los lotes se guarden en la base.
 - Pendiente (P7): confirmar con el PO cómo llega el volumen al sistema y quién detecta el **ADN** insuficiente.
 
-**Actores:** Sistema, Bioinformático, Paciente.
+**Actores:** Administrativo del laboratorio, Bioinformático, Sistema, Paciente.
 
-**Recursos:** Detalle del estudio, avisos.
+**Recursos:** Detalle del estudio, motivo, avisos.
 
 **Episodios:**
-1. El sistema registra en el **estudio** el motivo del remuestreo: volumen menor a 2 ml o **ADN** desnaturalizado, este último indicado por el **bioinformático**.
+1. El sistema registra en el **estudio** el remuestreo, con su motivo y quién lo pidió: mala calidad de la muestra, indicada por el **administrativo del laboratorio**, o **ADN** desnaturalizado, indicado por el **bioinformático**.
 2. El sistema envía un **aviso** al **médico tratante** y al **paciente**.
-3. El sistema habilita al **paciente** para sacar un nuevo turno, sin nuevo cobro y sin crear un nuevo **estudio**.
-4. El **paciente** reserva el turno mediante SACAR TURNO DE EXTRACCIÓN (20), y el **estudio** pasa a **Turno sacado**.
+3. El sistema vuelve el **estudio** a **Turno sacado**, lo saca de su **lote** y habilita al **paciente** para sacar un nuevo turno, sin nuevo cobro y sin crear un nuevo **estudio**.
+4. El **paciente** reserva el turno mediante SACAR TURNO DE EXTRACCIÓN (20).
 
 **Excepciones:**
 - Si el **paciente** no reserva el nuevo turno, el **estudio** queda detenido y el **aviso** sigue pendiente en su vista.

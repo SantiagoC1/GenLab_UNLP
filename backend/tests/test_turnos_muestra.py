@@ -46,32 +46,22 @@ def notificar(client, volumen, estudio=1):
     )
 
 
-@pytest.mark.parametrize("volumen", [2, 2.0, 2.5, 10])
-def test_con_al_menos_2_ml_el_estudio_pasa_a_listo_para_retirar(client, entorno, volumen):
+@pytest.mark.parametrize("volumen", [0.5, 1.99, 2, 2.5, 10])
+def test_toda_muestra_recibida_pasa_a_listo_para_retirar_sin_importar_el_volumen(
+    client, entorno, remuestreos, volumen
+):
     estudios, turnos = entorno
-    r = notificar(client, volumen)
+    r = client.post("/turnos/notificaciones-muestra", json={"estudio_id": 1, "volumen_ml": volumen})
     assert r.status_code == 200
     assert r.json()["estado"] == "ListoParaRetirar"
-    assert r.json()["volumen_suficiente"] is True
     assert r.json()["listo_para_retirar"] is True
     assert estudios.obtener(1).estado == EstadoEstudio.LISTO_PARA_RETIRAR
-    # the appointment was attended and the sample is registered in the study
+    # the appointment was attended and the volume is only recorded
     assert turnos.turnos[1].estado == REALIZADO
     (muestra,) = turnos.listar_muestras(1)
     assert (muestra.volumen_ml, muestra.tomada_en) == (volumen, DESPUES)
-
-
-@pytest.mark.parametrize("volumen", [0.5, 1.99])
-def test_con_menos_de_2_ml_no_se_habilita_el_retiro(client, entorno, volumen):
-    estudios, turnos = entorno
-    r = notificar(client, volumen)
-    assert r.status_code == 200
-    assert r.json()["volumen_suficiente"] is False
-    assert r.json()["listo_para_retirar"] is False
-    assert r.json()["estado"] == "TurnoSacado"
-    assert estudios.obtener(1).estado == EstadoEstudio.TURNO_SACADO
-    # the insufficient sample is kept in the history
-    assert [m.volumen_ml for m in turnos.listar_muestras(1)] == [volumen]
+    # a small volume does not open a resampling any more
+    assert remuestreos.listar(1) == []
 
 
 @pytest.mark.parametrize("volumen", [0, -1, 51, "mucho"])

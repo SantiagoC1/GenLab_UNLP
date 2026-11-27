@@ -15,11 +15,10 @@ APERTURA = time(9, 0)
 CIERRE = time(18, 0)
 # M6-RF8: at this many absences the patient is told; nothing is blocked until P2 is resolved.
 LIMITE_INASISTENCIAS = 5
-# M6-RF9: the blood sample needs at least this volume to continue the process.
-VOLUMEN_MINIMO_ML = 2.0
-# Reasons of a resampling (M6-RF10).
-MOTIVO_VOLUMEN = "volumen_menor_2ml"
-MOTIVO_ADN = "adn_desnaturalizado"
+# Reasons of a resampling (M6-RF10). The volume of a sample is only recorded: it decides nothing.
+MOTIVO_ADN = "adn_desnaturalizado"  # reported by the bioinformatician
+MOTIVO_CALIDAD = "mala_calidad_de_muestra"  # the sample arrived to Korea in bad condition
+MOTIVOS_REMUESTREO = (MOTIVO_CALIDAD, MOTIVO_ADN)
 # [assumption] How far ahead an appointment can be booked.
 HORIZONTE_DIAS = 60
 

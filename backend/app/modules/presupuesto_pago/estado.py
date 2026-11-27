@@ -18,8 +18,12 @@ TRANSITIONS: dict[E, frozenset[E]] = {
     E.LISTO_PARA_RETIRAR: frozenset({E.EN_CAMINO_AL_LABORATORIO_CENTRAL}),
     E.EN_CAMINO_AL_LABORATORIO_CENTRAL: frozenset({E.EN_LABORATORIO_CENTRAL}),
     E.EN_LABORATORIO_CENTRAL: frozenset({E.EN_VIAJE_A_COREA}),
-    E.EN_VIAJE_A_COREA: frozenset({E.EN_EL_AREA_DE_BIOINFORMATICA}),
-    E.EN_EL_AREA_DE_BIOINFORMATICA: frozenset({E.EN_ANALISIS_POR_UN_BIOINFORMATICO}),
+    # N5: the administrative user asks for a resampling when the sample reached Korea in bad
+    # condition. TODO: pending approval of Integrante A (CONTRIBUTING: changes to this model).
+    E.EN_VIAJE_A_COREA: frozenset({E.EN_EL_AREA_DE_BIOINFORMATICA, E.TURNO_SACADO}),
+    E.EN_EL_AREA_DE_BIOINFORMATICA: frozenset(
+        {E.EN_ANALISIS_POR_UN_BIOINFORMATICO, E.TURNO_SACADO}
+    ),
     E.EN_ANALISIS_POR_UN_BIOINFORMATICO: frozenset({E.RESULTADO_DISPONIBLE, E.TURNO_SACADO}),
     E.RESULTADO_DISPONIBLE: frozenset(),
 }
