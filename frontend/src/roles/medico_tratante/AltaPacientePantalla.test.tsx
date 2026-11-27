@@ -141,7 +141,8 @@ describe('AltaPacientePantalla', () => {
         symptoms: [PAIN],
       },
     ])
-  })
+    // It types a lot with userEvent: on a slow machine (CI) the default 5 s is not always enough.
+  }, 20_000)
 
   it('lets a familial suspicion go without symptoms', async () => {
     const mock = mockApi(routes())
